@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>GeoQuiz – Flaggen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0;background:#fff}
+a{color:#111}a:hover{color:#000}
+.fq *{box-sizing:border-box}.fq button:focus-visible,.fq a:focus-visible{outline:3px solid #111;outline-offset:2px}
+.flag{background-image:url(/_blob/78a49d8fb5084507a21c31a0c39272c1);background-repeat:no-repeat;display:block}
+.fq-opt{position:relative;overflow:hidden;display:grid;grid-template-columns:48px 1fr;min-height:56px;width:100%;border:2px solid #111;margin-top:-2px;background:#fff;color:#111;font:inherit;text-align:left;padding:0;cursor:pointer;transition:color .2s .12s}
+.fq-opt::before{content:'';position:absolute;inset:0;background:#111;transform:scaleX(0);transform-origin:left;transition:transform .42s cubic-bezier(.65,0,.35,1)}
+.fq-opt>span{position:relative;z-index:1}.fq-open .fq-opt:hover{background:#EDEDED}
+.fq-opt.is-right{color:#fff}.fq-opt.is-right::before{transform:scaleX(1)}.fq-opt.is-dim{color:#6B6B6B}
+.fq-opt.is-wrong{color:#fff;animation:fqShake .42s cubic-bezier(.36,.07,.19,.97) both}.fq-opt.is-wrong::before{background:var(--accent);transform:scaleX(1)}
+@keyframes fqShake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes fqA{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}@keyframes fqB{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.in-a{animation:fqA .5s cubic-bezier(.2,.8,.2,1) both}.in-b{animation:fqB .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fqWa{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}@keyframes fqWb{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.wipe-a{animation:fqWa .7s cubic-bezier(.65,0,.35,1) both}.wipe-b{animation:fqWb .7s cubic-bezier(.65,0,.35,1) both}
+.fq-cap{position:absolute;left:0;bottom:0;padding:8px 12px;font-size:20px;font-weight:800;letter-spacing:-.02em;background:#111;color:#fff;transform:translateY(101%);transition:transform .4s .1s cubic-bezier(.2,.8,.2,1)}.fq-shown .fq-cap{transform:none}
+@keyframes fqPa{40%{transform:scale(1.35)}}@keyframes fqPb{40%{transform:scale(1.35)}}.pop-a{display:inline-block;animation:fqPa .45s cubic-bezier(.2,.8,.2,1)}.pop-b{display:inline-block;animation:fqPb .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes fqT{from{transform:scaleX(0)}to{transform:scaleX(1)}}.fq-timer{position:absolute;left:0;bottom:0;height:4px;width:100%;background:var(--ok);transform-origin:left;animation:fqT 1.1s linear both}
+@keyframes fqUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}.fq-next{animation:fqUp .35s cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div class="fq" style="width:100%;height:100vh;overflow:auto;background:#fff;font-family:'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif;color:#111;--accent:{{accent}};--ok:{{ok}}">
+  <div style="min-height:100%;display:flex;flex-direction:column;width:100%;max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom))">
+
+    <div style="display:flex;align-items:stretch;margin-bottom:16px">
+      <a href="Main.dc.html" aria-label="Zur Karte" style="flex:0 0 auto;width:48px;height:48px;border:2px solid #111;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:18px;font-weight:700">←</a>
+      <div style="flex:1 1 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 12px;border:2px solid #111;margin-left:-2px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-variant-numeric:tabular-nums">
+        <span>Flaggen</span><span>{{counter}}</span><span><span class="{{popCls}}">{{scorePad}}</span> Punkte</span>
+      </div>
+    </div>
+
+    <sc-if value="{{playing}}" hint-placeholder-val="{{ true }}">
+      <div class="{{capCls}}" style="position:relative;width:100%;aspect-ratio:4/3;border:2px solid #111;overflow:hidden;background:#F1F1F1;margin-bottom:16px">
+        <sc-if value="{{ready}}" hint-placeholder-val="{{ false }}">
+          <span class="flag {{wipeCls}}" role="img" aria-label="Gesuchte Flagge" style="position:absolute;inset:0;{{flagBg}}"></span>
+        </sc-if>
+        <span class="fq-cap">{{solution}}</span>
+      </div>
+      <div class="{{animQ}}" style="font-size:24px;line-height:1.15;font-weight:700;letter-spacing:-.02em;margin-bottom:14px">Welches Land ist das?</div>
+      <div class="{{optsCls}}" style="display:flex;flex-direction:column;padding-top:2px">
+        <sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+          <button class="fq-opt {{o.cls}} {{animQ}}" onClick="{{o.pick}}" style="animation-delay:{{o.delay}}">
+            <span style="display:flex;align-items:center;justify-content:center;border-right:2px solid currentColor;font-size:13px;font-weight:700">{{o.no}}</span>
+            <span style="display:flex;align-items:center;padding:10px 14px;font-size:16px;font-weight:600;line-height:1.2">{{o.label}}</span>
+          </button>
+        </sc-for>
+      </div>
+      <sc-if value="{{answered}}" hint-placeholder-val="{{ false }}">
+        <button ref="{{focusBtn}}" class="fq-next" onClick="{{next}}" style="position:relative;overflow:hidden;margin-top:16px;height:56px;width:100%;border:2px solid #111;background:#111;color:#fff;font:inherit;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;padding:0 14px;cursor:pointer">
+          <span>{{nextLabel}}</span><span style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.75">Leertaste</span><span aria-hidden="true">→</span></span>
+          <sc-if value="{{auto}}" hint-placeholder-val="{{ false }}"><span class="fq-timer"></span></sc-if>
+        </button>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+      <div class="in-a" style="display:flex;flex-direction:column;gap:8px;border-top:2px solid #111;padding-top:12px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase">Runde beendet</div>
+        <div style="font-size:120px;line-height:.85;font-weight:800;letter-spacing:-.06em;font-variant-numeric:tabular-nums">{{finalScore}}</div>
+        <div style="font-size:15px;line-height:1.35">{{finalText}}</div>
+      </div>
+      <button ref="{{focusBtn}}" class="fq-next" onClick="{{newRound}}" style="margin-top:auto;height:56px;width:100%;border:2px solid #111;background:#111;color:#fff;font:inherit;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;padding:0 14px;cursor:pointer"><span>Neue Runde</span><span aria-hidden="true">→</span></button>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#E3000F","options":["#E3000F","#FF5A00","#0047FF","#111111"]},"ok":{"editor":"color","default":"#00A651","options":["#00A651","#00C46A","#0047FF","#111111"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(...a) {
+    super(...a);
+    this.ROUND = 20;
+    this.DATA_URL = '/_blob/98a8b1a1c150fe0c073bfb2b0ed07c39';
+    this.state = { data: null, order: [], qi: 0, score: 0, picked: null, done: false };
+    this.autoT = null;
+    this.focusBtn = (el) => { if (el && el !== this.fb) { this.fb = el; requestAnimationFrame(() => { try { el.focus({ preventScroll: true }); } catch (e) {} }); } if (!el) this.fb = null; };
+    this.next = () => {
+      clearTimeout(this.autoT); this.autoT = null;
+      if (this.state.picked === null) return;
+      if (this.state.qi + 1 >= this.ROUND) this.setState({ done: true, picked: null });
+      else this.setState({ qi: this.state.qi + 1, picked: null });
+    };
+    this.newRound = () => this.setState({ order: this.makeRound(), qi: 0, score: 0, picked: null, done: false });
+  }
+  componentDidMount() {
+    fetch(this.DATA_URL).then((r) => r.json()).then((d) => {
+      const W = d.w;
+      this.pool = d.c.filter((c) => c.q !== 0 && d.flags.idx[c.id] !== undefined).map((c) => ({ id: c.id, n: c.n, x: c.b[0] + c.b[2] / 2, y: c.b[1] + c.b[3] / 2 }));
+      this.W = W;
+      this.setState({ data: d }, () => this.setState({ order: this.makeRound() }));
+    });
+  }
+  componentWillUnmount() { clearTimeout(this.autoT); }
+  makeRound() {
+    const P = this.pool.slice();
+    for (let i = P.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [P[i], P[j]] = [P[j], P[i]]; }
+    return P.slice(0, this.ROUND).map((t) => {
+      const near = this.pool.filter((c) => c.id !== t.id).map((c) => { const dx = Math.abs(c.x - t.x); return { c, d: Math.hypot(Math.min(dx, this.W - dx), c.y - t.y) }; })
+        .sort((a, b) => a.d - b.d).slice(0, 6);
+      const picks = near.sort(() => Math.random() - 0.5).slice(0, 3).map((x) => x.c);
+      const opts = [t, ...picks];
+      for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [opts[i], opts[j]] = [opts[j], opts[i]]; }
+      return { t, opts };
+    });
+  }
+  flagBg(id) {
+    const f = this.state.data && this.state.data.flags; const i = f ? f.idx[id] : undefined;
+    if (i === undefined) return 'visibility:hidden';
+    const col = i % f.cols, row = Math.floor(i / f.cols);
+    return 'background-size:' + (f.cols * 100) + '% ' + (f.rows * 100) + '%;background-position:' + (col / (f.cols - 1) * 100).toFixed(4) + '% ' + (row / (f.rows - 1) * 100).toFixed(4) + '%';
+  }
+  answer(qi, id) {
+    if (this.state.picked !== null || this.state.qi !== qi) return;
+    const ok = id === this.state.order[qi].t.id;
+    this.setState({ picked: id, score: this.state.score + (ok ? 1 : 0) });
+    if (ok) this.autoT = setTimeout(() => this.next(), 1100);
+  }
+  renderVals() {
+    const st = this.state, accent = this.props.accent ?? '#E3000F', okc = this.props.ok ?? '#00A651';
+    const cur = st.order[st.qi];
+    const pad = (n) => String(n).padStart(2, '0');
+    const answered = st.picked !== null;
+    const opts = cur ? cur.opts.map((c, pos) => ({
+      no: pos + 1, label: c.n, delay: (pos * 50) + 'ms', pick: () => this.answer(st.qi, c.id),
+      cls: !answered ? '' : c.id === cur.t.id ? 'is-right' : c.id === st.picked ? 'is-wrong' : 'is-dim'
+    })) : [];
+    return {
+      accent, ok: okc, ready: !!cur, playing: !st.done, done: st.done,
+      flagBg: cur ? this.flagBg(cur.t.id) : '', solution: cur ? cur.t.n : '',
+      wipeCls: st.qi % 2 ? 'wipe-a' : 'wipe-b', animQ: st.qi % 2 ? 'in-a' : 'in-b', capCls: answered ? 'fq-shown' : '',
+      counter: pad(Math.min(st.qi + 1, this.ROUND)) + ' / ' + this.ROUND, scorePad: pad(st.score), popCls: st.score === 0 ? '' : st.score % 2 ? 'pop-a' : 'pop-b',
+      opts, optsCls: answered ? '' : 'fq-open', answered, auto: answered && cur && st.picked === cur.t.id,
+      focusBtn: this.focusBtn, next: this.next, newRound: this.newRound,
+      nextLabel: st.qi + 1 >= this.ROUND ? 'Ergebnis' : 'Weiter',
+      finalScore: st.score + '/' + this.ROUND,
+      finalText: st.score >= 16 ? 'Starke Runde.' : st.score >= 10 ? 'Solide. Die Lücken holst du dir in der nächsten Runde.' : 'Da geht noch was. Nächste Runde.'
+    };
+  }
+}
+</script>
+</body>
+</html>

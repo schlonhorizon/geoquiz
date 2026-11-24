@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>GeoQuiz – Länder-Modus</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0;background:#fff}
+a{color:inherit}a:hover{color:inherit}
+.gl *{box-sizing:border-box}.gl button:focus-visible,.gl a:focus-visible{outline:3px solid #111;outline-offset:2px}
+.flag{background-image:url(/_blob/78a49d8fb5084507a21c31a0c39272c1);background-repeat:no-repeat;display:block}
+.gl-opt{position:relative;overflow:hidden;display:grid;grid-template-columns:48px 1fr;min-height:56px;width:100%;border:2px solid #111;margin-top:-2px;background:#fff;color:#111;font:inherit;text-align:left;padding:0;cursor:pointer;transition:color .2s .12s}
+.gl-opt::before{content:'';position:absolute;inset:0;background:#111;transform:scaleX(0);transform-origin:left;transition:transform .42s cubic-bezier(.65,0,.35,1)}
+.gl-opt>span{position:relative;z-index:1}.gl-open .gl-opt:hover{background:#EDEDED}
+.gl-opt.is-right{color:#fff}.gl-opt.is-right::before{transform:scaleX(1)}.gl-opt.is-dim{color:#6B6B6B}
+.gl-opt.is-wrong{color:#fff;animation:glShake .42s cubic-bezier(.36,.07,.19,.97) both}.gl-opt.is-wrong::before{background:var(--accent);transform:scaleX(1)}
+@keyframes glShake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.gl-tile{position:relative;overflow:hidden;aspect-ratio:4/3;border:2px solid #111;padding:0;background:#fff;cursor:pointer;transition:opacity .3s,box-shadow .3s}
+.gl-tile.is-right{box-shadow:inset 0 0 0 5px #111}.gl-tile.is-dim{opacity:.4}.gl-open .gl-tile:hover{box-shadow:inset 0 0 0 3px #111}
+.gl-cap{position:absolute;left:0;right:0;bottom:0;padding:6px 8px;font-size:13px;font-weight:700;background:#fff;color:#111;text-align:left;transform:translateY(101%);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.gl-done .gl-cap{transform:none}.gl-tile.is-right .gl-cap{background:#111;color:#fff}.gl-tile.is-wrong .gl-cap{background:var(--accent);color:#fff}
+@keyframes glA{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}@keyframes glB{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.in-a{animation:glA .5s cubic-bezier(.2,.8,.2,1) both}.in-b{animation:glB .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes glWa{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}@keyframes glWb{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+.wipe-a{animation:glWa .8s cubic-bezier(.65,0,.35,1) both}.wipe-b{animation:glWb .8s cubic-bezier(.65,0,.35,1) both}
+@keyframes glMa{from{transform:translateY(105%)}to{transform:none}}@keyframes glMb{from{transform:translateY(105%)}to{transform:none}}
+.mask-a{animation:glMa .8s .3s cubic-bezier(.2,.8,.2,1) both}.mask-b{animation:glMb .8s .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes glDa{from{stroke-dashoffset:1;fill-opacity:0}70%{stroke-dashoffset:0;fill-opacity:0}to{stroke-dashoffset:0;fill-opacity:.9}}@keyframes glDb{from{stroke-dashoffset:1;fill-opacity:0}70%{stroke-dashoffset:0;fill-opacity:0}to{stroke-dashoffset:0;fill-opacity:.9}}
+.draw-a{stroke-dasharray:1;animation:glDa 1.8s .35s cubic-bezier(.65,0,.35,1) both}.draw-b{stroke-dasharray:1;animation:glDb 1.8s .35s cubic-bezier(.65,0,.35,1) both}
+@keyframes glFlag{from{opacity:0;transform:translateY(-24px) rotate(-8deg) scale(.7)}to{opacity:1;transform:none}}.gl-flagin{animation:glFlag .6s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes glT{from{transform:scaleX(0)}to{transform:scaleX(1)}}.gl-timer{position:absolute;left:0;bottom:0;height:4px;width:100%;background:var(--ok);transform-origin:left;animation:glT 1.1s linear both}
+@keyframes glUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}.gl-next{animation:glUp .35s cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div class="gl" style="width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#fff;font-family:'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif;color:#111;--accent:{{accent}};--ok:{{ok}}">
+
+  <section style="position:relative;flex:0 0 auto;height:clamp(250px,36vh,380px);background:{{prevBg}};color:{{fg}};transition:color .3s .35s;display:flex;flex-direction:column;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 16px 18px;border-bottom:2px solid #111;overflow:hidden">
+    <div class="{{wipeCls}}" style="position:absolute;inset:0;background:{{bg}}"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1">
+      <a href="Main.dc.html" style="display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border:2px solid currentColor;text-decoration:none;font-size:13px;font-weight:700"><span aria-hidden="true">←</span><span>Karte</span></a>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-variant-numeric:tabular-nums">Land {{landNo}}</div>
+    </div>
+    <sc-if value="{{hasShape}}" hint-placeholder-val="{{ false }}">
+      <svg viewBox="{{vb}}" preserveAspectRatio="xMaxYMid meet" aria-hidden="true" style="position:absolute;right:16px;top:72px;width:58%;height:calc(100% - 150px);z-index:1">
+        <path class="{{drawCls}}" d="{{shape}}" pathLength="1" style="fill:currentColor;stroke:currentColor;stroke-width:{{sw}};stroke-linejoin:round"></path>
+      </svg>
+    </sc-if>
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start">
+      <sc-if value="{{showFlag}}" hint-placeholder-val="{{ false }}">
+        <span class="flag gl-flagin" role="img" aria-label="Flagge von {{name}}" style="width:64px;height:48px;outline:2px solid currentColor;margin-bottom:12px;{{landFlag}}"></span>
+      </sc-if>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Länder-Modus</div>
+      <div style="overflow:hidden;padding-bottom:4px"><div class="{{maskCls}}" style="font-size:{{nameSize}};line-height:.92;font-weight:800;letter-spacing:-.045em">{{name}}</div></div>
+    </div>
+  </section>
+
+  <div style="flex:1 1 auto;display:flex;flex-direction:column;width:100%;max-width:560px;margin:0 auto;padding:14px 16px calc(14px + env(safe-area-inset-bottom));min-height:0">
+    <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:14px" aria-hidden="true">
+      <sc-for list="{{steps}}" as="sp" hint-placeholder-count="7"><span style="position:relative;height:10px;border:2px solid #111;overflow:hidden"><span style="position:absolute;inset:0;background:{{sp.fill}};transform:scaleX({{sp.on}});transform-origin:left;transition:transform .45s cubic-bezier(.65,0,.35,1),background .3s"></span></span></sc-for>
+    </div>
+
+    <sc-if value="{{asking}}" hint-placeholder-val="{{ true }}">
+      <div class="{{animQ}}" style="display:flex;align-items:baseline;gap:10px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px"><span style="font-variant-numeric:tabular-nums">{{qNo}}</span><span>{{qLabel}}</span></div>
+      <div class="{{animQ}}" style="font-size:24px;line-height:1.15;font-weight:700;letter-spacing:-.02em;margin-bottom:14px;text-wrap:pretty">{{qText}}</div>
+
+      <sc-if value="{{isFlagQ}}" hint-placeholder-val="{{ false }}">
+        <div class="{{tilesCls}}" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+          <sc-for list="{{tiles}}" as="t" hint-placeholder-count="4">
+            <button class="gl-tile {{t.cls}} {{animQ}}" onClick="{{t.pick}}" aria-label="Flagge {{t.no}}" style="animation-delay:{{t.delay}}">
+              <span class="flag" style="position:absolute;inset:0;{{t.bg}}"></span>
+              <span style="position:absolute;top:0;left:0;width:24px;height:24px;background:#111;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">{{t.no}}</span>
+              <span class="gl-cap">{{t.name}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isTextQ}}" hint-placeholder-val="{{ true }}">
+        <div class="{{optsCls}}" style="display:flex;flex-direction:column;padding-top:2px">
+          <sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+            <button class="gl-opt {{o.cls}} {{animQ}}" onClick="{{o.pick}}" style="animation-delay:{{o.delay}}">
+              <span style="display:flex;align-items:center;justify-content:center;border-right:2px solid currentColor;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">{{o.no}}</span>
+              <span style="display:flex;align-items:center;padding:10px 14px;font-size:16px;font-weight:600;line-height:1.2">{{o.label}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showNext}}" hint-placeholder-val="{{ false }}">
+        <button ref="{{focusBtn}}" class="gl-next" onClick="{{next}}" style="position:relative;overflow:hidden;margin-top:auto;height:56px;width:100%;border:2px solid #111;background:#111;color:#fff;font:inherit;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;padding:0 14px;cursor:pointer">
+          <span>{{nextLabel}}</span><span style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.75">Leertaste</span><span aria-hidden="true">→</span></span>
+          <sc-if value="{{auto}}" hint-placeholder-val="{{ false }}"><span class="gl-timer"></span></sc-if>
+        </button>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{summary}}" hint-placeholder-val="{{ false }}">
+      <div class="{{animQ}}" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding-bottom:6px">Steckbrief</div>
+        <div style="font-size:56px;line-height:.85;font-weight:800;letter-spacing:-.05em;font-variant-numeric:tabular-nums">{{scoreTxt}}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;border-bottom:2px solid #111">
+        <sc-for list="{{facts}}" as="f" hint-placeholder-count="7">
+          <div class="{{animQ}}" style="display:grid;grid-template-columns:10px 96px 1fr;gap:10px;align-items:center;padding:8px 0;border-top:2px solid #111;animation-delay:{{f.delay}}">
+            <span style="width:10px;height:10px;background:{{f.mark}}"></span>
+            <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase">{{f.label}}</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;line-height:1.2">
+              <sc-if value="{{f.isFlag}}" hint-placeholder-val="{{ false }}"><span class="flag" style="width:32px;height:24px;outline:2px solid #111;{{f.bg}}"></span></sc-if>
+              <span>{{f.value}}</span>
+            </span>
+          </div>
+        </sc-for>
+      </div>
+      <button ref="{{focusBtn}}" class="gl-next" onClick="{{nextLand}}" style="margin-top:auto;height:56px;width:100%;border:2px solid #111;background:#111;color:#fff;font:inherit;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;padding:0 14px;cursor:pointer"><span>Nächstes Land</span><span aria-hidden="true">→</span></button>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#E3000F","options":["#E3000F","#FF5A00","#0047FF","#111111"]},"ok":{"editor":"color","default":"#00A651","options":["#00A651","#00C46A","#0047FF","#111111"]},"start":{"editor":"enum","default":"Brasilien","options":["Japan","Brasilien","Schweden","Niederlande","Argentinien"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(...a) {
+    super(...a);
+    this.DATA_URL = '/_blob/98a8b1a1c150fe0c073bfb2b0ed07c39';
+    this.state = { data: null, step: 0, qi: 0, picked: null, results: [], prev: null, shown: 0 };
+    this.autoT = null; this.countT = null;
+    this.focusBtn = (el) => { if (el && el !== this.fb) { this.fb = el; requestAnimationFrame(() => { try { el.focus({ preventScroll: true }); } catch (e) {} }); } if (!el) this.fb = null; };
+    this.next = () => {
+      clearTimeout(this.autoT); this.autoT = null;
+      if (this.state.picked === null) return;
+      const qi = this.state.qi + 1;
+      this.setState({ qi, picked: null, shown: 0 }, () => { if (qi >= this.qs().length) this.countUp(); });
+    };
+    this.nextLand = () => {
+      clearInterval(this.countT);
+      this.setState({ prev: this.land().color, step: this.state.step + 1, qi: 0, picked: null, results: [], shown: 0 });
+    };
+  }
+  componentDidMount() {
+    fetch(this.DATA_URL).then((r) => r.json()).then((d) => {
+      const shapes = {}; d.c.forEach((c) => { shapes[c.id] = c; });
+      this.setState({ data: { shapes, flags: d.flags } });
+    });
+  }
+  componentWillUnmount() { clearTimeout(this.autoT); clearInterval(this.countT); }
+  countUp() {
+    const target = this.state.results.filter((x) => x).length;
+    clearInterval(this.countT);
+    this.countT = setInterval(() => {
+      if (this.state.shown >= target) { clearInterval(this.countT); return; }
+      this.setState({ shown: this.state.shown + 1 });
+    }, 140);
+  }
+  lands() {
+    return [
+      { id: 'JPN', n: 'Japan', color: '#BC002D', flag: ['JPN', 'BGD', 'PLW', 'KOR'], flagN: ['Japan', 'Bangladesch', 'Palau', 'Südkorea'],
+        cap: ['Tokio', 'Osaka', 'Kyōto', 'Seoul'], kon: ['Asien', 'Ozeanien', 'Europa', 'Nordamerika'],
+        cur: ['Yen', 'Won', 'Yuan', 'Ringgit'], cb: ['Bank of Japan', 'Bank of Korea', "People's Bank of China", 'Reserve Bank of Australia'],
+        idx: ['Nikkei 225', 'Hang Seng', 'KOSPI', 'Straits Times Index'], gov: ['Parlamentarische Monarchie', 'Präsidialrepublik', 'Parlamentarische Republik', 'Absolute Monarchie'] },
+      { id: 'BRA', n: 'Brasilien', color: '#009739', flag: ['BRA', 'PRT', 'BOL', 'GUY'], flagN: ['Brasilien', 'Portugal', 'Bolivien', 'Guyana'],
+        cap: ['Brasília', 'Rio de Janeiro', 'São Paulo', 'Buenos Aires'], kon: ['Südamerika', 'Nordamerika', 'Afrika', 'Europa'],
+        cur: ['Real', 'Peso', 'Sol', 'Bolívar'], cb: ['Banco Central do Brasil', 'Banco de México', 'Banco Central de Chile', 'Banco de la República'],
+        idx: ['Ibovespa', 'S&P Merval', 'IPC', 'COLCAP'], gov: ['Präsidialrepublik', 'Parlamentarische Monarchie', 'Parlamentarische Republik', 'Einparteienstaat'] },
+      { id: 'SWE', n: 'Schweden', color: '#006AA7', flag: ['SWE', 'FIN', 'NOR', 'DNK'], flagN: ['Schweden', 'Finnland', 'Norwegen', 'Dänemark'],
+        cap: ['Stockholm', 'Göteborg', 'Oslo', 'Helsinki'], kon: ['Europa', 'Asien', 'Nordamerika', 'Ozeanien'],
+        cur: ['Schwedische Krone', 'Euro', 'Norwegische Krone', 'Dänische Krone'], cb: ['Sveriges Riksbank', 'Norges Bank', 'Danmarks Nationalbank', 'Suomen Pankki'],
+        idx: ['OMX Stockholm 30', 'OBX', 'OMX Copenhagen 25', 'OMX Helsinki 25'], gov: ['Parlamentarische Monarchie', 'Präsidialrepublik', 'Parlamentarische Republik', 'Absolute Monarchie'] },
+      { id: 'NLD', n: 'Niederlande', color: '#FF4F00', flag: ['NLD', 'LUX', 'RUS', 'FRA'], flagN: ['Niederlande', 'Luxemburg', 'Russland', 'Frankreich'],
+        cap: ['Amsterdam', 'Den Haag', 'Rotterdam', 'Brüssel'], kon: ['Europa', 'Asien', 'Afrika', 'Nordamerika'],
+        cur: ['Euro', 'Gulden', 'Belgischer Franc', 'Pfund Sterling'], cb: ['De Nederlandsche Bank', 'Nationale Bank van België', 'Deutsche Bundesbank', 'Banque de France'],
+        idx: ['AEX', 'BEL 20', 'DAX', 'CAC 40'], gov: ['Parlamentarische Monarchie', 'Präsidialrepublik', 'Parlamentarische Republik', 'Absolute Monarchie'] },
+      { id: 'ARG', n: 'Argentinien', color: '#74ACDF', flag: ['ARG', 'URY', 'NIC', 'HND'], flagN: ['Argentinien', 'Uruguay', 'Nicaragua', 'Honduras'],
+        cap: ['Buenos Aires', 'Córdoba', 'Montevideo', 'Santiago de Chile'], kon: ['Südamerika', 'Nordamerika', 'Europa', 'Afrika'],
+        cur: ['Argentinischer Peso', 'Real', 'Uruguayischer Peso', 'Sol'], cb: ['Banco Central de la República Argentina', 'Banco Central do Brasil', 'Banco Central de Chile', 'Banco Central del Uruguay'],
+        idx: ['S&P Merval', 'Ibovespa', 'IPSA', 'COLCAP'], gov: ['Präsidialrepublik', 'Parlamentarische Monarchie', 'Parlamentarische Republik', 'Einparteienstaat'] }
+    ];
+  }
+  qs() {
+    return [
+      { k: 'flag', label: 'Flagge', q: 'Welche Flagge gehört zu {n}?' },
+      { k: 'cap', label: 'Hauptstadt', q: 'Was ist die Hauptstadt von {n}?' },
+      { k: 'kon', label: 'Kontinent', q: 'Auf welchem Kontinent liegt {n}?' },
+      { k: 'cur', label: 'Währung', q: 'Womit bezahlt man in {n}?' },
+      { k: 'cb', label: 'Zentralbank', q: 'Wie heißt die Zentralbank von {n}?' },
+      { k: 'idx', label: 'Leitindex', q: 'Wie heißt der Leitindex von {n}?' },
+      { k: 'gov', label: 'Staatsform', q: 'Welche Staatsform hat {n}?' }
+    ];
+  }
+  startIdx() { const L = this.lands(); return Math.max(0, L.findIndex((l) => l.n === (this.props.start ?? 'Brasilien'))); }
+  land() { const L = this.lands(); return L[(this.startIdx() + this.state.step) % L.length]; }
+  lum(hex) {
+    const v = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+  }
+  order(seed) {
+    return [0, 1, 2, 3].map((i) => ({ i, h: Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453 % 1 })).sort((a, b) => a.h - b.h).map((x) => x.i);
+  }
+  flagBg(id) {
+    const f = this.state.data && this.state.data.flags; const i = f ? f.idx[id] : undefined;
+    if (i === undefined) return 'visibility:hidden';
+    const col = i % f.cols, row = Math.floor(i / f.cols);
+    return 'background-size:' + (f.cols * 100) + '% ' + (f.rows * 100) + '%;background-position:' + (col / (f.cols - 1) * 100).toFixed(4) + '% ' + (row / (f.rows - 1) * 100).toFixed(4) + '%';
+  }
+  answer(qi, idx) {
+    if (this.state.picked !== null || this.state.qi !== qi) return;
+    const results = this.state.results.slice(); results[qi] = idx === 0;
+    this.setState({ picked: idx, results });
+    if (idx === 0) this.autoT = setTimeout(() => this.next(), 1100);
+  }
+  renderVals() {
+    const st = this.state, accent = this.props.accent ?? '#E3000F', okc = this.props.ok ?? '#00A651';
+    const L = this.lands(), Q = this.qs();
+    const ci = (this.startIdx() + st.step) % L.length, land = L[ci];
+    const l = this.lum(land.color), fg = (1.05 / (l + 0.05)) >= ((l + 0.05) / 0.05) ? '#FFFFFF' : '#111111';
+    const shape = st.data && st.data.shapes[land.id];
+    const pad = (n) => String(n).padStart(2, '0');
+    const asking = st.qi < Q.length;
+    const q = Q[Math.min(st.qi, Q.length - 1)];
+    const answered = st.picked !== null;
+    const ord = this.order(ci * 7 + st.qi + 1);
+    const state = (idx) => (!answered ? '' : idx === 0 ? 'is-right' : idx === st.picked ? 'is-wrong' : 'is-dim');
+    const isFlagQ = asking && q.k === 'flag';
+    const opts = asking && !isFlagQ ? ord.map((idx, pos) => ({ no: pos + 1, label: land[q.k][idx], delay: (pos * 50) + 'ms', pick: () => this.answer(st.qi, idx), cls: state(idx) })) : [];
+    const tiles = isFlagQ ? ord.map((idx, pos) => ({ no: pos + 1, name: land.flagN[idx], bg: this.flagBg(land.flag[idx]), delay: (pos * 60) + 'ms', pick: () => this.answer(st.qi, idx), cls: state(idx) })) : [];
+    const steps = Q.map((_, i) => ({
+      on: st.results[i] === undefined && i !== st.qi ? 0 : 1,
+      fill: st.results[i] === true ? '#111' : st.results[i] === false ? accent : '#D6D6D6'
+    }));
+    let vb = '0 0 10 10', sw = '0.1';
+    if (shape) { const [x, y, w, h] = shape.b; const p = Math.max(w, h) * 0.04; vb = [x - p, y - p, w + 2 * p, h + 2 * p].map((v) => v.toFixed(1)).join(' '); sw = (Math.max(w, h) * 0.008).toFixed(3); }
+    const odd = st.step % 2;
+    return {
+      accent, ok: okc, bg: land.color, prevBg: st.prev || land.color, fg, name: land.n, nameSize: land.n.length > 10 ? '48px' : '60px',
+      wipeCls: odd ? 'wipe-a' : 'wipe-b', maskCls: odd ? 'mask-a' : 'mask-b', drawCls: odd ? 'draw-a' : 'draw-b',
+      landNo: pad(ci + 1) + ' / ' + pad(L.length),
+      hasShape: !!shape, shape: shape ? shape.d : '', vb, sw,
+      showFlag: !!st.data && (st.results[0] !== undefined), landFlag: this.flagBg(land.id),
+      animQ: (st.step + st.qi) % 2 ? 'in-a' : 'in-b',
+      steps, asking, summary: !asking, isFlagQ, isTextQ: asking && !isFlagQ,
+      qNo: pad(Math.min(st.qi + 1, Q.length)) + ' / ' + pad(Q.length), qLabel: q.label, qText: q.q.replace('{n}', land.n),
+      opts, tiles, optsCls: answered ? '' : 'gl-open', tilesCls: answered ? 'gl-done' : 'gl-open',
+      showNext: answered, auto: answered && st.picked === 0, focusBtn: this.focusBtn,
+      next: this.next, nextLabel: st.qi + 1 >= Q.length ? 'Steckbrief' : 'Weiter',
+      scoreTxt: st.shown + '/' + Q.length,
+      facts: Q.map((qq, i) => ({ label: qq.label, value: land[qq.k][0] === land.id ? land.n : land[qq.k][0], isFlag: qq.k === 'flag', bg: this.flagBg(land.id), mark: st.results[i] ? '#111' : accent, delay: (120 + i * 60) + 'ms' })),
+      nextLand: this.nextLand
+    };
+  }
+}
+</script>
+</body>
+</html>

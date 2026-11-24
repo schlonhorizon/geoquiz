@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>GeoQuiz – Finden</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0;background:#F1F1F1}
+a{color:#111}a:hover{color:#000}
+.gq *{box-sizing:border-box}.gq button:focus-visible,.gq a:focus-visible{outline:3px solid #111;outline-offset:2px}
+.flag{background-image:url(/_blob/78a49d8fb5084507a21c31a0c39272c1);background-repeat:no-repeat;aspect-ratio:4/3;display:block}
+.gq-map{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.gq-map.drag{cursor:grabbing}
+.gq-map path{vector-effect:non-scaling-stroke;stroke:#111;stroke-width:.8px;stroke-linejoin:round;fill:#fff;transition:fill .35s ease}
+.gq-map .live path.land:hover{fill:#D6D6D6;cursor:pointer}
+.gq-map path.target{fill:#111}.gq-map path.wrong{fill:var(--accent)}.gq-map path.off{fill:#E4E4E4}
+.gq-map line{vector-effect:non-scaling-stroke;stroke:#111;stroke-opacity:.14;stroke-width:1px}
+.gq-sq{width:48px;height:48px;border:2px solid #111;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font:inherit;transition:background .15s,color .15s}.gq-sq:hover{background:#111;color:#fff}
+@keyframes gqA{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}@keyframes gqB{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.in-a{animation:gqA .5s cubic-bezier(.2,.8,.2,1) both}.in-b{animation:gqB .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes gqFa{from{opacity:0;transform:translateX(16px) rotate(4deg)}to{opacity:1;transform:none}}@keyframes gqFb{from{opacity:0;transform:translateX(16px) rotate(4deg)}to{opacity:1;transform:none}}
+.fl-a{animation:gqFa .55s .08s cubic-bezier(.2,.8,.2,1) both}.fl-b{animation:gqFb .55s .08s cubic-bezier(.2,.8,.2,1) both}
+@keyframes gqPa{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}@keyframes gqPb{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+.pop-a{display:inline-block;animation:gqPa .45s cubic-bezier(.2,.8,.2,1)}.pop-b{display:inline-block;animation:gqPb .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes gqUp{from{transform:translateY(calc(100% + 32px))}to{transform:none}}.gq-sheet{animation:gqUp .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes gqDot{from{transform:scale(0)}to{transform:scale(1)}}.gq-dot{animation:gqDot .35s .15s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes gqT{from{transform:scaleX(0)}to{transform:scaleX(1)}}.gq-timer{position:absolute;left:0;bottom:0;height:4px;width:100%;background:var(--ok);transform-origin:left;animation:gqT 1.1s linear both}
+@keyframes gqFade{from{opacity:0}to{opacity:1}}.gq-menu{animation:gqFade .2s ease both}
+.gq-item{transition:padding-left .25s cubic-bezier(.2,.8,.2,1)}.gq-item:hover{padding-left:12px}
+</style>
+</helmet>
+<div class="gq" style="position:relative;width:100%;height:100vh;overflow:hidden;background:#F1F1F1;font-family:'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif;color:#111;--accent:{{accent}};--ok:{{ok}}">
+
+  <div class="gq-map {{dragCls}}" ref="{{setEl}}" onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerLeave="{{up}}" onPointerCancel="{{up}}" style="position:absolute;inset:0">
+    <sc-if value="{{ready}}" hint-placeholder-val="{{ false }}">
+      <svg width="100%" height="100%" role="img" aria-label="Weltkarte" style="display:block">
+        <g class="{{liveCls}}" style="transform-origin:0 0;transform:{{tf}};transition:{{tr}}">
+          <sc-for list="{{copies}}" as="cp" hint-placeholder-count="3">
+            <g transform="{{cp.t}}">
+              <rect x="0" y="0" width="{{mw}}" height="{{mh}}" fill="#F1F1F1"></rect>
+              <sc-for list="{{gx}}" as="gl" hint-placeholder-count="12"><line x1="{{gl.v}}" x2="{{gl.v}}" y1="0" y2="{{mh}}"></line></sc-for>
+              <sc-for list="{{gy}}" as="gl" hint-placeholder-count="6"><line x1="0" x2="{{mw}}" y1="{{gl.v}}" y2="{{gl.v}}"></line></sc-for>
+              <sc-for list="{{countries}}" as="c" hint-placeholder-count="0"><path d="{{c.d}}" class="{{c.cls}}" onClick="{{c.pick}}"></path></sc-for>
+            </g>
+          </sc-for>
+        </g>
+      </svg>
+    </sc-if>
+    <sc-if value="{{loading}}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase">Karte lädt</div>
+    </sc-if>
+  </div>
+
+  <div style="position:absolute;top:calc(12px + env(safe-area-inset-top));left:12px;right:72px;max-width:460px;background:#fff;border:2px solid #111">
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-bottom:2px solid #111;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-variant-numeric:tabular-nums">
+      <span>Finden</span><span>{{counter}}</span><span><span class="{{popCls}}">{{scorePad}}</span> Punkte</span>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:12px;padding:10px 12px 14px">
+      <div style="flex:1 1 auto;min-width:0">
+        <div style="font-size:14px;font-weight:500">Wo liegt</div>
+        <div class="{{anim}}" style="font-size:{{nameSize}};line-height:1;font-weight:800;letter-spacing:-.035em;margin-top:6px;hyphens:auto;overflow-wrap:anywhere">{{targetName}}</div>
+      </div>
+      <span class="flag {{flagAnim}}" role="img" aria-label="Flagge von {{targetName}}" style="flex:0 0 auto;width:56px;outline:2px solid #111;{{targetFlag}}"></span>
+    </div>
+  </div>
+
+  <button class="gq-sq" onClick="{{openMenu}}" aria-label="Menü öffnen" style="position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px">
+    <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20" stroke="currentColor" stroke-width="2"></path></svg>
+  </button>
+
+  <sc-if value="{{asking}}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none">
+      <button onClick="{{skip}}" style="pointer-events:auto;height:48px;padding:0 16px;border:2px solid #111;background:#fff;color:#111;font:inherit;font-size:14px;font-weight:700;cursor:pointer">Überspringen</button>
+      <div style="pointer-events:auto;display:flex;flex-direction:column">
+        <button class="gq-sq" onClick="{{zoomIn}}" aria-label="Hineinzoomen"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0v16M0 8h16" stroke="currentColor" stroke-width="2"></path></svg></button>
+        <button class="gq-sq" onClick="{{zoomOut}}" aria-label="Herauszoomen" style="margin-top:-2px"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 8h16" stroke="currentColor" stroke-width="2"></path></svg></button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{answered}}" hint-placeholder-val="{{ false }}">
+    <div class="gq-sheet" style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:460px;background:#fff;border:2px solid #111">
+      <div style="padding:12px 14px 16px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase">
+          <span class="gq-dot" style="width:10px;height:10px;background:{{verdictColor}}"></span><span>{{verdictLabel}}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:40px;line-height:1;font-weight:800;letter-spacing:-.035em">{{verdict}}</div>
+          <sc-if value="{{hasPickedFlag}}" hint-placeholder-val="{{ false }}">
+            <span class="flag" role="img" aria-label="Flagge von {{pickedName}}" style="width:36px;outline:2px solid #111;margin-left:auto;{{pickedFlag}}"></span>
+          </sc-if>
+        </div>
+        <div style="font-size:15px;line-height:1.35;text-wrap:pretty">{{detail}}</div>
+      </div>
+      <button ref="{{focusBtn}}" onClick="{{next}}" style="position:relative;width:100%;height:56px;border:0;border-top:2px solid #111;background:#111;color:#fff;font:inherit;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;padding:0 14px;cursor:pointer">
+        <span>{{nextLabel}}</span><span style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.75">Leertaste</span><span aria-hidden="true">→</span></span>
+        <sc-if value="{{auto}}" hint-placeholder-val="{{ false }}"><span class="gq-timer"></span></sc-if>
+      </button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+    <div class="gq-sheet" style="position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:460px;background:#fff;border:2px solid #111">
+      <div style="padding:12px 14px 16px;display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase">Runde beendet</div>
+        <div style="font-size:88px;line-height:.9;font-weight:800;letter-spacing:-.05em;font-variant-numeric:tabular-nums">{{finalScore}}</div>
+        <div style="font-size:15px;line-height:1.35">{{finalText}}</div>
+      </div>
+      <button ref="{{focusBtn}}" onClick="{{newRound}}" style="width:100%;height:56px;border:0;border-top:2px solid #111;background:#111;color:#fff;font:inherit;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;padding:0 14px;cursor:pointer"><span>Neue Runde</span><span aria-hidden="true">→</span></button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+    <div class="gq-menu" style="position:absolute;inset:0;background:#fff;display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom));overflow:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px">
+        <div style="font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase">GeoQuiz</div>
+        <button class="gq-sq" onClick="{{closeMenu}}" aria-label="Menü schließen"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1l14 14M15 1L1 15" stroke="currentColor" stroke-width="2"></path></svg></button>
+      </div>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding-bottom:8px">Modus</div>
+      <nav style="display:flex;flex-direction:column;border-top:2px solid #111;max-width:560px">
+        <button class="gq-item" onClick="{{closeMenu}}" style="display:flex;align-items:baseline;gap:14px;padding:14px 0;border:0;border-bottom:2px solid #111;background:none;color:#111;font:inherit;text-align:left;cursor:pointer">
+          <span style="font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">01</span><span style="font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1">Finden</span>
+        </button>
+        <div style="display:flex;align-items:baseline;gap:14px;padding:14px 0;border-bottom:2px solid #111;color:#6B6B6B">
+          <span style="font-size:12px;font-weight:600">02</span><span style="font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1">Benennen</span><span style="margin-left:auto;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase">Folgt</span>
+        </div>
+        <a class="gq-item" href="Flaggen.dc.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 0;border-bottom:2px solid #111;color:#111;text-decoration:none">
+          <span style="font-size:12px;font-weight:600">03</span><span style="font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1">Flaggen</span><span style="margin-left:auto;font-size:20px" aria-hidden="true">→</span>
+        </a>
+        <a class="gq-item" href="Land.dc.html" style="display:flex;align-items:baseline;gap:14px;padding:14px 0;border-bottom:2px solid #111;color:#111;text-decoration:none">
+          <span style="font-size:12px;font-weight:600">04</span><span style="font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1">Länder</span><span style="margin-left:auto;font-size:20px" aria-hidden="true">→</span>
+        </a>
+        <div style="display:flex;align-items:baseline;gap:14px;padding:14px 0;border-bottom:2px solid #111;color:#6B6B6B">
+          <span style="font-size:12px;font-weight:600">05</span><span style="font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1">Statistik</span><span style="margin-left:auto;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase">Folgt</span>
+        </div>
+      </nav>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#E3000F","options":["#E3000F","#FF5A00","#0047FF","#111111"]},"ok":{"editor":"color","default":"#00A651","options":["#00A651","#00C46A","#0047FF","#111111"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(...a) {
+    super(...a);
+    this.ROUND = 20;
+    this.DATA_URL = '/_blob/98a8b1a1c150fe0c073bfb2b0ed07c39';
+    this.state = { data: null, vw: 390, vh: 844, cx: 500, cy: 230, z: 1, mode: 'fly', order: [], qi: 0, score: 0, picked: null, phase: 'ask', menu: false };
+    this.p = null; this.moved = false; this.pts = new Map(); this.pinch = null; this.picks = {}; this.flew = false; this.autoT = null;
+    this.onWheel = (e) => {
+      if (!this.state.data) return;
+      e.preventDefault();
+      const r = this.el.getBoundingClientRect();
+      this.zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - r.left, e.clientY - r.top, 'wheel');
+    };
+    this.onResize = () => this.measure();
+    this.setEl = (el) => {
+      if (this.el === el) return;
+      if (this.el) this.el.removeEventListener('wheel', this.onWheel);
+      this.el = el;
+      if (el) { el.addEventListener('wheel', this.onWheel, { passive: false }); this.measure(); }
+    };
+    this.focusBtn = (el) => { if (el && el !== this.fb) { this.fb = el; requestAnimationFrame(() => { try { el.focus({ preventScroll: true }); } catch (e) {} }); } if (!el) this.fb = null; };
+    this.down = (e) => {
+      const r = this.el.getBoundingClientRect();
+      this.pts.set(e.pointerId, { x: e.clientX - r.left, y: e.clientY - r.top });
+      this.moved = false;
+      if (this.pts.size === 2) {
+        const [a, b] = [...this.pts.values()];
+        this.pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: this.state.z, cx: this.state.cx, cy: this.state.cy, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+        this.p = null; this.moved = true; return;
+      }
+      const cx = this.norm(this.state.cx);
+      this.p = { x: e.clientX, y: e.clientY, cx, cy: this.state.cy, moved: false };
+      this.setState({ cx, mode: 'drag' });
+    };
+    this.move = (e) => {
+      if (!this.state.data) return;
+      if (this.pts.has(e.pointerId)) { const r = this.el.getBoundingClientRect(); this.pts.set(e.pointerId, { x: e.clientX - r.left, y: e.clientY - r.top }); }
+      if (this.pinch && this.pts.size === 2) {
+        const [a, b] = [...this.pts.values()];
+        const pc = this.pinch, s0 = this.s0();
+        const z = this.clampZ(pc.z0 * Math.hypot(a.x - b.x, a.y - b.y) / pc.d0);
+        const { vw, vh } = this.state;
+        const mx = pc.cx + (pc.mx - vw / 2) / (s0 * pc.z0), my = pc.cy + (pc.my - vh / 2) / (s0 * pc.z0);
+        const s = s0 * z;
+        this.setState({ z, cx: mx - (pc.mx - vw / 2) / s, cy: this.clampCy(my - (pc.my - vh / 2) / s, s), mode: 'drag' });
+        return;
+      }
+      if (!this.p) return;
+      const dx = e.clientX - this.p.x, dy = e.clientY - this.p.y;
+      if (!this.p.moved && Math.abs(dx) + Math.abs(dy) > 6) this.p.moved = true;
+      if (!this.p.moved) return;
+      const s = this.s0() * this.state.z;
+      this.setState({ cx: this.p.cx - dx / s, cy: this.clampCy(this.p.cy - dy / s, s) });
+    };
+    this.up = (e) => {
+      this.pts.delete(e.pointerId);
+      if (this.pts.size < 2) this.pinch = null;
+      if (this.p) { this.moved = this.moved || this.p.moved; this.p = null; }
+      if (this.state.mode === 'drag') this.setState({ mode: 'fly' });
+    };
+    this.zoomIn = () => this.zoomAt(1.6, this.state.vw / 2, this.state.vh / 2, 'fly');
+    this.zoomOut = () => this.zoomAt(1 / 1.6, this.state.vw / 2, this.state.vh / 2, 'fly');
+    this.openMenu = () => this.setState({ menu: true });
+    this.closeMenu = () => this.setState({ menu: false });
+    this.skip = () => { if (this.state.phase !== 'ask') return; this.setState({ phase: 'answered', picked: null }); this.flyTo(this.target()); };
+    this.next = () => {
+      clearTimeout(this.autoT); this.autoT = null;
+      if (this.state.phase !== 'answered') return;
+      const last = this.state.qi + 1 >= this.ROUND;
+      const flew = this.flew; this.flew = false;
+      this.normalizeThen(() => {
+        const z = flew ? 1 : this.state.z, s = this.s0() * z;
+        this.setState({ phase: last ? 'done' : 'ask', qi: last ? this.state.qi : this.state.qi + 1, picked: null, z, cy: this.clampCy(this.state.cy, s), mode: 'fly' });
+      });
+    };
+    this.newRound = () => this.setState({ order: this.shuffle(this.state.order), qi: 0, score: 0, picked: null, phase: 'ask' });
+  }
+  componentDidMount() {
+    window.addEventListener('resize', this.onResize);
+    fetch(this.DATA_URL).then((r) => r.json()).then((d) => {
+      d.c.forEach((c) => { this.picks[c.id] = () => this.pick(c); });
+      const pool = d.c.filter((c) => c.q !== 0 && c.id.length === 3);
+      this.setState({ data: d, order: this.shuffle(pool), cx: d.w / 2, cy: d.h * 0.42 }, () => this.measure());
+    });
+  }
+  componentWillUnmount() {
+    clearTimeout(this.autoT);
+    window.removeEventListener('resize', this.onResize);
+    if (this.el) this.el.removeEventListener('wheel', this.onWheel);
+  }
+  shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
+  measure() { if (!this.el) return; const vw = this.el.clientWidth, vh = this.el.clientHeight; if (vw && vh && (vw !== this.state.vw || vh !== this.state.vh)) this.setState({ vw, vh, mode: 'drag' }); }
+  s0() { const d = this.state.data; if (!d) return 1; return Math.max(this.state.vh / d.h, this.state.vw / d.w); }
+  clampZ(z) { return Math.min(8, Math.max(1, z)); }
+  clampCy(cy, s) { const d = this.state.data, vh = this.state.vh; if (!d) return cy; const half = vh / (2 * s); if (d.h * s <= vh) return d.h / 2; return Math.min(Math.max(cy, half), d.h - half); }
+  norm(cx) { const W = this.state.data ? this.state.data.w : 1000; return ((cx % W) + W) % W; }
+  normalizeThen(fn) { this.setState({ cx: this.norm(this.state.cx), mode: 'drag' }, () => requestAnimationFrame(() => requestAnimationFrame(fn))); }
+  target() { return this.state.order[this.state.qi]; }
+  flagBg(id) {
+    const d = this.state.data; const f = d && d.flags; const i = f ? f.idx[id] : undefined;
+    if (i === undefined) return 'visibility:hidden';
+    const col = i % f.cols, row = Math.floor(i / f.cols);
+    return 'background-size:' + (f.cols * 100) + '% ' + (f.rows * 100) + '%;background-position:' + (col / (f.cols - 1) * 100).toFixed(4) + '% ' + (row / (f.rows - 1) * 100).toFixed(4) + '%';
+  }
+  zoomAt(f, px, py, mode) {
+    const { vw, vh, z, cx, cy } = this.state; const s0 = this.s0();
+    const s = s0 * z, z2 = this.clampZ(z * f), s2 = s0 * z2;
+    const mx = cx + (px - vw / 2) / s, my = cy + (py - vh / 2) / s;
+    this.setState({ z: z2, cx: mx - (px - vw / 2) / s2, cy: this.clampCy(my - (py - vh / 2) / s2, s2), mode });
+  }
+  pick(c) {
+    if (this.moved || this.state.phase !== 'ask') return;
+    const ok = c.id === this.target().id;
+    this.setState({ phase: 'answered', picked: c.id, score: this.state.score + (ok ? 1 : 0) });
+    if (ok) { this.autoT = setTimeout(() => this.next(), 1100); }
+    else this.flyTo(this.target());
+  }
+  flyTo(t) {
+    this.flew = true;
+    this.normalizeThen(() => {
+      const { vw, vh, cx } = this.state; const W = this.state.data.w; const s0 = this.s0();
+      const [bx, by, bw, bh] = t.b;
+      const topH = 150, botH = 210, availH = Math.max(120, vh - topH - botH);
+      const z = this.clampZ(Math.min((vw - 48) * 0.6 / Math.max(bw, 3), availH * 0.75 / Math.max(bh, 3)) / s0);
+      const s = s0 * z;
+      const d = (((bx + bw / 2 - cx) % W) + 1.5 * W) % W - W / 2;
+      const screenY = topH + availH / 2;
+      this.setState({ z, cx: cx + d, cy: this.clampCy(by + bh / 2 - (screenY - vh / 2) / s, s), mode: 'fly' });
+    });
+  }
+  renderVals() {
+    const st = this.state, d = st.data, accent = this.props.accent ?? '#E3000F', okc = this.props.ok ?? '#00A651';
+    const t = d ? this.target() : null;
+    const s = this.s0() * st.z;
+    const tx = st.vw / 2 - st.cx * s, ty = st.vh / 2 - st.cy * s;
+    const tr = st.mode === 'drag' ? 'none' : st.mode === 'wheel' ? 'transform .18s ease-out' : 'transform .8s cubic-bezier(.65,0,.35,1)';
+    const reveal = st.phase !== 'ask' && t;
+    const countries = d ? d.c.map((c) => ({
+      d: c.d, pick: this.picks[c.id],
+      cls: 'land' + (c.q === 0 ? ' off' : '') + (reveal && c.id === t.id ? ' target' : '') + (reveal && c.id === st.picked && c.id !== t.id ? ' wrong' : '')
+    })) : [];
+    const pickedC = d && st.picked ? d.c.find((c) => c.id === st.picked) : null;
+    const ok = t && st.picked === t.id;
+    const name = t ? t.n : '';
+    const pad = (n) => String(n).padStart(2, '0');
+    let verdict = 'Übersprungen.', detail = name + ' ist schwarz markiert.', verdictColor = '#6B6B6B';
+    if (ok) { verdict = 'Richtig.'; detail = 'Weiter geht’s gleich.'; verdictColor = okc; }
+    else if (pickedC) { verdict = 'Falsch.'; detail = 'Du hast ' + pickedC.n + ' gewählt. ' + name + ' ist schwarz markiert.'; verdictColor = accent; }
+    const W = d ? d.w : 1000;
+    return {
+      accent, ok: okc, ready: !!d, loading: !d, setEl: this.setEl, focusBtn: this.focusBtn, down: this.down, move: this.move, up: this.up,
+      dragCls: st.mode === 'drag' && this.p ? 'drag' : '', liveCls: st.phase === 'ask' ? 'live' : '',
+      tf: 'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px) scale(' + s.toFixed(4) + ')', tr,
+      copies: [{ t: 'translate(' + (-W) + ',0)' }, { t: 'translate(0,0)' }, { t: 'translate(' + W + ',0)' }],
+      mw: W, mh: d ? d.h : 500,
+      gx: d ? d.gx.map((v) => ({ v })) : [], gy: d ? d.gy.map((v) => ({ v })) : [],
+      countries,
+      counter: pad(Math.min(st.qi + 1, this.ROUND)) + ' / ' + this.ROUND, scorePad: pad(st.score), popCls: st.score === 0 ? '' : st.score % 2 ? 'pop-a' : 'pop-b',
+      targetName: name || '—', nameSize: name.length <= 11 ? '40px' : name.length <= 18 ? '32px' : '26px',
+      targetFlag: t ? this.flagBg(t.id) : 'visibility:hidden',
+      anim: st.qi % 2 ? 'in-a' : 'in-b', flagAnim: st.qi % 2 ? 'fl-a' : 'fl-b',
+      asking: st.phase === 'ask', answered: st.phase === 'answered', done: st.phase === 'done', auto: st.phase === 'answered' && ok,
+      verdict, detail, verdictColor, verdictLabel: 'Frage ' + pad(st.qi + 1),
+      hasPickedFlag: !!pickedC && !ok, pickedFlag: pickedC ? this.flagBg(pickedC.id) : '', pickedName: pickedC ? pickedC.n : '',
+      nextLabel: st.qi + 1 >= this.ROUND ? 'Ergebnis' : 'Weiter',
+      finalScore: st.score + '/' + this.ROUND,
+      finalText: st.score >= 16 ? 'Starke Runde.' : st.score >= 10 ? 'Solide. Die Lücken holst du dir in der nächsten Runde.' : 'Da geht noch was. Nächste Runde.',
+      next: this.next, skip: this.skip, newRound: this.newRound, zoomIn: this.zoomIn, zoomOut: this.zoomOut,
+      menuOpen: st.menu, openMenu: this.openMenu, closeMenu: this.closeMenu
+    };
+  }
+}
+</script>
+</body>
+</html>

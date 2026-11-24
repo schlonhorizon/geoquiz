@@ -1,0 +1,152 @@
+# GeoQuiz – Design-Spezifikation
+
+Verbindliche Gestaltungsregeln für alle Bildschirme. Die freigegebene visuelle Referenz liegt in `docs/prototype/` (Finden, Länder-Modus, Flaggen). Diese Dateien sind **nur Referenz**: Werte, Layouts, Texte und Animationen daraus übernehmen, aber nicht ihre Template-Syntax (`<x-dc>`, `<sc-if>`, `<sc-for>`, `{{…}}`, `DCLogic`) und nicht ihre `/_blob/…`-URLs. Im Zweifel gilt dieses Dokument.
+
+## 1. Haltung
+
+Swiss Style: typografiegetrieben, schwarz-weiß, strenges Raster.
+
+- Schwarz und Weiß tragen alles. Farbe gibt es nur als Bedeutung: Rot = falsch, Grün = richtig, Landesfarbe im Länder-Modus, Flaggen.
+- Rahmen 2 px schwarz, **keine Rundungen** (border-radius 0 überall), keine Schatten, keine Verläufe, keine Emojis.
+- Hierarchie entsteht über Schriftgröße und -stärke, nicht über Farbe oder Boxen.
+- Bewegung ist sparsam, präzise und hat immer eine Funktion (Feedback, Orientierung, Übergang).
+
+## 2. Tokens
+
+Als CSS Custom Properties in einer zentralen Datei (`src/ui/tokens.css`):
+
+```css
+:root {
+  --ink: #111111;          /* Text, Rahmen, Primärbutton, Lösung auf der Karte */
+  --paper: #FFFFFF;        /* Panels, Land auf der Karte */
+  --sea: #F1F1F1;          /* Meer, App-Hintergrund */
+  --land-hover: #D6D6D6;
+  --land-off: #E4E4E4;     /* Gebiete ohne Quiz (Westsahara, Grönland …) */
+  --muted: #6B6B6B;        /* deaktivierte Einträge, abgeblendete Optionen */
+  --hover: #EDEDED;        /* Hover auf Optionszeilen */
+  --grid: rgba(17,17,17,.14); /* Gradnetz */
+  --accent: #E3000F;       /* falsch */
+  --ok: #00A651;           /* richtig */
+  --line: 2px;
+
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+  --ease-inout: cubic-bezier(.65,0,.35,1);
+  --ease-pop: cubic-bezier(.3,1.5,.5,1);
+}
+```
+
+### Typografie
+
+Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. `@fontsource/inter-tight`), Fallback `'Helvetica Neue', Helvetica, Arial, sans-serif`. Alle Zahlen mit `font-variant-numeric: tabular-nums`.
+
+| Rolle | Größe | Gewicht | Sonstiges |
+|---|---|---|---|
+| Label / Meta | 11 px | 600 | UPPERCASE, letter-spacing .1em |
+| Klein | 13–14 px | 500–700 | |
+| Fließtext | 15–16 px | 500–600 | line-height 1.35 |
+| Frage | 24 px | 700 | letter-spacing −.02em, line-height 1.15 |
+| Ländername (Finden) | 40 / 32 / 26 px | 800 | je nach Länge ≤11 / ≤18 / länger Zeichen; letter-spacing −.035em; line-height 1 |
+| Ländername (Länder-Modus) | 60 / 48 px | 800 | ≤10 / länger; letter-spacing −.045em; line-height .92 |
+| Urteil („Richtig.“) | 40 px | 800 | letter-spacing −.035em |
+| Menüeintrag | 44 px | 800 | letter-spacing −.04em |
+| Punktestand groß | 56 / 88 / 120 px | 800 | letter-spacing −.05em |
+
+### Abstände und Größen
+
+- Außenabstand der Overlays zum Bildschirmrand: 12 px (+ `env(safe-area-inset-*)`)
+- Innenabstand in Inhaltsspalten: 16 px; Abstände sonst 4 / 8 / 12 / 16 px
+- Inhaltsspalten (Länder-Modus, Flaggen): max. 560 px breit, zentriert
+- Panels über der Karte: max. 460 px breit
+- Touch-Ziele mindestens 44 px; quadratische Buttons 48 × 48; Primärbutton 56 px hoch
+
+## 3. Komponenten
+
+- **Panel**: weiß, 2 px Rahmen. Optional mit **Meta-Zeile** oben (Label-Stil, drei Werte mit `space-between`, z. B. „Finden · 07 / 20 · 05 Punkte“, darunter 2 px Linie).
+- **Quadrat-Button** (Menü, Zoom, Schließen): 48 × 48, weiß, 2 px Rahmen, Icon als Strich-SVG (2 px). Hover: invertiert (schwarz/weiß).
+- **Primärbutton** („Weiter“, „Neue Runde“): volle Breite, 56 px, schwarz, Text weiß 16 px/700. Links das Label, rechts „LEERTASTE“ (Label-Stil, 75 % Deckkraft) und `→`. Unten optional der **Timerbalken** (siehe 6).
+- **Optionszeile** (Multiple Choice): Raster `48px 1fr`, min. 56 px hoch, 2 px Rahmen; Zeilen überlappen sich um 2 px (`margin-top: -2px`), sodass die Linien nicht doppelt werden. Links die Ziffer 1–4 in eigener Zelle (2 px Trennlinie), rechts der Text 16 px/600.
+  - richtig: füllt sich schwarz, Text weiß
+  - falsch gewählt: füllt sich rot, Text weiß, kurzes Wackeln
+  - übrige: Text `--muted`
+- **Flaggen-Kachel** (Flaggenfrage): 4:3, 2 px Rahmen, Ziffer als 24-px-Quadrat oben links (schwarz, weiß). Nach der Antwort fährt unten eine Beschriftung mit dem Ländernamen ein (richtig: schwarz, falsch gewählt: rot, sonst weiß). Richtige Kachel bekommt einen 5-px-Innenrahmen, die übrigen 40 % Deckkraft.
+- **Flagge**: immer 4:3 mit 2 px Kontur (`outline`), damit weiße Flaggen auf weißem Grund sichtbar bleiben.
+- **Urteils-Punkt**: 10 × 10-px-Quadrat vor dem Label: `--ok` (richtig), `--accent` (falsch), `--muted` (übersprungen).
+- **Fortschritt** (Länder-Modus): eine Zelle pro Frage, 10 px hoch, 2 px Rahmen, 4 px Abstand; Füllung schwarz (richtig), rot (falsch), grau `--land-hover` (aktuelle Frage).
+- **Menü**: Vollbild-Overlay, weiß. Kopf „GEOQUIZ“ + Schließen-Button. Darunter Label „Modus“ und eine nummerierte Liste mit 2-px-Trennlinien: `01 Finden`, `02 Benennen`, `03 Flaggen`, `04 Länder`, `05 Statistik`. Noch nicht fertige Modi grau mit „FOLGT“. Hover: Eintrag rückt 12 px ein.
+
+## 4. Karte
+
+- Projektion Miller, horizontal endlos (wie umgesetzt), Antarktis entfernt.
+- Meer `--sea`, Land `--paper`, Grenzen `--ink` 0,8 px mit `vector-effect: non-scaling-stroke`.
+- Gradnetz alle 30° Länge und 20° Breite, 1 px `--grid`.
+- Hover (nur während einer Frage): `--land-hover`. Lösung: `--ink`. Falsch angeklickt: `--accent`. Gebiete ohne Quiz: `--land-off`.
+
+## 5. Bildschirme
+
+### Finden
+- Karte im Vollbild, alles andere als Overlay.
+- Oben links Panel: Meta-Zeile, darunter „Wo liegt“ (14 px) und der Ländername groß; **rechts daneben die Flagge** (56 px breit).
+- Oben rechts Menü-Button. Unten links „Überspringen“ (48 px hoch, weiß, Rahmen). Unten rechts Zoom +/− als Stapel.
+- Nach der Antwort ersetzt ein **Sheet** unten links die Bedienelemente: Urteils-Punkt + „FRAGE 07“, Urteil („Richtig.“ / „Falsch.“ / „Übersprungen.“), eine Zeile Erklärung, Primärbutton. Bei falscher Antwort steht die Flagge des falsch gewählten Landes rechts neben dem Urteil.
+- Ende der Runde (20 Fragen): Sheet mit „RUNDE BEENDET“, Ergebnis 88 px, ein Satz, „Neue Runde“.
+
+### Benennen
+Gleicher Aufbau wie Finden; das Land ist auf der Karte schwarz markiert, das Antwort-Sheet zeigt 4 Optionszeilen oder das Eingabefeld.
+
+### Flaggen
+- Spalte (max. 560 px): oben Zurück-Button (48 px, `←`) und Meta-Leiste daneben.
+- Große Flagge 4:3 über die volle Breite, darunter „Welches Land ist das?“, 4 Optionszeilen, Primärbutton.
+- Nach der Antwort fährt am unteren Flaggenrand eine schwarze Beschriftung mit dem richtigen Ländernamen ein (20 px/800).
+- Falsche Optionen: geografisch nahe Länder (die 6 nächsten nach Mittelpunkt, davon 3 zufällig).
+
+### Länder-Modus
+- Oben ein **Farbblock** in der Hauptfarbe des Landes, Höhe `clamp(250px, 36vh, 380px)`, unten 2 px Linie. Darin: Zurück-Link „← Karte“ (umrandet in Textfarbe), „LAND 02 / 05“, rechts der Landesumriss (gefüllt in Textfarbe, 90 %), unten links Label „LÄNDER-MODUS“ und der Ländername groß.
+- Textfarbe im Farbblock automatisch: Weiß oder `--ink`, je nachdem, was nach WCAG den höheren Kontrast zur Landesfarbe hat.
+- Darunter Spalte (max. 560 px): Fortschrittszellen, Fragenummer + Kategorie (Label-Stil), Frage, Optionen, Primärbutton.
+- Fragenreihenfolge: **Flagge**, Hauptstadt, Kontinent, Währung, Zentralbank, Leitindex, Staatsform (Kategorien ohne Daten werden übersprungen).
+- Die Flagge erscheint im Farbblock **erst, nachdem die Flaggenfrage beantwortet ist** (fällt über dem Ländernamen ein, 64 × 48 px).
+- Am Ende ein **Steckbrief**: „STECKBRIEF“ + Ergebnis 56 px, darunter je Kategorie eine Zeile (Punkt schwarz/rot, Label, Wert; bei Flagge die Mini-Flagge), Primärbutton „Nächstes Land“.
+
+## 6. Bewegung
+
+| Moment | Dauer | Kurve | Details |
+|---|---|---|---|
+| Kartenflug zur Lösung / zurück | 800 ms | `--ease-inout` | nur bei falsch oder übersprungen |
+| Mausrad-Zoom | 180 ms | ease-out | |
+| Neue Frage (Text, Optionen) | 500 ms | `--ease-out` | von 14–16 px unten einblenden; Optionen je 50 ms versetzt |
+| Flagge in der Fragekarte | 550 ms, 80 ms Verzögerung | `--ease-out` | von 16 px rechts, 4° gedreht |
+| Sheet hochfahren | 450 ms | `--ease-out` | von unterhalb des Bildschirms |
+| Urteils-Punkt | 350 ms, 150 ms Verzögerung | `--ease-pop` | von 0 auf volle Größe |
+| Punktestand bei Treffer | 450 ms | `--ease-out` | kurz auf 135 % und zurück |
+| Option füllt sich | 420 ms | `--ease-inout` | Fläche wächst von links (`scaleX`), Textfarbe 120 ms verzögert |
+| Falsche Option wackelt | 420 ms | | ±6 px horizontal |
+| Timerbalken (richtig) | 1100 ms | linear | 4 px, `--ok`, am unteren Rand des Primärbuttons, wächst von links |
+| Länderwechsel: Farbe | 800 ms | `--ease-inout` | neue Farbe schiebt sich von unten über die alte (`clip-path`) |
+| Ländername | 800 ms, 300 ms Verzögerung | `--ease-out` | gleitet aus einer Maske nach oben |
+| Landesumriss | 1800 ms, 350 ms Verzögerung | `--ease-inout` | erst als Linie gezeichnet (`stroke-dashoffset`), ab 70 % füllt er sich |
+| Flagge fällt in den Farbblock | 600 ms | `--ease-pop` | von oben, −8°, 70 % Größe |
+| Fortschrittszelle | 450 ms | `--ease-inout` | füllt sich von links |
+| Steckbrief | | | Ergebnis zählt alle 140 ms um 1 hoch; Zeilen je 60 ms versetzt |
+| Flaggen-Modus: neue Flagge | 700 ms | `--ease-inout` | wird von links nach rechts aufgedeckt |
+| Beschriftung unter Flagge | 400 ms, 100 ms Verzögerung | `--ease-out` | fährt von unten ein |
+| Menü | 200 ms | ease | einblenden |
+
+Bei `prefers-reduced-motion: reduce` alle Bewegungen durch kurze Einblendungen (150 ms) ersetzen; Kartenflüge springen direkt.
+
+## 7. Spielablauf und Tastatur
+
+- **Richtig**: Urteils-Punkt grün, Karte bleibt stehen, nach **1100 ms automatisch** zur nächsten Frage (Timerbalken läuft). Leertaste springt sofort weiter.
+- **Falsch**: rot, Karte fliegt zur Lösung (im Finden-Modus), es geht erst per Klick/Leertaste weiter.
+- **Übersprungen**: grauer Punkt, wie falsch, zählt nicht als Punkt.
+- **Tastatur** (global auf `window`, nicht bei Fokus in einem Textfeld):
+  - Leertaste / Enter: Weiter (bzw. „Neue Runde“)
+  - 1–4: Option wählen
+  - Escape: Menü schließen
+  - Im Tipp-Modus: Enter schickt die Antwort ab; danach wirkt Enter/Leertaste als Weiter.
+- Fokus für Tastaturnutzer sichtbar: 3 px Kontur `--ink`, 2 px Abstand (`:focus-visible`).
+
+## 8. Daten für das Design
+
+- **Hauptfarbe**: neue Spalte `color` (Hex) in `data/sets/world/entities.csv`. Startwert automatisch aus der Flagge berechnen (größte Fläche, die nicht weiß oder fast weiß ist), dann von Hand korrigierbar. Weiße oder sehr helle Ergebnisse vermeiden.
+- **Flaggen**: Paket `flag-icons` (MIT), 4:3-SVGs als statische Dateien ausliefern; Zuordnung über ISO-Codes (Kosovo `XKX` → `xk`). Keine CSV-Spalte nötig.
+- **Flagge als Kategorie**: eigener Fragetyp `flag` – vorwärts „Welche Flagge gehört zu X?“ (4 Flaggen-Kacheln) und rückwärts „Welches Land ist das?“ (Flaggen-Modus). Optionale Spalte `flag_similar` (Liste von IDs) für bewusst ähnliche Ablenker (Schweden ↔ Finnland/Norwegen/Dänemark, Niederlande ↔ Luxemburg, Indonesien ↔ Monaco …); ohne Eintrag werden Nachbarländer genommen.
