@@ -1,12 +1,11 @@
-import { geoArea, geoPath } from 'd3-geo';
+import { geoArea, geoCentroid, geoPath } from 'd3-geo';
 import { geoMiller } from 'd3-geo-projection';
 import type { Polygon, MultiPolygon } from 'geojson';
 import { feature } from 'topojson-client';
 import type { Topology } from 'topojson-specification';
 import { getMapEntityId } from '../data/map';
 import type { SetDefinition } from '../data/schema';
-
-export const worldWidth = 960;
+import { worldWidth, wrapWorldX } from './viewport';
 
 const earthRadiusKm = 6371;
 const smallCountryAreaKm2 = 2_000;
@@ -63,11 +62,24 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
 
     const main = largestPolygon(geometry);
     const areaKm2 = geoArea(geometry) * earthRadiusKm ** 2;
+    // Measure around the country itself so a polygon split at 180° still has local bounds.
+    const [longitude] = geoCentroid(main);
+    const [referenceX] = projection([longitude, 0])!;
+    const localPath = geoPath(geoMiller().scale(projection.scale())
+      .rotate([-longitude, 0]).translate([referenceX, -north]));
+    const [[left, top], [right, bottom]] = localPath.bounds(main);
+    const midpoint = (left + right) / 2;
+    const offset = wrapWorldX(midpoint) - midpoint;
+    let marker: Point | null = null;
+    if (areaKm2 < smallCountryAreaKm2) {
+      const [x, y] = localPath.centroid(main);
+      marker = [wrapWorldX(x), y];
+    }
     countries.push({
       id: getMapEntityId(country, config.idProperty),
       path: outline,
-      bounds: path.bounds(main),
-      marker: areaKm2 < smallCountryAreaKm2 ? path.centroid(main) : null,
+      bounds: [[left + offset, top], [right + offset, bottom]],
+      marker,
     });
   }
 

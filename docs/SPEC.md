@@ -152,7 +152,7 @@ Der Build schlägt fehl oder warnt bei:
 
 ## 4. Karten
 
-- **Weltkarte**: Natural Earth 50m (über `world-atlas`), Miller-Projektion (`d3-geo-projection`), Zoom und Verschieben (`d3-zoom`) per Maus und Touch. Drei Kartenkopien und ein horizontaler Versatz modulo Kartenbreite erlauben nahtloses, endloses Verschieben. Die Karte ist vertikal begrenzt und endet im Süden vor der Antarktis. Alle Kopien unterstützen Länder- und Markerklicks.
+- **Weltkarte**: Natural Earth 50m (`Admin 0 – Countries`), Miller-Projektion (`d3-geo-projection`), Zoom und Verschieben (`d3-zoom`) per Maus und Touch. Drei Kartenkopien und ein horizontaler Versatz modulo Kartenbreite erlauben nahtloses, endloses Verschieben. Die Karte ist vertikal begrenzt und endet im Süden vor der Antarktis. Alle Kopien unterstützen Länder- und Markerklicks.
 - **Vollbild-Layout**: Die Karte füllt den Viewport (`100dvw × 100dvh`). Die Frage mit Fortschritt liegt oben, das aufklappbare Menü für Modus und Einstellungen oben rechts. Unten liegt der Antwortbereich als Bottom-Sheet. Die Zoom-Tasten liegen am Kartenrand. Die Overlays berücksichtigen die Safe Area und lassen die übrige Karte bedienbar. Auf der Karte sind Browser-Scrollen, Pull-to-refresh und Doppeltipp-Zoom deaktiviert. Der Fokusrahmen wird bei Tastaturbedienung sichtbar.
 - **Homescreen**: Das Web-App-Manifest startet GeoQuiz im Standalone-Modus und enthält Theme-Farbe und App-Icons.
 - **Kleinstaaten**: Länder unter einer Flächenschwelle (z. B. < 2.000 km² oder Inselstaaten) bekommen einen klickbaren Kreis als Marker; zusätzlich zählt ein Klick als Treffer, wenn er innerhalb einer kleinen Toleranz (in Pixeln, zoomabhängig) zum richtigen Land liegt.

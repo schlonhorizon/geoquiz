@@ -39,6 +39,23 @@ describe('country projection', () => {
     expect(countryCenter(small.bounds).every(Number.isFinite)).toBe(true);
     expect(large.marker).toBeNull();
   });
+
+  it('keeps focus bounds local for a country crossing the antimeridian', () => {
+    const split: Topology = {
+      type: 'Topology',
+      objects: { countries: { type: 'Polygon', id: 'TEST', arcs: [[0]] } },
+      arcs: [[[178, -17], [178, -15], [-178, -15], [-178, -17], [178, -17]]],
+    };
+    const { countries: [country] } = projectWorldMap(split, {
+      file: 'map.topojson',
+      object: 'countries',
+      idProperty: 'id',
+      projection: 'miller',
+    });
+    expect(country.bounds[1][0] - country.bounds[0][0]).toBeLessThan(20);
+    const [x] = countryCenter(country.bounds);
+    expect(Math.min(x, 960 - x)).toBeLessThan(5);
+  });
 });
 
 describe('the repeating viewport', () => {
@@ -67,6 +84,7 @@ describe('map clicks', () => {
     expect(isNearMarker(10, 0, [0, 0], 2)).toBe(true);
     expect(isNearMarker(5, 0, [0, 0], 4)).toBe(true);
     expect(isNearMarker(10, 0, [0, 0], 4)).toBe(false);
+    expect(isNearMarker(958, 0, [2, 0], 4)).toBe(true);
   });
 
   it('accepts near misses and gives direct clicks on other markers priority', () => {

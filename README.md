@@ -21,7 +21,7 @@ Jedes Set liegt unter `data/sets/<id>/`. `entities.csv` ist die Quelle für alle
 
 Für ein neues Attribut genügen die CSV-Spalte und der Eintrag in `set.json`. Die Kartenspielfragen im Weltset stehen unter `map.prompts`. Der Platzhalter `{entity}` steht für den Ländernamen in „Finden“. Der Build nimmt neue Set-Ordner automatisch in `public/data/index.json` auf. Definition, Entities und Karte liegen danach unter `public/data/sets/<id>/`.
 
-Das Beispielset `world` enthält zehn Länder. Nachbarschaften beziehen sich auf Länder innerhalb des Beispielsets. Meere und Mitgliedschaften sind eine Auswahl. Zentralbank, Leitindex und Regierungsform sind noch leer. Die Geometrien stammen aus dem 50m-Datensatz von Natural Earth, aufbereitet von World Atlas. Das Objekt `countries` verwendet ISO-Alpha-3-IDs. Das Objekt `land` enthält die Weltumrisse als Kartenhintergrund. [World Atlas 2.0.2](https://github.com/topojson/world-atlas/tree/v2.0.2) · [Natural Earth](https://www.naturalearthdata.com/)
+Das Set `world` enthält 193 UN-Mitglieder sowie Vatikanstadt, Palästina, Kosovo und Taiwan. Die Spielgeometrien stammen aus Natural Earth 50m. Das Objekt `land` enthält die grauen Gebiete außerhalb des Quiz. Belegung, Datenquellen, Lizenz und Kontinentzuordnungen stehen im [Validierungsreport](docs/world-data-report.md).
 
 ## GitHub Pages
 
