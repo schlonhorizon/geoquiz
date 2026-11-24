@@ -1,4 +1,5 @@
-import { geoArea, geoEqualEarth, geoPath } from 'd3-geo';
+import { geoArea, geoPath } from 'd3-geo';
+import { geoMiller } from 'd3-geo-projection';
 import type { Polygon, MultiPolygon } from 'geojson';
 import { feature } from 'topojson-client';
 import type { Topology } from 'topojson-specification';
@@ -6,8 +7,6 @@ import { getMapEntityId } from '../data/map';
 import type { SetDefinition } from '../data/schema';
 
 export const worldWidth = 960;
-export const worldHeight = 510;
-export const maxZoom = 24;
 
 const earthRadiusKm = 6371;
 const smallCountryAreaKm2 = 2_000;
@@ -39,14 +38,18 @@ function largestPolygon(geometry: Polygon | MultiPolygon): Polygon {
 }
 
 export function projectWorldMap(topology: Topology, config: SetDefinition['map']) {
-  if (config.projection !== 'equalEarth') {
+  if (config.projection !== 'miller') {
     throw new Error(`Unsupported map projection: ${config.projection}`);
   }
   const source = topology.objects[config.object];
   if (!source) throw new Error(`Missing map object: ${config.object}`);
 
-  const sphere = { type: 'Sphere' } as const;
-  const projection = geoEqualEarth().fitExtent([[12, 12], [worldWidth - 12, worldHeight - 12]], sphere);
+  // Clip the background and all country paths at the same latitude south of Cape Horn.
+  const projection = geoMiller().scale(worldWidth / (2 * Math.PI)).translate([worldWidth / 2, 0]);
+  const [, north] = projection([0, 85])!;
+  const [, south] = projection([0, -60])!;
+  const height = south - north;
+  projection.translate([worldWidth / 2, -north]).clipExtent([[0, 0], [worldWidth, height]]);
   const path = geoPath(projection);
   const converted = feature(topology, source);
   const features = converted.type === 'FeatureCollection' ? converted.features : [converted];
@@ -69,16 +72,12 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
   }
 
   return {
-    ocean: path(sphere) ?? '',
+    height,
     land: topology.objects.land ? path(feature(topology, topology.objects.land)) : null,
     countries,
   };
 }
 
-export function getCountryFocus([[left, top], [right, bottom]]: ProjectedCountry['bounds']) {
-  const scale = Math.min((worldWidth * 0.64) / (right - left), (worldHeight * 0.64) / (bottom - top));
-  return {
-    center: [(left + right) / 2, (top + bottom) / 2] as Point,
-    scale: Math.min(maxZoom, Math.max(1.3, scale)),
-  };
+export function countryCenter([[left, top], [right, bottom]]: ProjectedCountry['bounds']): Point {
+  return [(left + right) / 2, (top + bottom) / 2];
 }
