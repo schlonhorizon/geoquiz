@@ -1,5 +1,7 @@
+import '@fontsource-variable/inter-tight';
 import { loadMap, loadSets } from './data/load';
 import { renderMapQuiz } from './ui/map-quiz';
+import './ui/tokens.css';
 import './style.css';
 
 const container = document.querySelector<HTMLElement>('#quiz');
