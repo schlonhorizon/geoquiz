@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getMapEntityId } from '../../src/data/map';
 import type { Entity, SetDefinition } from '../../src/data/schema';
 import type { DataIssues } from './issues';
 
@@ -33,10 +34,8 @@ export function validateMap(content: string, map: SetDefinition['map'], entities
   const geometryIds = new Set<string>();
   for (const [index, entry] of geometries.entries()) {
     const geometry = geometrySchema.parse(entry);
-    const property = geometry.properties?.[map.idProperty];
-    const id = map.idProperty === 'id' ? geometry.id ?? property : property;
-    const idLabel = typeof id === 'string' || typeof id === 'number' ? String(id) : '';
-    if (!idLabel.trim()) {
+    const idLabel = getMapEntityId(geometry, map.idProperty);
+    if (!idLabel) {
       issues.warnings.push(`Geometrie ${index + 1} in "${map.object}" hat keine ID über "${map.idProperty}".`);
       continue;
     }

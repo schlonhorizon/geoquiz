@@ -8,7 +8,11 @@
     "file": "map.topojson",
     "object": "countries",
     "idProperty": "id",
-    "projection": "equalEarth"
+    "projection": "equalEarth",
+    "prompts": {
+      "find": "Wo liegt {entity}?",
+      "name": "Wie heißt das hervorgehobene Land?"
+    }
   },
   "attributes": [
     {

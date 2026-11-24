@@ -8,6 +8,7 @@ Projekt: GeoQuiz, ein Geografie- und Länderwissen-Quiz im Browser. Die vollstä
 - Arbeite immer nur am angefragten Meilenstein aus `docs/SPEC.md` Abschnitt 8. Keine Features aus Abschnitt 9 vorziehen.
 - Bestehende Daten in `data/sets/*/entities.csv` nie automatisch überschreiben; Seed-Ausgaben gehen nach `entities.seed.csv`.
 - UI-Texte auf Deutsch. Code, Bezeichner und Commit-Messages auf Englisch.
+- Erstelle nach jeder abgeschlossenen und geprüften Umsetzung direkt einen Pull Request.
 
 ## Stack
 

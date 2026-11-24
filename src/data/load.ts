@@ -1,3 +1,4 @@
+import type { Topology } from 'topojson-specification';
 import type { Entity, SetDefinition, SetIndex } from './schema';
 
 export interface QuizSet {
@@ -23,4 +24,8 @@ export async function loadSets(): Promise<QuizSet[]> {
     ]);
     return { definition, entities };
   }));
+}
+
+export function loadMap({ id, map }: SetDefinition): Promise<Topology> {
+  return fetchJson(`sets/${id}/${map.file}`);
 }

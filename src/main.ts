@@ -1,13 +1,20 @@
-import { loadSets } from './data/load';
-import { renderSets } from './ui/sets';
+import { loadMap, loadSets } from './data/load';
+import { renderMapQuiz } from './ui/map-quiz';
 import './style.css';
 
-const container = document.querySelector<HTMLElement>('#sets');
+const container = document.querySelector<HTMLElement>('#quiz');
 if (container) {
   loadSets()
-    .then((sets) => renderSets(container, sets))
+    .then(async (sets) => {
+      const world = sets.find(({ definition }) => definition.id === 'world');
+      if (!world) throw new Error('The world set is missing');
+      renderMapQuiz(container, world, await loadMap(world.definition));
+    })
     .catch((error: unknown) => {
       console.error(error);
-      container.textContent = 'Die Datensätze konnten nicht geladen werden.';
+      const status = document.createElement('p');
+      status.setAttribute('role', 'alert');
+      status.textContent = 'Die Weltkarte konnte nicht geladen werden.';
+      container.replaceChildren(status);
     });
 }

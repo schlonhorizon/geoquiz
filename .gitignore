@@ -159,3 +159,5 @@ vite.config.ts.timestamp-*
 # Generated quiz data
 /public/data/
 /public/.data-*/
+/data/raw/
+/data/sets/*/entities.seed.csv
