@@ -1,0 +1,46 @@
+{
+  "id": "world",
+  "label": "Länder der Welt",
+  "entityLabel": "Land",
+  "entityLabelPlural": "Länder",
+  "parent": null,
+  "map": {
+    "file": "map.topojson",
+    "object": "countries",
+    "idProperty": "id",
+    "projection": "equalEarth"
+  },
+  "attributes": [
+    {
+      "key": "capital",
+      "label": "Hauptstadt",
+      "type": "text",
+      "aliasesColumn": "capital_aliases",
+      "point": { "lat": "capital_lat", "lon": "capital_lon" },
+      "prompts": {
+        "forward": "Was ist die Hauptstadt von {entity}?",
+        "reverse": "{value} ist die Hauptstadt von …?",
+        "mapPoint": "Markiere {value} auf der Karte von {entity}."
+      }
+    },
+    {
+      "key": "continent",
+      "label": "Kontinent",
+      "type": "enum",
+      "values": ["Europa", "Asien", "Afrika", "Nordamerika", "Südamerika", "Ozeanien"]
+    },
+    { "key": "neighbors", "label": "Nachbarländer", "type": "entityRefList" },
+    { "key": "seas", "label": "Meereszugang", "type": "list", "emptyMeans": "Binnenstaat" },
+    { "key": "memberships", "label": "Mitgliedschaften", "type": "list", "groupQuiz": true },
+    { "key": "currency", "label": "Währung", "type": "text" },
+    { "key": "central_bank", "label": "Zentralbank", "type": "text" },
+    { "key": "stock_index", "label": "Leitindex", "type": "text" },
+    {
+      "key": "regime_type",
+      "label": "Regierungsform",
+      "type": "enum",
+      "values": ["Geschlossene Autokratie", "Wahlautokratie", "Wahldemokratie", "Liberale Demokratie"]
+    },
+    { "key": "un_member", "label": "UN-Mitglied", "type": "boolean", "quiz": false }
+  ]
+}
