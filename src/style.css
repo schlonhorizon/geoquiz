@@ -37,7 +37,7 @@ button:disabled {
   cursor: default;
 }
 
-button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
+button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tabindex]:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
@@ -318,7 +318,7 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 }
 
 @media (max-width: 780px) {
-  .answer-dock:has(.answer-sheet:not([hidden]) .answers:not([hidden])):not(:has(.next-question:not([hidden]))) {
+  .answer-dock:has(.answer-sheet:not([hidden]) :is(.answers, .typed-answer):not([hidden])):not(:has(.next-question:not([hidden]))) {
     --dock-clearance: calc(96px - var(--line) + 12px);
   }
 }
@@ -400,6 +400,24 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   border: var(--line) solid var(--ink);
   border-bottom: 0;
   background: var(--paper);
+}
+
+.typed-answer-field {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px 16px;
+}
+
+.typed-answer input, .answer-format select {
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: var(--line) solid var(--ink);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
 }
 
 .answers {
@@ -528,6 +546,7 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   border: 0;
   background: var(--paper);
   color: var(--ink);
+  overflow-x: hidden;
   overscroll-behavior: contain;
 }
 
@@ -561,6 +580,14 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 .menu-modes {
   margin-top: 8px;
   border-top: var(--line) solid var(--ink);
+}
+
+.menu-overlay[open] .menu-modes {
+  animation: menu-slide-in 180ms var(--ease-out) both;
+}
+
+.menu-overlay[data-closing] .menu-modes {
+  animation: menu-slide-out 180ms var(--ease-inout) both;
 }
 
 .menu-mode {
@@ -616,6 +643,11 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   align-items: center;
   gap: 8px;
   min-height: 44px;
+}
+
+.menu-settings .answer-format {
+  flex-wrap: wrap;
+  margin-block: 8px;
 }
 
 .menu-settings input {
@@ -694,6 +726,20 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   to { opacity: 1; }
 }
 
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes menu-slide-in {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes menu-slide-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateX(-16px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .question-entry, .question-flag > img, .answer, .answer[data-state="incorrect"],
   .answer-sheet:has(.verdict:not([hidden])), .round-summary:not([hidden]),
@@ -715,6 +761,8 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   }
 
   .menu-mode { transition: none; }
+  .menu-overlay[open] .menu-modes { animation: fade-in 150ms ease both; }
+  .menu-overlay[data-closing] .menu-modes { animation: fade-out 150ms ease both; }
   .map-country, .map-marker { transition-duration: 150ms; }
   .map-target-pulse, .map-marker.map-target-pulse { animation: none; }
 }

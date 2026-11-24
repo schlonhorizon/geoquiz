@@ -1,6 +1,7 @@
 import type { Topology } from 'topojson-specification';
 import type { QuizSet } from '../data/load';
 import { renderWorldMap } from '../map/world-map';
+import { createAnswerMatcher } from '../match/answers';
 import { createMapRound } from '../quiz/map-questions';
 import type { MapMode, MapQuestion } from '../quiz/map-questions';
 
@@ -41,6 +42,13 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
           <p class="verdict-detail"></p>
         </div>
         <div class="answers" role="group" aria-label="Antwortmöglichkeiten" hidden></div>
+        <form class="typed-answer" hidden>
+          <div class="typed-answer-field">
+            <label class="meta-label" for="country-answer">Ländername</label>
+            <input id="country-answer" type="text" required autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go">
+          </div>
+          <button type="submit" class="primary-button">Antwort prüfen</button>
+        </form>
         <button type="button" class="primary-button next-question" aria-keyshortcuts="Space Enter" hidden>
           <span class="next-label">Weiter</span>
           <span class="button-hint" aria-hidden="true"><span class="meta-label">Leertaste</span> <span>→</span></span>
@@ -89,6 +97,13 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
         </nav>
         <div class="menu-settings">
           <p class="meta-label">Einstellungen</p>
+          <label class="answer-format">
+            Antwort in Benennen
+            <select id="answer-format">
+              <option value="choice">4 Optionen</option>
+              <option value="typed">Tippen</option>
+            </select>
+          </label>
           <label><input type="checkbox" id="animate-feedback" checked> Lösungszoom animieren</label>
           <label><input type="checkbox" id="marker-rings" autocomplete="off"> Kleinstaaten-Ringe anzeigen</label>
           <button type="button" id="reset-map">Weltansicht zurücksetzen</button>
@@ -98,6 +113,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   `;
 
   const menu = container.querySelector<HTMLDialogElement>('#quiz-menu')!;
+  const menuModes = container.querySelector<HTMLElement>('.menu-modes')!;
   const menuButton = container.querySelector<HTMLButtonElement>('.menu-button')!;
   const animation = container.querySelector<HTMLInputElement>('#animate-feedback')!;
   const markerRings = container.querySelector<HTMLInputElement>('#marker-rings')!;
@@ -110,6 +126,9 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   const correctCount = container.querySelector<HTMLElement>('#correct-count')!;
   const sheet = container.querySelector<HTMLElement>('.answer-sheet')!;
   const options = container.querySelector<HTMLElement>('.answers')!;
+  const answerFormat = container.querySelector<HTMLSelectElement>('#answer-format')!;
+  const typedAnswer = container.querySelector<HTMLFormElement>('.typed-answer')!;
+  const typedInput = container.querySelector<HTMLInputElement>('#country-answer')!;
   const verdictPanel = container.querySelector<HTMLElement>('.verdict')!;
   const verdictNumber = container.querySelector<HTMLElement>('.verdict-number')!;
   const verdictTitle = container.querySelector<HTMLElement>('.verdict-title')!;
@@ -127,6 +146,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   const svg = container.querySelector<SVGSVGElement>('.world-map')!;
 
   const names = new Map(entities.map(({ id, name }) => [id, name]));
+  const matchAnswer = createAnswerMatcher(entities);
   const map = renderWorldMap(svg, topology, definition.map, entities, submitAnswer);
   const optionButtons = new Map<string, HTMLButtonElement>();
   let mode: MapMode = 'find';
@@ -137,6 +157,16 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   let autoTimer: number | undefined;
 
   const pad = (number: number) => String(number).padStart(2, '0');
+
+  function focusQuestion() {
+    (typedAnswer.hidden ? prompt : typedInput).focus({ preventScroll: true });
+  }
+
+  function updateAnswerFormat() {
+    const typing = mode === 'name' && answerFormat.value === 'typed';
+    typedAnswer.hidden = !typing;
+    options.hidden = mode !== 'name' || typing;
+  }
 
   function updateScore(pop: boolean) {
     const value = document.createElement('span');
@@ -182,8 +212,9 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     verdictPanel.hidden = true;
     skip.hidden = false;
     zoomControls.hidden = false;
-    options.hidden = mode === 'find';
-    sheet.hidden = options.hidden;
+    typedInput.value = '';
+    updateAnswerFormat();
+    sheet.hidden = mode === 'find';
 
     optionButtons.clear();
     options.replaceChildren(...question.options.map(({ id, name }, position) => {
@@ -205,7 +236,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
       optionButtons.set(id, row);
       return row;
     }));
-    if (focus && !menu.open) prompt.focus({ preventScroll: true });
+    if (focus && !menu.open) focusQuestion();
   }
 
   function startRound(nextMode: MapMode, focus = true) {
@@ -221,11 +252,17 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   }
 
   function submitAnswer(selectedId?: string) {
+    const target = questions[index]?.target;
+    if (!target) return;
+    showVerdict(selectedId === target.id ? 'correct' : selectedId ? 'incorrect' : 'skipped', selectedId);
+  }
+
+  function showVerdict(outcome: Verdict, selectedId?: string, typo = false) {
     const question = questions[index];
     if (!question || verdict) return;
     const { target } = question;
-    const correct = selectedId === target.id;
-    verdict = correct ? 'correct' : selectedId ? 'incorrect' : 'skipped';
+    const correct = outcome === 'correct';
+    verdict = outcome;
     if (correct) {
       score++;
       updateScore(true);
@@ -241,12 +278,16 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     verdictTitle.textContent = verdictLabels[verdict];
     const selectedName = selectedId ? names.get(selectedId) : undefined;
     const solution = `${target.name} ist blau markiert.`;
-    verdictDetail.textContent = correct ? 'Weiter geht’s gleich.'
-      : selectedName ? `Du hast ${selectedName} gewählt. ${solution}` : solution;
+    if (correct) {
+      verdictDetail.textContent = typo ? `Die richtige Schreibweise ist „${target.name}“.` : 'Weiter geht’s gleich.';
+    } else {
+      verdictDetail.textContent = selectedName ? `Du hast ${selectedName} gewählt. ${solution}` : solution;
+    }
     feedback.textContent = `${verdictLabels[verdict]} ${verdictDetail.textContent}`;
     nextLabel.textContent = index === questions.length - 1 ? 'Ergebnis' : 'Weiter';
     skip.hidden = true;
     zoomControls.hidden = true;
+    typedAnswer.hidden = true;
     sheet.hidden = false;
     verdictPanel.hidden = false;
     timer.hidden = !correct;
@@ -273,9 +314,18 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     if (focus && !menu.open) newRound.focus({ preventScroll: true });
   }
 
-  function closeMenu() {
-    menu.close();
-    menuButton.setAttribute('aria-expanded', 'false');
+  function closeMenu(afterClose?: () => void) {
+    if (!menu.open || menu.hasAttribute('data-closing')) return;
+    menu.dataset.closing = '';
+    const finish = () => {
+      menu.close();
+      delete menu.dataset.closing;
+      menuButton.setAttribute('aria-expanded', 'false');
+      afterClose?.();
+    };
+    const slide = menuModes.getAnimations?.()[0];
+    if (slide) void slide.finished.then(finish, finish);
+    else finish();
   }
 
   nameButton.disabled = new Set(entities.map(({ name }) => name)).size < 4;
@@ -283,18 +333,30 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     menu.showModal();
     menuButton.setAttribute('aria-expanded', 'true');
   });
-  container.querySelector('.close-menu')!.addEventListener('click', closeMenu);
+  container.querySelector('.close-menu')!.addEventListener('click', () => closeMenu());
   findButton.addEventListener('click', () => {
-    closeMenu();
-    if (mode !== 'find') startRound('find');
+    closeMenu(() => {
+      if (mode !== 'find') startRound('find');
+    });
   });
   nameButton.addEventListener('click', () => {
-    closeMenu();
-    if (mode !== 'name') startRound('name');
+    closeMenu(() => {
+      if (mode !== 'name') startRound('name');
+    });
   });
   container.querySelector('#reset-map')!.addEventListener('click', () => {
-    map.resetView();
-    closeMenu();
+    closeMenu(() => map.resetView());
+  });
+  answerFormat.addEventListener('change', () => {
+    if (mode === 'name' && !verdict) updateAnswerFormat();
+  });
+  typedAnswer.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const target = questions[index]?.target;
+    if (typedAnswer.hidden || verdict || !target || !typedInput.value.trim()) return;
+    const result = matchAnswer(typedInput.value, target.id);
+    if (result === 'incorrect') showVerdict('incorrect');
+    else showVerdict('correct', target.id, result === 'typo');
   });
   markerRings.addEventListener('change', () => svg.classList.toggle('show-marker-rings', markerRings.checked));
   container.querySelector('#zoom-out')!.addEventListener('click', () => map.zoomBy(1 / 1.6));
@@ -306,11 +368,10 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && menu.open) {
       event.preventDefault();
-      closeMenu();
-      menuButton.focus({ preventScroll: true });
+      closeMenu(() => menuButton.focus({ preventScroll: true }));
       return;
     }
-    if (menu.open || event.defaultPrevented || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (menu.open || event.defaultPrevented || event.isComposing || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target;
     if (target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'))) return;
     if ((event.key === ' ' || event.key === 'Enter') && verdict) {
@@ -319,7 +380,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
       else advance();
       return;
     }
-    if (mode === 'name' && !verdict && /^[1-4]$/.test(event.key)) {
+    if (!options.hidden && !verdict && /^[1-4]$/.test(event.key)) {
       const option = questions[index]?.options[Number(event.key) - 1];
       if (option) {
         event.preventDefault();

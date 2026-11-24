@@ -94,7 +94,7 @@ Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. 
 - Ende der Runde (20 Fragen): Sheet mit „RUNDE BEENDET“, Ergebnis 88 px, ein Satz, „Neue Runde“.
 
 ### Benennen
-Der Aufbau entspricht Finden. Das gesuchte Land ist blau markiert. Das zentrierte Antwort-Sheet zeigt vier Optionszeilen oder das Eingabefeld. Auf schmalen Bildschirmen sitzt es oberhalb der Eckbedienelemente, solange diese sichtbar sind.
+Der Aufbau entspricht Finden. Das gesuchte Land ist blau markiert. Das zentrierte Antwort-Sheet zeigt standardmäßig vier Optionszeilen. Unter „Antwort in Benennen“ im Menü lässt sich auf das Eingabefeld umschalten. Auf schmalen Bildschirmen sitzt das Sheet oberhalb der Eckbedienelemente, solange diese sichtbar sind.
 
 ### Flaggen
 - Spalte (max. 560 px): oben Zurück-Button (48 px, `←`) und Meta-Leiste daneben.
@@ -135,6 +135,7 @@ Der Aufbau entspricht Finden. Das gesuchte Land ist blau markiert. Das zentriert
 | Flaggen-Modus: neue Flagge | 700 ms | `--ease-inout` | wird von links nach rechts aufgedeckt |
 | Beschriftung unter Flagge | 400 ms, 100 ms Verzögerung | `--ease-out` | fährt von unten ein |
 | Menü | 200 ms | ease | einblenden |
+| Menüpunkte | je 180 ms | `--ease-out` beim Öffnen, `--ease-inout` beim Schließen | Modusliste gleitet 16 px von links ein und nach links aus |
 
 Bei `prefers-reduced-motion: reduce` ersetzen Einblendungen von 150 ms die sonstigen Bewegungen. Kartenflüge springen direkt, hervorgehobene Länder und ihre Marker bleiben ruhig.
 
