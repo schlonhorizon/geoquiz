@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { setDefinitionSchema } from '../src/data/schema';
 import type { Entity, SetDefinition, SetIndex } from '../src/data/schema';
 import { readEntities } from './data/entities';
-import { validateMap } from './data/map';
+import { mergeLandAreas, validateMap } from './data/map';
 import type { DataIssues } from './data/issues';
 
 interface BuiltSet {
@@ -31,7 +31,7 @@ async function readSet(setsDirectory: string, id: string, issues: DataIssues): P
   }
 
   const entities = readEntities(await readUtf8(join(source, 'entities.csv')), definition, issues);
-  const mapJson = await readUtf8(join(source, definition.map.file));
+  const mapJson = mergeLandAreas(await readUtf8(join(source, definition.map.file)), definition.map);
   validateMap(mapJson, definition.map, entities, issues);
   return { definition, definitionJson, entities, mapJson };
 }

@@ -97,6 +97,17 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   pointer-events: none;
 }
 
+.map-marker-ring {
+  fill: none;
+  stroke: var(--highlight);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: marker-pulse 600ms var(--ease-out) 2;
+}
+
 .map-marker-hit {
   fill: transparent;
 }
@@ -112,9 +123,12 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   }
 }
 
-.map-country[data-state="highlighted"], .map-marker[data-state="highlighted"],
+.map-country[data-state="highlighted"], .map-marker[data-state="highlighted"] {
+  fill: var(--highlight);
+}
+
 .map-country[data-state="correct"], .map-marker[data-state="correct"] {
-  fill: var(--ink);
+  fill: var(--ok);
 }
 
 .map-country[data-state="incorrect"], .map-marker[data-state="incorrect"] {
@@ -132,9 +146,6 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   position: fixed;
   z-index: 3;
   inset: var(--top) var(--right) auto var(--left);
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
   pointer-events: none;
 }
 
@@ -144,17 +155,25 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 }
 
 .question-bar {
-  flex: 1 1 auto;
-  min-inline-size: 0;
   max-inline-size: 460px;
+  margin-inline: auto;
+}
+
+.question-meta {
+  display: flex;
+  align-items: center;
+}
+
+.question-meta:has(+ .question-body:not([hidden])) {
+  border-bottom: var(--line) solid var(--ink);
 }
 
 .progress {
+  flex: 1;
   display: flex;
   justify-content: space-between;
   gap: 6px;
   padding: 8px 12px;
-  border-bottom: var(--line) solid var(--ink);
 }
 
 .score-pop {
@@ -250,8 +269,9 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   }
 }
 
-.menu-button {
-  margin-inline-start: auto;
+.question-meta .menu-button {
+  border: 0;
+  border-inline-start: var(--line) solid var(--ink);
   pointer-events: auto;
 }
 
@@ -273,15 +293,19 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 }
 
 .answer-dock {
+  --dock-clearance: 0px;
   position: fixed;
   z-index: 2;
-  inset: auto var(--right) var(--bottom) var(--left);
+  inset: auto var(--right) calc(var(--bottom) + var(--dock-clearance)) var(--left);
   max-inline-size: 460px;
+  margin-inline: auto;
   pointer-events: none;
 }
 
-.answer-dock:has(.answers:not([hidden])):has(.skip-question:not([hidden])) {
-  right: calc(var(--right) + 60px);
+@media (max-width: 780px) {
+  .answer-dock:has(.answer-sheet:not([hidden]) .answers:not([hidden])):not(:has(.next-question:not([hidden]))) {
+    --dock-clearance: calc(96px - var(--line) + 12px);
+  }
 }
 
 .answer-sheet, .skip-question {
@@ -293,16 +317,16 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 }
 
 .skip-question {
+  position: fixed;
+  z-index: 2;
+  bottom: var(--bottom);
+  left: var(--left);
   height: 48px;
   padding: 0 16px;
   border: var(--line) solid var(--ink);
   background: var(--paper);
   font-size: 14px;
   font-weight: 700;
-}
-
-.answer-sheet:not([hidden]) ~ .skip-question {
-  margin-top: 8px;
 }
 
 .skip-question:hover, .menu-settings button:hover {
@@ -635,6 +659,10 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   to { transform: scaleX(1); }
 }
 
+@keyframes marker-pulse {
+  50% { transform: scale(1.5); opacity: .45; }
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -643,7 +671,7 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .question-entry, .question-flag > img, .answer, .answer[data-state="incorrect"],
   .answer-sheet:has(.verdict:not([hidden])), .round-summary:not([hidden]),
-  .verdict-dot, .score-pop, .timer-bar, .menu-overlay[open] {
+  .verdict-dot, .score-pop, .timer-bar, .map-marker-ring, .menu-overlay[open] {
     animation: fade-in 150ms ease both;
   }
 
@@ -680,7 +708,7 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 
 @media (max-height: 630px) {
   .answer-dock {
-    max-height: calc(100dvh - var(--top) - var(--bottom) - 128px);
+    max-height: max(120px, calc(100dvh - var(--top) - var(--bottom) - var(--dock-clearance) - 128px));
     overflow: auto;
     overscroll-behavior: contain;
   }

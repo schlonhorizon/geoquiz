@@ -9,6 +9,7 @@
   --grid: rgba(17, 17, 17, .14);
   --accent: #E3000F;
   --ok: #00A651;
+  --highlight: #0047FF;
   --line: 2px;
   --ease-out: cubic-bezier(.2, .8, .2, 1);
   --ease-inout: cubic-bezier(.65, 0, .35, 1);
