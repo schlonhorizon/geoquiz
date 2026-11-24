@@ -1,0 +1,11 @@
+id;name;name_aliases;continent;capital;capital_aliases;capital_lat;capital_lon;neighbors;seas;memberships;currency;central_bank;stock_index;regime_type;un_member
+ARG;Argentinien;;Südamerika;Buenos Aires;;-34.6037;-58.3816;BRA|URY;Atlantischer Ozean;Mercosur;Argentinischer Peso;;;;true
+BEL;Belgien;;Europa;Brüssel;Bruxelles|Brussel;50.8503;4.3517;DEU|FRA;Nordsee;EU|NATO;Euro;;;;true
+BRA;Brasilien;;Südamerika;Brasília;Brasilia;-15.7939;-47.8828;ARG|FRA|URY;Atlantischer Ozean;Mercosur;Brasilianischer Real;;;;true
+CAN;Kanada;;Nordamerika;Ottawa;;45.4215;-75.6972;USA;Atlantischer Ozean|Pazifischer Ozean|Arktischer Ozean;NATO|USMCA;Kanadischer Dollar;;;;true
+CHE;Schweiz;;Europa;Bern;;46.9481;7.4474;DEU|FRA;;EFTA;Schweizer Franken;;;;true
+DEU;Deutschland;Bundesrepublik Deutschland;Europa;Berlin;;52.5200;13.4050;BEL|CHE|FRA;Nordsee|Ostsee;EU|NATO;Euro;;;;true
+FRA;Frankreich;;Europa;Paris;;48.8566;2.3522;BEL|BRA|CHE|DEU;Atlantischer Ozean|Mittelmeer|Ärmelkanal|Nordsee;EU|NATO;Euro;;;;true
+MEX;Mexiko;;Nordamerika;Mexiko-Stadt;Ciudad de México;19.4326;-99.1332;USA;Pazifischer Ozean|Golf von Mexiko|Karibisches Meer;USMCA;Mexikanischer Peso;;;;true
+URY;Uruguay;;Südamerika;Montevideo;;-34.9011;-56.1645;ARG|BRA;Atlantischer Ozean;Mercosur;Uruguayischer Peso;;;;true
+USA;Vereinigte Staaten;USA|Vereinigte Staaten von Amerika;Nordamerika;Washington, D.C.;Washington DC|Washington;38.9072;-77.0369;CAN|MEX;Atlantischer Ozean|Pazifischer Ozean|Arktischer Ozean|Golf von Mexiko;NATO|USMCA;US-Dollar;;;;true

@@ -1,0 +1,72 @@
+import { z } from 'zod';
+import type { Entity, SetDefinition } from '../../src/data/schema';
+import type { DataIssues } from './issues';
+
+const topologySchema = z.object({
+  type: z.literal('Topology'),
+  objects: z.record(z.string(), z.unknown()),
+  arcs: z.array(z.unknown()),
+});
+
+const geometrySchema = z.object({
+  type: z.string().nullable(),
+  id: z.union([z.string(), z.number()]).optional(),
+  properties: z.record(z.string(), z.unknown()).nullish(),
+  arcs: z.unknown().optional(),
+});
+
+const ringSchema = z.array(z.number().int()).min(1);
+const polygonSchema = z.array(ringSchema).min(1);
+const multiPolygonSchema = z.array(polygonSchema).min(1);
+const collectionSchema = z.object({ type: z.literal('GeometryCollection'), geometries: z.array(z.unknown()) });
+
+export function validateMap(content: string, map: SetDefinition['map'], entities: Map<string, Entity>, issues: DataIssues) {
+  const topology = topologySchema.parse(JSON.parse(content));
+  if (!Object.hasOwn(topology.objects, map.object)) {
+    issues.errors.push(`TopoJSON-Objekt "${map.object}" fehlt in ${map.file}.`);
+    return;
+  }
+
+  const object = topology.objects[map.object];
+  const collection = collectionSchema.safeParse(object);
+  const geometries = collection.success ? collection.data.geometries : [object];
+  const geometryIds = new Set<string>();
+  for (const [index, entry] of geometries.entries()) {
+    const geometry = geometrySchema.parse(entry);
+    const property = geometry.properties?.[map.idProperty];
+    const id = map.idProperty === 'id' ? geometry.id ?? property : property;
+    const idLabel = typeof id === 'string' || typeof id === 'number' ? String(id) : '';
+    if (!idLabel.trim()) {
+      issues.warnings.push(`Geometrie ${index + 1} in "${map.object}" hat keine ID über "${map.idProperty}".`);
+      continue;
+    }
+
+    const label = `Geometrie "${idLabel}" in "${map.object}"`;
+    if (geometryIds.has(idLabel)) {
+      issues.errors.push(`${label}: Doppelte Geometrie-ID.`);
+    }
+    if (!entities.has(idLabel)) {
+      issues.warnings.push(`${label} hat keine Entity.`);
+    }
+
+    const polygon = polygonSchema.safeParse(geometry.arcs);
+    const multiPolygon = multiPolygonSchema.safeParse(geometry.arcs);
+    const arcs = geometry.type === 'Polygon' && polygon.success ? polygon.data.flat()
+      : geometry.type === 'MultiPolygon' && multiPolygon.success ? multiPolygon.data.flat(2)
+        : [];
+    if (!arcs.length || arcs.some((arc) => {
+      const reference = arc < 0 ? -arc - 1 : arc;
+      return !Array.isArray(topology.arcs[reference]) || topology.arcs[reference].length < 2;
+    })) {
+      issues.errors.push(`${label}: Ungültige Polygongeometrie.`);
+      continue;
+    }
+    geometryIds.add(idLabel);
+  }
+
+  for (const id of entities.keys()) {
+    if (!geometryIds.has(id)) {
+      issues.errors.push(`Entity "${id}" hat keine Geometrie in "${map.object}".`);
+    }
+  }
+}
