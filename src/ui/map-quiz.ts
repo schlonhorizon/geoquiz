@@ -72,24 +72,27 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     <p class="sr-only" id="map-instructions">Ziehen zum Verschieben. Mit Mausrad oder zwei Fingern zoomen.</p>
     <p class="sr-only feedback" role="status" aria-atomic="true"></p>
     <dialog class="menu-overlay" id="quiz-menu" aria-labelledby="menu-title">
-      <header class="menu-header">
-        <h2 id="menu-title">GeoQuiz</h2>
-        <button type="button" class="square-button close-menu" aria-label="Menü schließen" autofocus>
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1l14 14M15 1L1 15"/></svg>
-        </button>
-      </header>
-      <p class="meta-label" id="mode-label">Modus</p>
-      <nav class="menu-modes" aria-labelledby="mode-label">
-        <button class="menu-mode" type="button" id="find-mode"><span class="menu-number" aria-hidden="true">01</span><span>Finden</span><span class="menu-arrow" aria-hidden="true">→</span></button>
-        <button class="menu-mode" type="button" id="name-mode"><span class="menu-number" aria-hidden="true">02</span><span>Benennen</span><span class="menu-arrow" aria-hidden="true">→</span></button>
-        <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">03</span><span>Flaggen</span><span class="meta-label">Folgt</span></button>
-        <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">04</span><span>Länder</span><span class="meta-label">Folgt</span></button>
-        <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">05</span><span>Statistik</span><span class="meta-label">Folgt</span></button>
-      </nav>
-      <div class="menu-settings">
-        <p class="meta-label">Einstellungen</p>
-        <label><input type="checkbox" id="animate-feedback" checked> Lösungszoom animieren</label>
-        <button type="button" id="reset-map">Weltansicht zurücksetzen</button>
+      <div class="menu-content">
+        <header class="menu-header">
+          <h2 id="menu-title">GeoQuiz</h2>
+          <button type="button" class="square-button close-menu" aria-label="Menü schließen" autofocus>
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1l14 14M15 1L1 15"/></svg>
+          </button>
+        </header>
+        <p class="meta-label" id="mode-label">Modus</p>
+        <nav class="menu-modes" aria-labelledby="mode-label">
+          <button class="menu-mode" type="button" id="find-mode"><span class="menu-number" aria-hidden="true">01</span><span>Finden</span><span class="menu-arrow" aria-hidden="true">→</span></button>
+          <button class="menu-mode" type="button" id="name-mode"><span class="menu-number" aria-hidden="true">02</span><span>Benennen</span><span class="menu-arrow" aria-hidden="true">→</span></button>
+          <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">03</span><span>Flaggen</span><span class="meta-label">Folgt</span></button>
+          <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">04</span><span>Länder</span><span class="meta-label">Folgt</span></button>
+          <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">05</span><span>Statistik</span><span class="meta-label">Folgt</span></button>
+        </nav>
+        <div class="menu-settings">
+          <p class="meta-label">Einstellungen</p>
+          <label><input type="checkbox" id="animate-feedback" checked> Lösungszoom animieren</label>
+          <label><input type="checkbox" id="marker-rings" autocomplete="off"> Kleinstaaten-Ringe anzeigen</label>
+          <button type="button" id="reset-map">Weltansicht zurücksetzen</button>
+        </div>
       </div>
     </dialog>
   `;
@@ -97,6 +100,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   const menu = container.querySelector<HTMLDialogElement>('#quiz-menu')!;
   const menuButton = container.querySelector<HTMLButtonElement>('.menu-button')!;
   const animation = container.querySelector<HTMLInputElement>('#animate-feedback')!;
+  const markerRings = container.querySelector<HTMLInputElement>('#marker-rings')!;
   const findButton = container.querySelector<HTMLButtonElement>('#find-mode')!;
   const nameButton = container.querySelector<HTMLButtonElement>('#name-mode')!;
   const questionBody = container.querySelector<HTMLElement>('.question-body')!;
@@ -292,6 +296,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     map.resetView();
     closeMenu();
   });
+  markerRings.addEventListener('change', () => svg.classList.toggle('show-marker-rings', markerRings.checked));
   container.querySelector('#zoom-out')!.addEventListener('click', () => map.zoomBy(1 / 1.6));
   container.querySelector('#zoom-in')!.addEventListener('click', () => map.zoomBy(1.6));
   skip.addEventListener('click', () => submitAnswer());

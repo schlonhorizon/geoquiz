@@ -73,7 +73,7 @@ Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. 
 - **Flagge**: immer 4:3 mit 2 px Kontur (`outline`), damit weiße Flaggen auf weißem Grund sichtbar bleiben.
 - **Urteils-Punkt**: 10 × 10-px-Quadrat vor dem Label: `--ok` (richtig), `--accent` (falsch), `--muted` (übersprungen).
 - **Fortschritt** (Länder-Modus): eine Zelle pro Frage, 10 px hoch, 2 px Rahmen, 4 px Abstand; Füllung schwarz (richtig), rot (falsch), grau `--land-hover` (aktuelle Frage).
-- **Menü**: Vollbild-Overlay, weiß. Kopf „GEOQUIZ“ + Schließen-Button. Darunter Label „Modus“ und eine nummerierte Liste mit 2-px-Trennlinien: `01 Finden`, `02 Benennen`, `03 Flaggen`, `04 Länder`, `05 Statistik`. Noch nicht fertige Modi grau mit „FOLGT“. Hover: Eintrag rückt 12 px ein.
+- **Menü**. Der Hintergrund des Vollbild-Overlays ist weiß. Der Inhalt ist horizontal zentriert und maximal 560 px breit. Unter dem Kopf „GEOQUIZ“ mit Schließen-Button stehen das Label „Modus“ und die nummerierte Liste mit 2-px-Trennlinien. Die Einträge sind `01 Finden`, `02 Benennen`, `03 Flaggen`, `04 Länder` und `05 Statistik`. Noch nicht fertige Modi sind grau und mit „FOLGT“ gekennzeichnet. Beim Hover rückt der Eintrag 12 px ein.
 
 ## 4. Karte
 
@@ -81,7 +81,8 @@ Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. 
 - Meer `--sea`, Land `--paper`, Grenzen `--ink` 0,8 px mit `vector-effect: non-scaling-stroke`.
 - Gradnetz alle 30° Länge und 20° Breite, 1 px `--grid`.
 - Hover während einer Kartenfrage verwendet `--land-hover`. In Benennen ist das gesuchte Land blau (`--highlight`). In Finden erscheint die Lösung nach einem Fehler oder beim Überspringen blau, ein korrekt angeklicktes Land grün (`--ok`). Falsch ausgewählte Länder erscheinen rot (`--accent`). Gebiete ohne Quiz bleiben grau (`--land-off`).
-- Kleinstaaten-Marker haben einen zusätzlichen blauen Ring mit 2 px Strichstärke und `vector-effect: non-scaling-stroke`. Bei der Einblendung pulsiert er zweimal und bleibt dann stehen.
+- In den Menü-Einstellungen lassen sich blaue Kleinstaaten-Ringe einschalten. Sie sind standardmäßig ausgeblendet. Die klickbaren Marker bleiben sichtbar. Der Ring hat 2 px Strichstärke mit `vector-effect: non-scaling-stroke`.
+- Blau markierte Länder pulsieren bei ihrer ersten Hervorhebung kurz, unabhängig von ihrer Größe und der Ring-Einstellung. Bei Kleinstaaten pulsiert auch der Marker.
 
 ## 5. Bildschirme
 
@@ -115,6 +116,7 @@ Der Aufbau entspricht Finden. Das gesuchte Land ist blau markiert. Das zentriert
 |---|---|---|---|
 | Kartenflug zur Lösung / zurück | 800 ms | `--ease-inout` | nur bei falsch oder übersprungen |
 | Kleinstaaten-Ring erscheint | 2 × 600 ms | `--ease-out` | Ring pulsiert zweimal und bleibt danach sichtbar |
+| Land wird hervorgehoben | 2 × 600 ms | `--ease-out` | Land und gegebenenfalls Marker pulsieren am Anfang und bleiben danach blau |
 | Mausrad-Zoom | 180 ms | ease-out | |
 | Neue Frage (Text, Optionen) | 500 ms | `--ease-out` | von 14–16 px unten einblenden; Optionen je 50 ms versetzt |
 | Flagge in der Fragekarte | 550 ms, 80 ms Verzögerung | `--ease-out` | von 16 px rechts, 4° gedreht |
@@ -134,7 +136,7 @@ Der Aufbau entspricht Finden. Das gesuchte Land ist blau markiert. Das zentriert
 | Beschriftung unter Flagge | 400 ms, 100 ms Verzögerung | `--ease-out` | fährt von unten ein |
 | Menü | 200 ms | ease | einblenden |
 
-Bei `prefers-reduced-motion: reduce` alle Bewegungen durch kurze Einblendungen (150 ms) ersetzen; Kartenflüge springen direkt.
+Bei `prefers-reduced-motion: reduce` ersetzen Einblendungen von 150 ms die sonstigen Bewegungen. Kartenflüge springen direkt, hervorgehobene Länder und ihre Marker bleiben ruhig.
 
 ## 7. Spielablauf und Tastatur
 

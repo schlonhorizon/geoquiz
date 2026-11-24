@@ -98,6 +98,7 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 }
 
 .map-marker-ring {
+  display: none;
   fill: none;
   stroke: var(--highlight);
   stroke-width: 2px;
@@ -105,6 +106,10 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   pointer-events: none;
   transform-box: fill-box;
   transform-origin: center;
+}
+
+.show-marker-rings .map-marker-ring {
+  display: block;
   animation: marker-pulse 600ms var(--ease-out) 2;
 }
 
@@ -133,6 +138,16 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 
 .map-country[data-state="incorrect"], .map-marker[data-state="incorrect"] {
   fill: var(--accent);
+}
+
+.map-target-pulse {
+  animation: target-pulse 600ms var(--ease-out) 2;
+}
+
+.map-marker.map-target-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: target-marker-pulse;
 }
 
 .meta-label {
@@ -524,6 +539,11 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   background: var(--paper);
 }
 
+.menu-content {
+  max-inline-size: 560px;
+  margin-inline: auto;
+}
+
 .menu-header {
   display: flex;
   justify-content: space-between;
@@ -539,7 +559,6 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 }
 
 .menu-modes {
-  max-inline-size: 560px;
   margin-top: 8px;
   border-top: var(--line) solid var(--ink);
 }
@@ -587,7 +606,6 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 .menu-settings {
   display: grid;
   justify-items: start;
-  max-inline-size: 560px;
   margin-top: 24px;
   font-size: 14px;
   font-weight: 600;
@@ -663,6 +681,14 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
   50% { transform: scale(1.5); opacity: .45; }
 }
 
+@keyframes target-pulse {
+  50% { fill-opacity: .5; stroke: var(--highlight); stroke-width: 2.5px; }
+}
+
+@keyframes target-marker-pulse {
+  50% { transform: scale(1.75); }
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -671,7 +697,7 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .question-entry, .question-flag > img, .answer, .answer[data-state="incorrect"],
   .answer-sheet:has(.verdict:not([hidden])), .round-summary:not([hidden]),
-  .verdict-dot, .score-pop, .timer-bar, .map-marker-ring, .menu-overlay[open] {
+  .verdict-dot, .score-pop, .timer-bar, .show-marker-rings .map-marker-ring, .menu-overlay[open] {
     animation: fade-in 150ms ease both;
   }
 
@@ -690,6 +716,7 @@ button:focus-visible, input:focus-visible, .world-map [tabindex]:focus-visible {
 
   .menu-mode { transition: none; }
   .map-country, .map-marker { transition-duration: 150ms; }
+  .map-target-pulse, .map-marker.map-target-pulse { animation: none; }
 }
 
 [hidden] {
