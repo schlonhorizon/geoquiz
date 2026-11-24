@@ -99,6 +99,7 @@ export function renderWorldMap(
   for (const { tile, markers } of copies) tile.append(markers);
 
   let activeTarget: string | undefined;
+  let assistTarget = true;
   let viewport = { width: 0, height: 0 };
   let displayCenterX = worldWidth / 2;
   let markerScale = 0;
@@ -274,13 +275,13 @@ export function renderWorldMap(
         }
       }
     }
-    const id = resolveCountryClick(
+    const id = assistTarget ? resolveCountryClick(
       clickedId,
       clickedMarker,
       activeTarget,
       Boolean(target.geometry.marker),
       () => Boolean(point && isNearCountry(target, point)),
-    );
+    ) : clickedId;
     if (id) onCountrySelected(id);
   });
 
@@ -298,11 +299,20 @@ export function renderWorldMap(
     zoomBy(factor: number) {
       selection.interrupt().call(zoomBehavior.scaleBy, factor);
     },
-    showQuestion(id: string, { clickable, restart, animate }: { clickable: boolean; restart: boolean; animate: boolean }) {
+    showQuestion(id: string | undefined, { clickable, restart, animate, assist = true }: {
+      clickable: boolean; restart: boolean; animate: boolean; assist?: boolean;
+    }) {
       for (const countryId of layers.keys()) showCountryState(countryId, '');
-      if (!clickable) showCountryState(id, 'highlighted', true);
       activeTarget = clickable ? id : undefined;
+      assistTarget = assist;
       svg.classList.toggle('is-answerable', clickable);
+      if (id === undefined) {
+        selection.interrupt();
+        updateKeyboardTargets();
+        returnView = undefined;
+        return;
+      }
+      if (!clickable) showCountryState(id, 'highlighted', true);
       if (!clickable || restart) {
         resetView(clickable ? undefined : layers.get(id)?.center);
       } else if (returnView) {
@@ -315,7 +325,7 @@ export function renderWorldMap(
     },
     revealAnswer(correctId: string, selectedId: string | undefined, { fly, animate }: { fly: boolean; animate: boolean }) {
       selection.interrupt();
-      const finding = activeTarget === correctId;
+      const finding = activeTarget !== undefined;
       const correctMapClick = finding && selectedId === correctId;
       activeTarget = undefined;
       svg.classList.remove('is-answerable');

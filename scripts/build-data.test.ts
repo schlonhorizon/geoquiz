@@ -80,6 +80,11 @@ describe('buildData', () => {
     expect(await emitted('index.json')).toEqual({ sets: ['world'] });
     const entities: Entity[] = await emitted('sets/world/entities.json');
     expect(entities).toHaveLength(197);
+    expect(result.report).toContain('  flag: 197/197');
+    expect(entities.find(({ id }) => id === 'XKX')?.flag).toBe('xk');
+    await Promise.all(entities.map(async ({ flag }) => {
+      expect(await readFile(join(output, 'flags', `${flag}.svg`), 'utf8')).toContain('<svg');
+    }));
     expect(entities.filter(({ un_member }) => un_member === false).map(({ id }) => id))
       .toEqual(['PSE', 'TWN', 'VAT', 'XKX']);
     expect(entities).toContainEqual(expect.objectContaining({
@@ -182,6 +187,21 @@ describe('buildData', () => {
       '[world] Geometrie "BEL" in "areas" hat keine Entity.',
     ]);
     expect(await readFile(join(sources, 'world/entities.csv'), 'utf8')).toBe(csv);
+  });
+
+  it('reads optional flag distractors and validates their country IDs', async () => {
+    const csv = 'id;name;flag_similar\nDEU;Deutschland;FRA|BEL\nFRA;Frankreich;\nBEL;Belgien;\n';
+    const options: Partial<SetDefinition> = { attributes: [{ key: 'flag', label: 'Flagge', type: 'flag' }] };
+    await fixture('world', csv, ['DEU', 'FRA', 'BEL'], options);
+    const result = await buildData(sources, output);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    expect((await emitted('sets/world/entities.json'))[0]).toMatchObject({ flag: 'de', flag_similar: ['FRA', 'BEL'] });
+
+    await fixture('world', csv.replace('FRA|BEL', 'FRA|AAA'), ['DEU', 'FRA', 'BEL'], options);
+    expect((await buildData(sources, output)).errors).toEqual([
+      '[world] DEU, Spalte "flag_similar": Ungültige Entity-ID "AAA".',
+    ]);
   });
 
   it('reports reference, enum, duplicate and geometry errors and keeps the previous build', async () => {

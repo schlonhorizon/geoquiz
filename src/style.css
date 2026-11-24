@@ -206,10 +206,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
   gap: 12px;
 }
 
-.question-body:not(:has(.country-name)) .question-flag {
-  display: none;
-}
-
 .question {
   flex: 1 1 auto;
   min-inline-size: 0;
@@ -248,7 +244,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
 .country-name[data-size="small"] { font-size: 26px; }
 
 .question-flag {
-  flex: 0 0 56px;
+  flex: 0 0 80px;
   aspect-ratio: 4 / 3;
 }
 
@@ -408,7 +404,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
   padding: 12px 14px 16px;
 }
 
-.typed-answer input, .answer-format select {
+.typed-answer input, .answer-format select, .attribute-fields select {
   min-width: 0;
   min-height: 44px;
   padding: 6px 10px;
@@ -497,6 +493,67 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
   z-index: 1;
 }
 
+.flag-options:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  background: var(--paper);
+}
+
+.flag-option {
+  display: block;
+  min-height: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+
+.flag-option + .flag-option { margin-top: 0; }
+.flag-option::before { content: none; }
+
+.flag-option > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.flag-option .answer-key {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  color: var(--paper);
+  background: var(--ink);
+}
+
+.flag-option .answer-label {
+  display: none;
+  position: absolute;
+  inset: auto 0 0;
+  padding: 3px 4px;
+  color: var(--ink);
+  background: var(--paper);
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+.flag-option[data-state] .answer-label {
+  display: block;
+  animation: flag-caption 250ms var(--ease-out) both;
+}
+
+.flag-option[data-state="correct"] .answer-label { color: var(--paper); background: var(--ink); }
+.flag-option[data-state="incorrect"] .answer-label { color: var(--paper); background: var(--accent); }
+.flag-option[data-state]:not([data-state="correct"]) > img { opacity: .4; }
+
+.flag-option[data-state="correct"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 5px solid var(--ink);
+  pointer-events: none;
+}
+
 .primary-button {
   position: relative;
   display: flex;
@@ -583,11 +640,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
 }
 
 .menu-overlay[open] .menu-modes {
-  animation: menu-slide-in 180ms var(--ease-out) both;
+  animation: menu-slide-in 260ms var(--ease-out) both;
 }
 
 .menu-overlay[data-closing] .menu-modes {
-  animation: menu-slide-out 180ms var(--ease-inout) both;
+  animation: menu-slide-out 260ms var(--ease-inout) both;
 }
 
 .menu-mode {
@@ -629,6 +686,53 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
 }
 
 .menu-arrow { font-size: 20px; }
+
+.attribute-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: var(--line) solid var(--ink);
+}
+
+.attribute-modes button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 0;
+  background: var(--paper);
+  text-align: left;
+  font-weight: 700;
+}
+
+.attribute-modes button + button { border-left: var(--line) solid var(--ink); }
+.attribute-modes button:disabled { color: var(--muted); }
+.attribute-modes button:hover:not(:disabled) { background: var(--hover); }
+.attribute-modes button[aria-expanded="true"] { background: var(--ink); color: var(--paper); }
+
+.attribute-settings {
+  margin-top: 16px;
+  border: var(--line) solid var(--ink);
+}
+
+.attribute-settings h3, #attribute-set { margin: 10px 12px 0; }
+
+.attribute-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.attribute-fields label:not([hidden]) {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.attribute-status { margin: 0 12px 12px; }
+.attribute-settings .primary-button:disabled { opacity: .5; }
 
 .menu-settings {
   display: grid;
@@ -683,6 +787,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
 @keyframes flag-enter {
   from { opacity: 0; transform: translateX(16px) rotate(4deg); }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes flag-caption {
+  from { transform: translateY(100%); }
 }
 
 @keyframes sheet-enter {
@@ -741,7 +849,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .question-entry, .question-flag > img, .answer, .answer[data-state="incorrect"],
+  .question-entry, .question-flag > img, .answer, .answer[data-state="incorrect"], .flag-option[data-state] .answer-label,
   .answer-sheet:has(.verdict:not([hidden])), .round-summary:not([hidden]),
   .verdict-dot, .score-pop, .timer-bar, .show-marker-rings .map-marker-ring, .menu-overlay[open] {
     animation: fade-in 150ms ease both;
