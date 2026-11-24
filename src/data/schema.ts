@@ -44,6 +44,7 @@ export const setDefinitionSchema = z.object({
     object: text,
     idProperty: text,
     projection: text,
+    prompts: z.object({ find: text, name: text }).optional(),
   }),
   attributes: z.array(attributeSchema),
 });

@@ -1,6 +1,6 @@
 # GeoQuiz
 
-GeoQuiz ist ein statisches Geografiequiz in Vanilla TypeScript und Vite. Das Gerüst zeigt die verfügbaren Datensätze mit ihren Ländern an. [Spezifikation](docs/SPEC.md)
+GeoQuiz ist ein statisches Geografiequiz in Vanilla TypeScript und Vite. In „Finden“ klickst du das gesuchte Land auf der Weltkarte an. In „Benennen“ wählst du den Namen des hervorgehobenen Landes aus vier Antworten. [Spezifikation](docs/SPEC.md)
 
 ## Lokal starten
 
@@ -19,7 +19,7 @@ npm run build
 
 Jedes Set liegt unter `data/sets/<id>/`. `entities.csv` ist die Quelle für alle Entity-Werte. Die Datei nutzt UTF-8, Semikolons als Spaltentrenner und `|` für Listen und Aliasse. Leere Attributzellen werden als `null` ausgegeben. `set.json` definiert Attribute, Fragetexte und die Verknüpfung mit `map.topojson`.
 
-Für ein neues Attribut genügen die CSV-Spalte und der Eintrag in `set.json`. Für ein weiteres Set genügen die drei Quelldateien in einem neuen Ordner. Der Build nimmt das Set automatisch in `public/data/index.json` auf. Definition, Entities und Karte liegen danach unter `public/data/sets/<id>/`.
+Für ein neues Attribut genügen die CSV-Spalte und der Eintrag in `set.json`. Die Kartenspielfragen im Weltset stehen unter `map.prompts`. Der Platzhalter `{entity}` steht für den Ländernamen in „Finden“. Der Build nimmt neue Set-Ordner automatisch in `public/data/index.json` auf. Definition, Entities und Karte liegen danach unter `public/data/sets/<id>/`.
 
 Das Beispielset `world` enthält zehn Länder. Nachbarschaften beziehen sich auf Länder innerhalb des Beispielsets. Meere und Mitgliedschaften sind eine Auswahl. Zentralbank, Leitindex und Regierungsform sind noch leer. Die Geometrien stammen aus dem 50m-Datensatz von Natural Earth, aufbereitet von World Atlas. Das Objekt `countries` verwendet ISO-Alpha-3-IDs. Das Objekt `land` enthält die Weltumrisse als Kartenhintergrund. [World Atlas 2.0.2](https://github.com/topojson/world-atlas/tree/v2.0.2) · [Natural Earth](https://www.naturalearthdata.com/)
 
