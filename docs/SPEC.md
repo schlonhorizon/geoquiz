@@ -191,6 +191,9 @@ Pflicht-Testfälle (Vitest):
 
 ## 6. Spielmodi
 
+Das weiße Vollbildmenü hat den Kopf „GEOQUIZ“ mit einem Schließen-Button. Unter „Modus“ stehen **01 Finden**, **02 Benennen**, **03 Flaggen**, **04 Länder** und **05 Statistik**. Finden und Benennen sind verfügbar. Flaggen, Länder und Statistik erscheinen grau mit „FOLGT“, bis sie umgesetzt sind. [Menü in der Design-Spezifikation](DESIGN.md#3-komponenten)
+
+- Im **Flaggen-Modus** wird eine Flagge gezeigt und das Land aus vier Antwortmöglichkeiten gewählt. Die drei falschen Optionen werden zufällig aus den sechs geografisch nächsten Ländern gewählt, gemessen am Mittelpunkt. [Flaggen-Bildschirm in der Design-Spezifikation](DESIGN.md#flaggen)
 - **Kategorie-Modus**: Set + Attribut + Fragetyp wählen (z. B. Welt / Hauptstadt / rückwärts / getippt)
 - **Zufallsmodus**: Fragen aus allen aktivierten Attributen und Fragetypen gemischt; Filter nach Kontinent bzw. Region
 - **Länder-Modus**: ein Land wählen (oder zufällig), dann werden nacheinander alle Attribute dieses Landes abgefragt; am Ende ein Steckbrief des Landes mit allen Werten und der Karte
@@ -223,17 +226,26 @@ Jede Kombination `set:entity:attribut:fragetyp` ist eine Lernkarte. Leitner-Syst
 
 Alle Zugriffe auf den Fortschritt laufen über ein Interface `ProgressStore` (`load`, `save`, `recordAnswer`, `export`, `import`). Phase 1/2 implementiert nur `LocalProgressStore`. Später kommt z. B. ein Supabase-Store mit GitHub-Login dazu, ohne die Spiellogik anzufassen.
 
-## 8. Meilensteine (je ein Codex-Auftrag)
+## 8. Meilensteine und aktueller Stand
 
-1. **Gerüst**: Vite + TS, Ordnerstruktur, GitHub-Actions-Deploy auf Pages, `build-data.ts` mit Validierung, Beispiel-Set `world` mit ~10 Ländern
-2. **Weltkarte**: Rendering, Zoom/Pan, Kleinstaaten-Marker, Modi „Finden“ und „Benennen“ (MC)
-3. **Antwort-Engine**: Normalisierung + unscharfer Abgleich mit allen Testfällen aus 5.1; getippte Eingabe in „Benennen“
-4. **Attribut-Engine**: Fragen aus `set.json` erzeugen für `text` und `enum` (vorwärts/rückwärts, getippt/MC); Kategorie- und Zufallsmodus
-5. **Seeding**: `seed-world.ts`, vollständige Länderliste, Report fehlender Werte
-6. **Länder-Modus + Landeskarten**: Steckbrief, Hauptstadt auf Landeskarte markieren (Distanzbewertung)
-7. **Weitere Typen**: `boolean`, `list` mit Gruppen-Modus (EU, NATO), `entityRefList` (Nachbarn auf der Karte markieren)
-8. **Unterteilungen**: `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl, Durchgangs-Modus mit Bestzeit
-9. **Fortschritt**: Lernkarten, Statistik-Seite mit Wissenskarte, Export/Import
+### Erledigt
+
+- **Meilenstein 1 – Gerüst**. Vite und TypeScript, Ordnerstruktur, GitHub-Actions-Deployment auf Pages und Datenpipeline mit Validierung. Das erste Weltset enthielt zehn Länder.
+- **Meilenstein 2 – Weltkarte**. Kartenrendering, Zoom und Verschieben per Maus und Touch, Kleinstaaten-Marker sowie Finden per Kartenklick und Benennen mit vier Antwortmöglichkeiten.
+- **Meilenstein 5 – Grunddaten**. Das vollständige Weltset enthält 197 Spielentitäten mit passenden Natural-Earth-Geometrien. [Validierungsreport](world-data-report.md)
+- **Vollbild-Layout**. Rahmenlose Miller-Karte mit nahtlosem horizontalem Verschieben, Overlays für die Bedienung und Standalone-Manifest.
+- **Design für Finden und Benennen**. Typografie, Kartenstil, Fragepanel, Antwort-Sheet, Vollbildmenü, Animationen und Tastatursteuerung sind umgesetzt. [Design-Spezifikation](DESIGN.md)
+
+### Offen in Umsetzungsreihenfolge
+
+1. **Meilenstein 3 – Antwort-Engine**. Normalisierung und unscharfer Abgleich mit allen Testfällen aus Abschnitt 5.1 sowie getippte Eingabe in Benennen.
+2. **Meilenstein 4 – Attribut-Engine**. Fragen aus `set.json` für `text` und `enum` vorwärts und rückwärts erzeugen, mit getippter Antwort oder Multiple Choice. Kategorie- und Zufallsmodus sowie den Fragetyp `flag` in beiden Richtungen umsetzen. [DESIGN.md, Abschnitt 8](DESIGN.md#8-daten-für-das-design)
+3. **Flaggen-Modus und Datenkorrekturen**. Den Flaggen-Modus umsetzen und das Weltset um `continent_alt` und `capital_note` ergänzen. Die Spalte `color` mit der aus der Flagge abgeleiteten Hauptfarbe befüllen. Die Farbwerte lassen sich von Hand korrigieren. [Flaggen-Bildschirm](DESIGN.md#flaggen) · [Daten für das Design](DESIGN.md#8-daten-für-das-design)
+4. **Meilenstein 5 – Weitere Länderdaten**. Währung, Zentralbank, Leitindex und Regierungsform befüllen. Quellen und Report über fehlende Werte folgen den Abschnitten 3.6 und 3.7.
+5. **Meilenstein 6 – Länder-Modus und Landeskarten**. Den Länder-Modus mit Farbblock, Flaggenfrage und Steckbrief nach der Design-Spezifikation umsetzen. Landeskarten ergänzen und das Markieren der Hauptstadt nach Distanz bewerten. [Länder-Modus in der Design-Spezifikation](DESIGN.md#länder-modus)
+6. **Meilenstein 7 – Weitere Typen**. `boolean`, `list` mit Gruppen-Modus (EU, NATO) und `entityRefList` zum Markieren von Nachbarn auf der Karte.
+7. **Meilenstein 8 – Unterteilungen**. `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl und Durchgangsmodus mit Bestzeit.
+8. **Meilenstein 9 – Fortschritt**. Lernkarten, Statistik-Seite mit Wissenskarte sowie Export und Import.
 
 ## 9. Nicht in Phase 1/2
 
