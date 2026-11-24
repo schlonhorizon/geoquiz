@@ -2,8 +2,11 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { GeometryCollection, Topology } from 'topojson-specification';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { SetDefinition } from '../src/data/schema';
+import type { Entity, SetDefinition } from '../src/data/schema';
+import { projectWorldMap } from '../src/map/geometry';
+import { createMapQuestion } from '../src/quiz/map-questions';
 import { buildData } from './build-data';
 
 const attributes: SetDefinition['attributes'] = [
@@ -65,29 +68,59 @@ async function emitted(file: string) {
 }
 
 describe('buildData', () => {
-  it('builds all ten sample countries and preserves the data types and map', async () => {
+  it('builds the complete world set and joins quiz countries to their geometries', async () => {
     const sample = fileURLToPath(new URL('../data/sets', import.meta.url));
     const result = await buildData(sample, output);
 
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
-    expect(result.report).toContain('  seas: 9/10');
+    expect(result.report).toContain('  seas: 0/197');
     expect(await emitted('index.json')).toEqual({ sets: ['world'] });
-    const entities = await emitted('sets/world/entities.json');
-    expect(entities).toHaveLength(10);
+    const entities: Entity[] = await emitted('sets/world/entities.json');
+    expect(entities).toHaveLength(197);
+    expect(entities.filter(({ un_member }) => un_member === false).map(({ id }) => id))
+      .toEqual(['PSE', 'TWN', 'VAT', 'XKX']);
     expect(entities).toContainEqual(expect.objectContaining({
       id: 'CHE',
       capital: 'Bern',
-      capital_lat: 46.9481,
-      neighbors: ['DEU', 'FRA'],
+      capital_lat: null,
+      neighbors: ['AUT', 'DEU', 'FRA', 'ITA', 'LIE'],
       seas: null,
       un_member: true,
     }));
     expect(entities).toContainEqual(expect.objectContaining({
-      id: 'BEL', capital_aliases: ['Bruxelles', 'Brussel'],
+      id: 'BEL', capital: 'Brüssel', capital_aliases: ['Brussels'],
     }));
     expect(await readFile(join(output, 'sets/world/map.topojson'), 'utf8'))
       .toBe(await readFile(join(sample, 'world/map.topojson'), 'utf8'));
+
+    const topology: Topology<{ countries: GeometryCollection; land: GeometryCollection }> =
+      await emitted('sets/world/map.topojson');
+    expect(topology.objects.countries.geometries.map(({ id }) => id).sort())
+      .toEqual(entities.map(({ id }) => id).sort());
+    expect(topology.objects.land.geometries.map(({ id }) => id)).toEqual(expect.arrayContaining(['ESH', 'GRL']));
+
+    const { map }: SetDefinition = await emitted('sets/world/set.json');
+    const projected = projectWorldMap(topology, map);
+    expect(projected.countries).toHaveLength(197);
+    for (const country of projected.countries) {
+      expect(country.bounds.flat().every(Number.isFinite)).toBe(true);
+    }
+    const marked = projected.countries.filter(({ marker }) => marker?.every(Number.isFinite)).map(({ id }) => id);
+    expect(marked).toEqual(expect.arrayContaining([
+      'AND', 'LIE', 'MCO', 'SMR', 'VAT',
+      'ATG', 'BRB', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT',
+      'FSM', 'KIR', 'MHL', 'NRU', 'PLW', 'TON', 'TUV',
+    ]));
+
+    for (const [index, entity] of entities.entries()) {
+      const random = () => (index + 0.5) / entities.length;
+      expect(createMapQuestion(entities, 'find', undefined, random).target.id).toBe(entity.id);
+      const question = createMapQuestion(entities, 'name', undefined, random);
+      expect(question.target.id).toBe(entity.id);
+      expect(new Set(question.options.map(({ name }) => name)).size).toBe(4);
+      expect(question.options.filter(({ id }) => id === entity.id)).toHaveLength(1);
+    }
   });
 
   it('discovers a new set and attributes from data alone', async () => {

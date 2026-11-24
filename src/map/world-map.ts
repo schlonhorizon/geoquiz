@@ -4,10 +4,10 @@ import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
 import type { D3ZoomEvent, ZoomTransform } from 'd3-zoom';
 import type { Topology } from 'topojson-specification';
 import type { Entity, SetDefinition } from '../data/schema';
-import { countryCenter, projectWorldMap, worldWidth } from './geometry';
+import { countryCenter, projectWorldMap } from './geometry';
 import type { ProjectedCountry } from './geometry';
-import { boundaryTolerancePx, isNearMarker, markerHitRadiusPx, markerRadiusPx, resolveCountryClick } from './hit-test';
-import { clampMapY, nearestWorldX, wrapWorldX } from './viewport';
+import { boundaryTolerancePx, isNearMarker, markerDistance, markerHitRadiusPx, markerRadiusPx, resolveCountryClick } from './hit-test';
+import { clampMapY, nearestWorldX, worldWidth, wrapWorldX } from './viewport';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const copyOffsets = [-worldWidth, 0, worldWidth];
@@ -22,6 +22,7 @@ interface CountryView {
 interface CountryLayer {
   geometry: ProjectedCountry;
   views: CountryView[];
+  center: [number, number];
   keyboardView?: CountryView;
   name: string;
   outline: Path2D;
@@ -53,6 +54,7 @@ export function renderWorldMap(
   const projected = projectWorldMap(topology, config);
   const entityNames = new Map(entities.map(({ id, name }) => [id, name]));
   const layers = new Map<string, CountryLayer>();
+  const markerViews: { hitArea: SVGCircleElement; dot: SVGCircleElement }[] = [];
   const group = document.createElementNS(svgNamespace, 'g');
   svg.append(group);
 
@@ -83,22 +85,24 @@ export function renderWorldMap(
       hitArea.dataset.countryId = id;
       const marker = makeCircle(position, 'map-marker');
       markers.append(hitArea, marker);
+      markerViews.push({ hitArea, dot: marker });
       return { shape, marker, hitArea };
     });
-    layers.set(id, { geometry, views, name, outline: new Path2D(path) });
+    layers.set(id, { geometry, views, center: position ?? countryCenter(geometry.bounds), name, outline: new Path2D(path) });
   }
   for (const { tile, markers } of copies) tile.append(markers);
 
   let activeTarget: string | undefined;
   let viewport = { width: 0, height: 0 };
   let displayCenterX = worldWidth / 2;
+  let markerScale = 0;
   const hitContext = document.createElement('canvas').getContext('2d');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const selection = select(svg);
 
   function updateKeyboardTargets() {
     for (const layer of layers.values()) {
-      const [centerX] = layer.geometry.marker ?? countryCenter(layer.geometry.bounds);
+      const [centerX] = layer.center;
       const copy = 1 + Math.round((displayCenterX - centerX) / worldWidth);
       const current = activeTarget ? layer.views[copy] : undefined;
       if (current === layer.keyboardView) continue;
@@ -124,13 +128,12 @@ export function renderWorldMap(
     const y = clampMapY(transform.y, projected.height * k, viewport.height);
     group.setAttribute('transform', `translate(${x},${y}) scale(${k})`);
 
-    for (const { views } of layers.values()) {
-      for (const { marker, hitArea } of views) {
-        if (marker) {
-          marker.setAttribute('r', String(markerRadiusPx / k));
-          hitArea.setAttribute('r', String(markerHitRadiusPx / k));
-        }
+    if (markerScale !== k) {
+      for (const { hitArea, dot } of markerViews) {
+        dot.setAttribute('r', String(markerRadiusPx / k));
+        hitArea.setAttribute('r', String(markerHitRadiusPx / k));
       }
+      markerScale = k;
     }
     updateKeyboardTargets();
   }
@@ -155,10 +158,9 @@ export function renderWorldMap(
     return zoomIdentity.translate(viewport.width / 2 - x * scale, top).scale(scale);
   }
 
-  function resetView() {
+  function resetView(center: [number, number] = [worldWidth * 0.38, projected.height / 2]) {
     const [minimum] = zoomBehavior.scaleExtent();
     const scale = Math.max(minimum, Math.min(viewport.height / projected.height, minimum * 2));
-    const center: [number, number] = [worldWidth * 0.38, projected.height / 2];
     selection.interrupt().call(zoomBehavior.transform, transformAround(center, scale));
   }
 
@@ -184,21 +186,28 @@ export function renderWorldMap(
   fitViewport();
 
   function showCountryState(id: string, state: 'highlighted' | 'correct' | 'incorrect' | '') {
-    for (const { shape, marker } of layers.get(id)?.views ?? []) {
+    for (const { shape, marker, hitArea } of layers.get(id)?.views ?? []) {
       shape.dataset.state = state;
-      if (marker) marker.dataset.state = state;
+      if (marker) {
+        marker.dataset.state = state;
+        if (state) marker.parentElement?.append(hitArea, marker);
+      }
     }
   }
 
-  function isNearCountry(country: CountryLayer, event: MouseEvent): boolean {
+  function pointerOnMap(event: MouseEvent) {
     const matrix = group.getScreenCTM();
-    if (!matrix || !matrix.a) return false;
+    if (!matrix || !matrix.a) return;
     const { x, y } = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    return { x, y, scale: matrix.a };
+  }
+
+  function isNearCountry(country: CountryLayer, { x, y, scale }: { x: number; y: number; scale: number }): boolean {
     const marker = country.geometry.marker;
-    if (marker && isNearMarker(nearestWorldX(x, marker[0]), y, marker, matrix.a)) return true;
+    if (marker && isNearMarker(x, y, marker, scale)) return true;
     if (!hitContext) return false;
 
-    hitContext.lineWidth = (boundaryTolerancePx * 2) / matrix.a;
+    hitContext.lineWidth = (boundaryTolerancePx * 2) / scale;
     hitContext.lineJoin = 'round';
     const wrapped = wrapWorldX(x);
     return copyOffsets.some((offset) => hitContext.isPointInStroke(country.outline, wrapped + offset, y));
@@ -209,12 +218,27 @@ export function renderWorldMap(
     const target = layers.get(activeTarget);
     if (!target) return;
     const clicked = event.target instanceof SVGElement ? event.target : null;
+    const point = pointerOnMap(event);
+    const clickedMarker = clicked?.classList.contains('map-marker-hit') ?? false;
+    let clickedId = clicked?.dataset.countryId;
+    if (clickedMarker && point) {
+      // The circles can overlap at world scale. Use distance instead of SVG paint order.
+      let shortest = markerHitRadiusPx;
+      for (const [id, { geometry }] of layers) {
+        if (!geometry.marker) continue;
+        const distance = markerDistance(point.x, point.y, geometry.marker, point.scale);
+        if (distance < shortest) {
+          shortest = distance;
+          clickedId = id;
+        }
+      }
+    }
     const id = resolveCountryClick(
-      clicked?.dataset.countryId,
-      clicked?.classList.contains('map-marker-hit') ?? false,
+      clickedId,
+      clickedMarker,
       activeTarget,
       Boolean(target.geometry.marker),
-      () => isNearCountry(target, event),
+      () => Boolean(point && isNearCountry(target, point)),
     );
     if (id) onCountrySelected(id);
   });
@@ -238,7 +262,7 @@ export function renderWorldMap(
       if (!clickable) showCountryState(id, 'highlighted');
       activeTarget = clickable ? id : undefined;
       svg.classList.toggle('is-answerable', clickable);
-      resetView();
+      resetView(clickable ? undefined : layers.get(id)?.center);
     },
     revealAnswer(correctId: string, selectedId: string, animate: boolean) {
       activeTarget = undefined;

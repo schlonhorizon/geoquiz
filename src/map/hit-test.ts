@@ -1,9 +1,15 @@
+import { nearestWorldX } from './viewport';
+
 export const markerRadiusPx = 5;
 export const markerHitRadiusPx = 16;
 export const boundaryTolerancePx = 6;
 
+export function markerDistance(x: number, y: number, marker: [number, number], pixelsPerUnit: number): number {
+  return Math.hypot(nearestWorldX(x, marker[0]) - marker[0], y - marker[1]) * pixelsPerUnit;
+}
+
 export function isNearMarker(x: number, y: number, marker: [number, number], pixelsPerUnit: number): boolean {
-  return Math.hypot(x - marker[0], y - marker[1]) * pixelsPerUnit <= markerHitRadiusPx + boundaryTolerancePx;
+  return markerDistance(x, y, marker, pixelsPerUnit) <= markerHitRadiusPx + boundaryTolerancePx;
 }
 
 export function resolveCountryClick(

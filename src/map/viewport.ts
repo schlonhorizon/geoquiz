@@ -1,4 +1,4 @@
-import { worldWidth } from './geometry';
+export const worldWidth = 960;
 
 export function wrapWorldX(x: number): number {
   return ((x % worldWidth) + worldWidth) % worldWidth;

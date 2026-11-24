@@ -34,7 +34,7 @@
       "values": ["Europa", "Asien", "Afrika", "Nordamerika", "Südamerika", "Ozeanien"]
     },
     { "key": "neighbors", "label": "Nachbarländer", "type": "entityRefList" },
-    { "key": "seas", "label": "Meereszugang", "type": "list", "emptyMeans": "Binnenstaat" },
+    { "key": "seas", "label": "Meereszugang", "type": "list" },
     { "key": "memberships", "label": "Mitgliedschaften", "type": "list", "groupQuiz": true },
     { "key": "currency", "label": "Währung", "type": "text" },
     { "key": "central_bank", "label": "Zentralbank", "type": "text" },
