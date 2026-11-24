@@ -224,11 +224,13 @@ export function renderWorldMap(
   new ResizeObserver(fitViewport).observe(svg);
   fitViewport();
 
-  function showCountryState(id: string, state: 'highlighted' | 'correct' | 'incorrect' | '') {
+  function showCountryState(id: string, state: 'highlighted' | 'correct' | 'incorrect' | '', pulse = false) {
     for (const { shape, marker, hitArea } of layers.get(id)?.views ?? []) {
       shape.dataset.state = state;
+      shape.classList.toggle('map-target-pulse', pulse);
       if (marker) {
         marker.dataset.state = state;
+        marker.classList.toggle('map-target-pulse', pulse);
         if (state) marker.parentElement?.append(hitArea, marker);
       }
     }
@@ -298,7 +300,7 @@ export function renderWorldMap(
     },
     showQuestion(id: string, { clickable, restart, animate }: { clickable: boolean; restart: boolean; animate: boolean }) {
       for (const countryId of layers.keys()) showCountryState(countryId, '');
-      if (!clickable) showCountryState(id, 'highlighted');
+      if (!clickable) showCountryState(id, 'highlighted', true);
       activeTarget = clickable ? id : undefined;
       svg.classList.toggle('is-answerable', clickable);
       if (!clickable || restart) {
@@ -313,12 +315,13 @@ export function renderWorldMap(
     },
     revealAnswer(correctId: string, selectedId: string | undefined, { fly, animate }: { fly: boolean; animate: boolean }) {
       selection.interrupt();
-      const correctMapClick = activeTarget === correctId && selectedId === correctId;
+      const finding = activeTarget === correctId;
+      const correctMapClick = finding && selectedId === correctId;
       activeTarget = undefined;
       svg.classList.remove('is-answerable');
       updateKeyboardTargets();
       if (selectedId && correctId !== selectedId) showCountryState(selectedId, 'incorrect');
-      showCountryState(correctId, correctMapClick ? 'correct' : 'highlighted');
+      showCountryState(correctId, correctMapClick ? 'correct' : 'highlighted', finding && !correctMapClick);
 
       const country = layers.get(correctId);
       if (!country || !fly) return;
