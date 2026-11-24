@@ -13,6 +13,7 @@ import { clampMapY, nearestWorldX, worldWidth, wrapWorldX } from './viewport';
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const copyOffsets = [-worldWidth, 0, worldWidth];
 const maxZoom = 24;
+const markerRingRadiusPx = 9;
 const flightEase = BezierEasing(.65, 0, .35, 1);
 const wheelEase = BezierEasing(0, 0, .58, 1);
 
@@ -57,7 +58,7 @@ export function renderWorldMap(
   const projected = projectWorldMap(topology, config);
   const entityNames = new Map(entities.map(({ id, name }) => [id, name]));
   const layers = new Map<string, CountryLayer>();
-  const markerViews: { hitArea: SVGCircleElement; dot: SVGCircleElement }[] = [];
+  const markerViews: { hitArea: SVGCircleElement; dot: SVGCircleElement; ring: SVGCircleElement }[] = [];
   const group = document.createElementNS(svgNamespace, 'g');
   svg.append(group);
 
@@ -88,8 +89,9 @@ export function renderWorldMap(
       const hitArea = makeCircle(position, 'map-marker-hit');
       hitArea.dataset.countryId = id;
       const marker = makeCircle(position, 'map-marker');
-      markers.append(hitArea, marker);
-      markerViews.push({ hitArea, dot: marker });
+      const ring = makeCircle(position, 'map-marker-ring');
+      markers.append(ring, hitArea, marker);
+      markerViews.push({ hitArea, dot: marker, ring });
       return { shape, marker, hitArea };
     });
     layers.set(id, { geometry, views, center: position ?? countryCenter(geometry.bounds), name, outline: new Path2D(path) });
@@ -135,9 +137,10 @@ export function renderWorldMap(
     group.setAttribute('transform', `translate(${x},${y}) scale(${k})`);
 
     if (markerScale !== k) {
-      for (const { hitArea, dot } of markerViews) {
+      for (const { hitArea, dot, ring } of markerViews) {
         dot.setAttribute('r', String(markerRadiusPx / k));
         hitArea.setAttribute('r', String(markerHitRadiusPx / k));
+        ring.setAttribute('r', String(markerRingRadiusPx / k));
       }
       markerScale = k;
     }
@@ -310,11 +313,12 @@ export function renderWorldMap(
     },
     revealAnswer(correctId: string, selectedId: string | undefined, { fly, animate }: { fly: boolean; animate: boolean }) {
       selection.interrupt();
+      const correctMapClick = activeTarget === correctId && selectedId === correctId;
       activeTarget = undefined;
       svg.classList.remove('is-answerable');
       updateKeyboardTargets();
       if (selectedId && correctId !== selectedId) showCountryState(selectedId, 'incorrect');
-      showCountryState(correctId, 'correct');
+      showCountryState(correctId, correctMapClick ? 'correct' : 'highlighted');
 
       const country = layers.get(correctId);
       if (!country || !fly) return;

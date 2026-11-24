@@ -74,6 +74,7 @@ it('advances only correct answers after 1100 ms and cancels a timer on manual ad
     vi.advanceTimersByTime(1500);
     expect(summary.hidden).toBe(false);
     expect(summary.querySelector('.summary-score')?.textContent).toBe('2/4');
+    expect(container.querySelector('.menu-button')?.closest('[hidden]')).toBeNull();
   } finally {
     container.remove();
     vi.useRealTimers();

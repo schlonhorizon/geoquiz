@@ -9,6 +9,10 @@
     "object": "countries",
     "idProperty": "id",
     "projection": "miller",
+    "mergeLand": {
+      "SOM": ["SOL"],
+      "CYP": ["CYN"]
+    },
     "prompts": {
       "find": "Wo liegt {entity}",
       "name": "Wie heißt das hervorgehobene Land?"

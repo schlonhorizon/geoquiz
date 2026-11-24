@@ -1,7 +1,9 @@
+import { geoContains } from 'd3-geo';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { feature } from 'topojson-client';
 import type { GeometryCollection, Topology } from 'topojson-specification';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Entity, SetDefinition } from '../src/data/schema';
@@ -91,14 +93,28 @@ describe('buildData', () => {
     expect(entities).toContainEqual(expect.objectContaining({
       id: 'BEL', capital: 'Brüssel', capital_aliases: ['Brussels'],
     }));
-    expect(await readFile(join(output, 'sets/world/map.topojson'), 'utf8'))
-      .toBe(await readFile(join(sample, 'world/map.topojson'), 'utf8'));
-
-    const topology: Topology<{ countries: GeometryCollection; land: GeometryCollection }> =
-      await emitted('sets/world/map.topojson');
+    type WorldTopology = Topology<{ countries: GeometryCollection; land: GeometryCollection }>;
+    const source: WorldTopology = JSON.parse(await readFile(join(sample, 'world/map.topojson'), 'utf8'));
+    const topology: WorldTopology = await emitted('sets/world/map.topojson');
     expect(topology.objects.countries.geometries.map(({ id }) => id).sort())
       .toEqual(entities.map(({ id }) => id).sort());
-    expect(topology.objects.land.geometries.map(({ id }) => id)).toEqual(expect.arrayContaining(['ESH', 'GRL']));
+    const background = topology.objects.land.geometries.map(({ id }) => id);
+    expect(background).toHaveLength(42);
+    expect(background).toEqual(expect.arrayContaining(['ESH', 'GRL']));
+    const merges = [
+      { target: 'SOM', area: 'SOL', point: [44.06, 9.56] as [number, number] },
+      { target: 'CYP', area: 'CYN', point: [33.32, 35.34] as [number, number] },
+    ];
+    for (const { target, area, point } of merges) {
+      const originalArea = source.objects.land.geometries.find(({ id }) => id === area)!;
+      const originalCountry = source.objects.countries.geometries.find(({ id }) => id === target)!;
+      const mergedCountry = topology.objects.countries.geometries.find(({ id }) => id === target)!;
+      expect(geoContains(feature(source, originalArea), point)).toBe(true);
+      expect(geoContains(feature(source, originalCountry), point)).toBe(false);
+      expect(geoContains(feature(topology, mergedCountry), point)).toBe(true);
+      expect(mergedCountry).toMatchObject({ type: 'MultiPolygon', arcs: [expect.any(Array)] });
+      expect(background).not.toContain(area);
+    }
 
     const { map }: SetDefinition = await emitted('sets/world/set.json');
     const projected = projectWorldMap(topology, map);

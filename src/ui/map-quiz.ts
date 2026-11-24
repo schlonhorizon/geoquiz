@@ -17,19 +17,21 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   container.innerHTML = `
     <header class="quiz-bar">
       <div class="question-bar">
-        <div class="meta-label progress">
-          <span id="mode-name"></span>
-          <span id="question-number"></span>
-          <span><span id="correct-count"></span> Punkte</span>
+        <div class="question-meta">
+          <div class="meta-label progress">
+            <span id="mode-name"></span>
+            <span id="question-number"></span>
+            <span><span id="correct-count"></span> Punkte</span>
+          </div>
+          <button type="button" class="square-button menu-button" aria-label="Menü öffnen" aria-haspopup="dialog" aria-expanded="false" aria-controls="quiz-menu">
+            <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg>
+          </button>
         </div>
         <div class="question-body">
           <h1 class="question" tabindex="-1"></h1>
           <span class="question-flag" aria-hidden="true"></span>
         </div>
       </div>
-      <button type="button" class="square-button menu-button" aria-label="Menü öffnen" aria-haspopup="dialog" aria-expanded="false" aria-controls="quiz-menu">
-        <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg>
-      </button>
     </header>
     <div class="answer-dock">
       <section class="answer-sheet" aria-label="Antwort" hidden>
@@ -56,8 +58,8 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
           <span class="button-hint" aria-hidden="true"><span class="meta-label">Leertaste</span> <span>→</span></span>
         </button>
       </section>
-      <button type="button" class="skip-question">Überspringen</button>
     </div>
+    <button type="button" class="skip-question">Überspringen</button>
     <div class="zoom-controls" role="group" aria-label="Kartenansicht">
       <button type="button" class="square-button" id="zoom-in" aria-label="Hineinzoomen">
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0v16M0 8h16"/></svg>
@@ -97,7 +99,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   const animation = container.querySelector<HTMLInputElement>('#animate-feedback')!;
   const findButton = container.querySelector<HTMLButtonElement>('#find-mode')!;
   const nameButton = container.querySelector<HTMLButtonElement>('#name-mode')!;
-  const questionBar = container.querySelector<HTMLElement>('.question-bar')!;
+  const questionBody = container.querySelector<HTMLElement>('.question-body')!;
   const prompt = container.querySelector<HTMLElement>('.question')!;
   const modeName = container.querySelector<HTMLElement>('#mode-name')!;
   const questionNumber = container.querySelector<HTMLElement>('#question-number')!;
@@ -163,7 +165,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     const question = questions[index];
     verdict = undefined;
     feedback.textContent = '';
-    questionBar.hidden = false;
+    questionBody.hidden = false;
     modeName.textContent = modeLabels[mode];
     questionNumber.textContent = `${pad(index + 1)} / ${questions.length}`;
     questionNumber.setAttribute('aria-label', `Frage ${index + 1} von ${questions.length}`);
@@ -234,7 +236,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     verdictNumber.textContent = `Frage ${pad(index + 1)}`;
     verdictTitle.textContent = verdictLabels[verdict];
     const selectedName = selectedId ? names.get(selectedId) : undefined;
-    const solution = `${target.name} ist schwarz markiert.`;
+    const solution = `${target.name} ist blau markiert.`;
     verdictDetail.textContent = correct ? 'Weiter geht’s gleich.'
       : selectedName ? `Du hast ${selectedName} gewählt. ${solution}` : solution;
     feedback.textContent = `${verdictLabels[verdict]} ${verdictDetail.textContent}`;
@@ -259,7 +261,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
       return;
     }
 
-    questionBar.hidden = true;
+    questionBody.hidden = true;
     sheet.hidden = true;
     summaryScore.textContent = `${score}/${questions.length}`;
     summaryDetail.textContent = `Du hast ${score} von ${questions.length} Fragen richtig beantwortet.`;

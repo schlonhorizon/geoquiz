@@ -6,7 +6,7 @@ Verbindliche Gestaltungsregeln für alle Bildschirme. Die freigegebene visuelle 
 
 Swiss Style: typografiegetrieben, schwarz-weiß, strenges Raster.
 
-- Schwarz und Weiß tragen alles. Farbe gibt es nur als Bedeutung: Rot = falsch, Grün = richtig, Landesfarbe im Länder-Modus, Flaggen.
+- Schwarz und Weiß tragen das Layout. Rot kennzeichnet Fehler, Grün richtige Antworten und Blau die Kartenmarkierung. Im Länder-Modus und bei Flaggen kommen Landesfarben hinzu.
 - Rahmen 2 px schwarz, **keine Rundungen** (border-radius 0 überall), keine Schatten, keine Verläufe, keine Emojis.
 - Hierarchie entsteht über Schriftgröße und -stärke, nicht über Farbe oder Boxen.
 - Bewegung ist sparsam, präzise und hat immer eine Funktion (Feedback, Orientierung, Übergang).
@@ -17,7 +17,7 @@ Als CSS Custom Properties in einer zentralen Datei (`src/ui/tokens.css`):
 
 ```css
 :root {
-  --ink: #111111;          /* Text, Rahmen, Primärbutton, Lösung auf der Karte */
+  --ink: #111111;          /* Text, Rahmen, Primärbutton */
   --paper: #FFFFFF;        /* Panels, Land auf der Karte */
   --sea: #F1F1F1;          /* Meer, App-Hintergrund */
   --land-hover: #D6D6D6;
@@ -27,6 +27,7 @@ Als CSS Custom Properties in einer zentralen Datei (`src/ui/tokens.css`):
   --grid: rgba(17,17,17,.14); /* Gradnetz */
   --accent: #E3000F;       /* falsch */
   --ok: #00A651;           /* richtig */
+  --highlight: #0047FF;   /* Kartenmarkierung und Kleinstaaten-Ring */
   --line: 2px;
 
   --ease-out: cubic-bezier(.2,.8,.2,1);
@@ -56,13 +57,13 @@ Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. 
 - Außenabstand der Overlays zum Bildschirmrand: 12 px (+ `env(safe-area-inset-*)`)
 - Innenabstand in Inhaltsspalten: 16 px; Abstände sonst 4 / 8 / 12 / 16 px
 - Inhaltsspalten (Länder-Modus, Flaggen): max. 560 px breit, zentriert
-- Panels über der Karte: max. 460 px breit
+- Fragepanel und Antwort-Sheet sind horizontal zentriert und maximal 460 px breit. Auf schmalen Bildschirmen nutzen sie die gesamte verfügbare Breite bis zum Außenabstand von 12 px je Seite.
 - Touch-Ziele mindestens 44 px; quadratische Buttons 48 × 48; Primärbutton 56 px hoch
 
 ## 3. Komponenten
 
 - **Panel**: weiß, 2 px Rahmen. Optional mit **Meta-Zeile** oben (Label-Stil, drei Werte mit `space-between`, z. B. „Finden · 07 / 20 · 05 Punkte“, darunter 2 px Linie).
-- **Quadrat-Button** (Menü, Zoom, Schließen): 48 × 48, weiß, 2 px Rahmen, Icon als Strich-SVG (2 px). Hover: invertiert (schwarz/weiß).
+- **Quadrat-Button** (Menü, Zoom, Schließen) misst 48 × 48 px. Er ist weiß, hat einen 2 px starken Rahmen und ein Strich-SVG mit 2 px Strichstärke. Beim Hover invertieren Schwarz und Weiß. Der Menü-Button sitzt als rechtes Feld in der Meta-Zeile des Fragepanels und ist links durch eine 2 px starke Linie abgetrennt.
 - **Primärbutton** („Weiter“, „Neue Runde“): volle Breite, 56 px, schwarz, Text weiß 16 px/700. Links das Label, rechts „LEERTASTE“ (Label-Stil, 75 % Deckkraft) und `→`. Unten optional der **Timerbalken** (siehe 6).
 - **Optionszeile** (Multiple Choice): Raster `48px 1fr`, min. 56 px hoch, 2 px Rahmen; Zeilen überlappen sich um 2 px (`margin-top: -2px`), sodass die Linien nicht doppelt werden. Links die Ziffer 1–4 in eigener Zelle (2 px Trennlinie), rechts der Text 16 px/600.
   - richtig: füllt sich schwarz, Text weiß
@@ -79,19 +80,20 @@ Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. 
 - Projektion Miller, horizontal endlos (wie umgesetzt), Antarktis entfernt.
 - Meer `--sea`, Land `--paper`, Grenzen `--ink` 0,8 px mit `vector-effect: non-scaling-stroke`.
 - Gradnetz alle 30° Länge und 20° Breite, 1 px `--grid`.
-- Hover (nur während einer Frage): `--land-hover`. Lösung: `--ink`. Falsch angeklickt: `--accent`. Gebiete ohne Quiz: `--land-off`.
+- Hover während einer Kartenfrage verwendet `--land-hover`. In Benennen ist das gesuchte Land blau (`--highlight`). In Finden erscheint die Lösung nach einem Fehler oder beim Überspringen blau, ein korrekt angeklicktes Land grün (`--ok`). Falsch ausgewählte Länder erscheinen rot (`--accent`). Gebiete ohne Quiz bleiben grau (`--land-off`).
+- Kleinstaaten-Marker haben einen zusätzlichen blauen Ring mit 2 px Strichstärke und `vector-effect: non-scaling-stroke`. Bei der Einblendung pulsiert er zweimal und bleibt dann stehen.
 
 ## 5. Bildschirme
 
 ### Finden
 - Karte im Vollbild, alles andere als Overlay.
-- Oben links Panel: Meta-Zeile, darunter „Wo liegt“ (14 px) und der Ländername groß; **rechts daneben die Flagge** (56 px breit).
-- Oben rechts Menü-Button. Unten links „Überspringen“ (48 px hoch, weiß, Rahmen). Unten rechts Zoom +/− als Stapel.
-- Nach der Antwort ersetzt ein **Sheet** unten links die Bedienelemente: Urteils-Punkt + „FRAGE 07“, Urteil („Richtig.“ / „Falsch.“ / „Übersprungen.“), eine Zeile Erklärung, Primärbutton. Bei falscher Antwort steht die Flagge des falsch gewählten Landes rechts neben dem Urteil.
+- Oben steht das zentrierte Fragepanel. In der Meta-Zeile sitzt rechts der Menü-Button. Darunter stehen „Wo liegt“ (14 px), der große Ländername und rechts daneben die Flagge (56 px breit).
+- Unten links steht „Überspringen“ (48 px hoch, weiß, Rahmen). Unten rechts stehen die Zoom-Buttons +/− als Stapel.
+- Nach der Antwort erscheint unten mittig das **Sheet** mit Urteils-Punkt, Fragenummer, Urteil („Richtig.“ / „Falsch.“ / „Übersprungen.“), Erklärung und Primärbutton. Bei falscher Antwort steht die Flagge des falsch gewählten Landes rechts neben dem Urteil.
 - Ende der Runde (20 Fragen): Sheet mit „RUNDE BEENDET“, Ergebnis 88 px, ein Satz, „Neue Runde“.
 
 ### Benennen
-Gleicher Aufbau wie Finden; das Land ist auf der Karte schwarz markiert, das Antwort-Sheet zeigt 4 Optionszeilen oder das Eingabefeld.
+Der Aufbau entspricht Finden. Das gesuchte Land ist blau markiert. Das zentrierte Antwort-Sheet zeigt vier Optionszeilen oder das Eingabefeld. Auf schmalen Bildschirmen sitzt es oberhalb der Eckbedienelemente, solange diese sichtbar sind.
 
 ### Flaggen
 - Spalte (max. 560 px): oben Zurück-Button (48 px, `←`) und Meta-Leiste daneben.
@@ -112,6 +114,7 @@ Gleicher Aufbau wie Finden; das Land ist auf der Karte schwarz markiert, das Ant
 | Moment | Dauer | Kurve | Details |
 |---|---|---|---|
 | Kartenflug zur Lösung / zurück | 800 ms | `--ease-inout` | nur bei falsch oder übersprungen |
+| Kleinstaaten-Ring erscheint | 2 × 600 ms | `--ease-out` | Ring pulsiert zweimal und bleibt danach sichtbar |
 | Mausrad-Zoom | 180 ms | ease-out | |
 | Neue Frage (Text, Optionen) | 500 ms | `--ease-out` | von 14–16 px unten einblenden; Optionen je 50 ms versetzt |
 | Flagge in der Fragekarte | 550 ms, 80 ms Verzögerung | `--ease-out` | von 16 px rechts, 4° gedreht |

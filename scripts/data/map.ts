@@ -1,3 +1,5 @@
+import { mergeArcs } from 'topojson-client';
+import type { GeometryObject, Topology } from 'topojson-specification';
 import { z } from 'zod';
 import { getMapEntityId } from '../../src/data/map';
 import type { Entity, SetDefinition } from '../../src/data/schema';
@@ -20,6 +22,42 @@ const ringSchema = z.array(z.number().int()).min(1);
 const polygonSchema = z.array(ringSchema).min(1);
 const multiPolygonSchema = z.array(polygonSchema).min(1);
 const collectionSchema = z.object({ type: z.literal('GeometryCollection'), geometries: z.array(z.unknown()) });
+
+export function mergeLandAreas(content: string, { object, idProperty, mergeLand }: SetDefinition['map']): string {
+  if (!mergeLand) return content;
+
+  const topology: Topology<Record<string, GeometryObject>> = JSON.parse(content);
+  const countries = topology.objects?.[object];
+  const land = topology.objects?.land;
+  if (countries?.type !== 'GeometryCollection' || land?.type !== 'GeometryCollection') {
+    throw new Error(`Zum Zusammenführen müssen "${object}" und "land" TopoJSON-Geometriesammlungen sein.`);
+  }
+
+  function findPolygon(geometries: GeometryObject[], id: string, collection: string) {
+    const index = geometries.findIndex((geometry) => getMapEntityId(geometry, idProperty) === id);
+    const geometry = geometries[index];
+    if (geometry?.type !== 'Polygon' && geometry?.type !== 'MultiPolygon') {
+      throw new Error(`Polygon "${id}" fehlt in "${collection}" oder ist ungültig.`);
+    }
+    return { index, geometry };
+  }
+
+  for (const [targetId, areas] of Object.entries(mergeLand)) {
+    const target = findPolygon(countries.geometries, targetId, object);
+    const polygons = [target.geometry];
+    for (const area of areas) {
+      const source = findPolygon(land.geometries, area, 'land');
+      polygons.push(source.geometry);
+      land.geometries.splice(source.index, 1);
+    }
+    const merged = mergeArcs(topology, polygons);
+    if (!merged.arcs.length) throw new Error(`Zusammengeführte Geometrie "${targetId}" ist leer.`);
+    const { id, properties } = target.geometry;
+    countries.geometries[target.index] = { ...merged, id, properties };
+  }
+
+  return JSON.stringify(topology) + '\n';
+}
 
 export function validateMap(content: string, map: SetDefinition['map'], entities: Map<string, Entity>, issues: DataIssues) {
   const topology = topologySchema.parse(JSON.parse(content));
