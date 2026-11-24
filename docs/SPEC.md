@@ -172,6 +172,7 @@ Abgleich mit Damerau-Levenshtein-Distanz gegen **alle** möglichen Antworten des
 - Erlaubte Distanz nach Länge der richtigen Antwort: ≤ 4 Zeichen → 0; 5–7 → 1; 8–11 → 2; ≥ 12 → `round(Länge × 0,3)`
 - Richtig nur, wenn der beste Treffer die richtige Antwort (oder ein Alias davon) ist **und** innerhalb der Toleranz liegt
 - Trifft die Eingabe eine *andere* gültige Antwort exakt (z. B. „Niger“ statt „Nigeria“), ist sie falsch
+- Die Toleranz richtet sich nach der Länge der jeweils abgeglichenen normalisierten Schreibweise. Bei einem Gleichstand zwischen verschiedenen Entities ist die Antwort falsch.
 - Bei Tippfehler-Treffern: als richtig werten, aber Feedback „Richtig – geschrieben wird es: Rheinland-Pfalz“
 
 Pflicht-Testfälle (Vitest):
@@ -232,20 +233,20 @@ Alle Zugriffe auf den Fortschritt laufen über ein Interface `ProgressStore` (`l
 
 - **Meilenstein 1 – Gerüst**. Vite und TypeScript, Ordnerstruktur, GitHub-Actions-Deployment auf Pages und Datenpipeline mit Validierung. Das erste Weltset enthielt zehn Länder.
 - **Meilenstein 2 – Weltkarte**. Kartenrendering, Zoom und Verschieben per Maus und Touch, Kleinstaaten-Marker sowie Finden per Kartenklick und Benennen mit vier Antwortmöglichkeiten.
+- **Meilenstein 3 – Antwort-Engine**. Getippte Antworten in Benennen werden normalisiert und mit allen Ländernamen und Aliasen verglichen. Die Pflichtfälle aus Abschnitt 5.1 sind automatisiert geprüft.
 - **Meilenstein 5 – Grunddaten**. Das vollständige Weltset enthält 197 Spielentitäten mit passenden Natural-Earth-Geometrien. [Validierungsreport](world-data-report.md)
 - **Vollbild-Layout**. Rahmenlose Miller-Karte mit nahtlosem horizontalem Verschieben, Overlays für die Bedienung und Standalone-Manifest.
 - **Design für Finden und Benennen**. Typografie, Kartenstil, Fragepanel, Antwort-Sheet, Vollbildmenü, Animationen und Tastatursteuerung sind umgesetzt. [Design-Spezifikation](DESIGN.md)
 
 ### Offen in Umsetzungsreihenfolge
 
-1. **Meilenstein 3 – Antwort-Engine**. Normalisierung und unscharfer Abgleich mit allen Testfällen aus Abschnitt 5.1 sowie getippte Eingabe in Benennen.
-2. **Meilenstein 4 – Attribut-Engine**. Fragen aus `set.json` für `text` und `enum` vorwärts und rückwärts erzeugen, mit getippter Antwort oder Multiple Choice. Kategorie- und Zufallsmodus sowie den Fragetyp `flag` in beiden Richtungen umsetzen. [DESIGN.md, Abschnitt 8](DESIGN.md#8-daten-für-das-design)
-3. **Flaggen-Modus und Datenkorrekturen**. Den Flaggen-Modus umsetzen und das Weltset um `continent_alt` und `capital_note` ergänzen. Die Spalte `color` mit der aus der Flagge abgeleiteten Hauptfarbe befüllen. Die Farbwerte lassen sich von Hand korrigieren. [Flaggen-Bildschirm](DESIGN.md#flaggen) · [Daten für das Design](DESIGN.md#8-daten-für-das-design)
-4. **Meilenstein 5 – Weitere Länderdaten**. Währung, Zentralbank, Leitindex und Regierungsform befüllen. Quellen und Report über fehlende Werte folgen den Abschnitten 3.6 und 3.7.
-5. **Meilenstein 6 – Länder-Modus und Landeskarten**. Den Länder-Modus mit Farbblock, Flaggenfrage und Steckbrief nach der Design-Spezifikation umsetzen. Landeskarten ergänzen und das Markieren der Hauptstadt nach Distanz bewerten. [Länder-Modus in der Design-Spezifikation](DESIGN.md#länder-modus)
-6. **Meilenstein 7 – Weitere Typen**. `boolean`, `list` mit Gruppen-Modus (EU, NATO) und `entityRefList` zum Markieren von Nachbarn auf der Karte.
-7. **Meilenstein 8 – Unterteilungen**. `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl und Durchgangsmodus mit Bestzeit.
-8. **Meilenstein 9 – Fortschritt**. Lernkarten, Statistik-Seite mit Wissenskarte sowie Export und Import.
+1. **Meilenstein 4 – Attribut-Engine**. Fragen aus `set.json` für `text` und `enum` vorwärts und rückwärts erzeugen, mit getippter Antwort oder Multiple Choice. Kategorie- und Zufallsmodus sowie den Fragetyp `flag` in beiden Richtungen umsetzen. [DESIGN.md, Abschnitt 8](DESIGN.md#8-daten-für-das-design)
+2. **Flaggen-Modus und Datenkorrekturen**. Den Flaggen-Modus umsetzen und das Weltset um `continent_alt` und `capital_note` ergänzen. Die Spalte `color` mit der aus der Flagge abgeleiteten Hauptfarbe befüllen. Die Farbwerte lassen sich von Hand korrigieren. [Flaggen-Bildschirm](DESIGN.md#flaggen) · [Daten für das Design](DESIGN.md#8-daten-für-das-design)
+3. **Meilenstein 5 – Weitere Länderdaten**. Währung, Zentralbank, Leitindex und Regierungsform befüllen. Quellen und Report über fehlende Werte folgen den Abschnitten 3.6 und 3.7.
+4. **Meilenstein 6 – Länder-Modus und Landeskarten**. Den Länder-Modus mit Farbblock, Flaggenfrage und Steckbrief nach der Design-Spezifikation umsetzen. Landeskarten ergänzen und das Markieren der Hauptstadt nach Distanz bewerten. [Länder-Modus in der Design-Spezifikation](DESIGN.md#länder-modus)
+5. **Meilenstein 7 – Weitere Typen**. `boolean`, `list` mit Gruppen-Modus (EU, NATO) und `entityRefList` zum Markieren von Nachbarn auf der Karte.
+6. **Meilenstein 8 – Unterteilungen**. `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl und Durchgangsmodus mit Bestzeit.
+7. **Meilenstein 9 – Fortschritt**. Lernkarten, Statistik-Seite mit Wissenskarte sowie Export und Import.
 
 ## 9. Nicht in Phase 1/2
 
