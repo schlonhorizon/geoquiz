@@ -1,4 +1,4 @@
-import { geoArea, geoCentroid, geoPath } from 'd3-geo';
+import { geoArea, geoCentroid, geoGraticule, geoPath } from 'd3-geo';
 import { geoMiller } from 'd3-geo-projection';
 import type { Polygon, MultiPolygon } from 'geojson';
 import { feature } from 'topojson-client';
@@ -85,6 +85,7 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
 
   return {
     height,
+    grid: path(geoGraticule().step([30, 20])()) ?? '',
     land: topology.objects.land ? path(feature(topology, topology.objects.land)) : null,
     countries,
   };

@@ -10,7 +10,7 @@
     "idProperty": "id",
     "projection": "miller",
     "prompts": {
-      "find": "Wo liegt {entity}?",
+      "find": "Wo liegt {entity}",
       "name": "Wie heißt das hervorgehobene Land?"
     }
   },

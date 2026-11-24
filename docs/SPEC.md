@@ -2,6 +2,8 @@
 
 Arbeitstitel „GeoQuiz“ – Name ist austauschbar.
 
+Die verbindlichen Vorgaben für Layout, Kartenstil, Bewegung und Bedienung stehen in der [Design-Spezifikation](DESIGN.md).
+
 ## 1. Ziel
 
 Ein interaktives Lernspiel im Browser, mit dem ich Länder der Welt (und später Unterteilungen wie Bundesländer, US-Staaten, Oblaste) spielerisch lerne: Lage auf der Karte, Hauptstädte, Kontinente, Nachbarn, Meereszugang, Mitgliedschaften (EU, NATO …), Regierungsform, Währung, Zentralbank, Leitindex usw.

@@ -113,10 +113,9 @@ describe('buildData', () => {
       'FSM', 'KIR', 'MHL', 'NRU', 'PLW', 'TON', 'TUV',
     ]));
 
-    for (const [index, entity] of entities.entries()) {
-      const random = () => (index + 0.5) / entities.length;
-      expect(createMapQuestion(entities, 'find', undefined, random).target.id).toBe(entity.id);
-      const question = createMapQuestion(entities, 'name', undefined, random);
+    for (const entity of entities) {
+      expect(createMapQuestion(entities, 'find', entity).target.id).toBe(entity.id);
+      const question = createMapQuestion(entities, 'name', entity, () => 0.5);
       expect(question.target.id).toBe(entity.id);
       expect(new Set(question.options.map(({ name }) => name)).size).toBe(4);
       expect(question.options.filter(({ id }) => id === entity.id)).toHaveLength(1);

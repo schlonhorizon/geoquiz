@@ -1,4 +1,5 @@
-import { select } from 'd3-selection';
+import BezierEasing from 'bezier-easing';
+import { pointer, select } from 'd3-selection';
 import 'd3-transition';
 import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
 import type { D3ZoomEvent, ZoomTransform } from 'd3-zoom';
@@ -12,6 +13,8 @@ import { clampMapY, nearestWorldX, worldWidth, wrapWorldX } from './viewport';
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const copyOffsets = [-worldWidth, 0, worldWidth];
 const maxZoom = 24;
+const flightEase = BezierEasing(.65, 0, .35, 1);
+const wheelEase = BezierEasing(0, 0, .58, 1);
 
 interface CountryView {
   shape: SVGPathElement;
@@ -64,6 +67,7 @@ export function renderWorldMap(
     tile.dataset.worldCopy = String(index - 1);
     tile.setAttribute('transform', `translate(${offset},0)`);
     group.append(tile);
+    appendPath(tile, projected.grid, 'map-grid');
     if (projected.land) appendPath(tile, projected.land, 'map-land');
     return { tile, markers };
   });
@@ -96,6 +100,8 @@ export function renderWorldMap(
   let viewport = { width: 0, height: 0 };
   let displayCenterX = worldWidth / 2;
   let markerScale = 0;
+  let wheelTarget: number | undefined;
+  let returnView: { center: [number, number]; relativeScale: number } | undefined;
   const hitContext = document.createElement('canvas').getContext('2d');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const selection = select(svg);
@@ -151,7 +157,26 @@ export function renderWorldMap(
     ])
     .clickDistance(5)
     .on('zoom', ({ transform }: D3ZoomEvent<SVGSVGElement, unknown>) => draw(transform));
-  selection.call(zoomBehavior).on('dblclick.zoom', null);
+  selection.call(zoomBehavior).on('dblclick.zoom', null).on('wheel.zoom', null);
+
+  selection.on('wheel.quiz', (event: WheelEvent) => {
+    event.preventDefault();
+    const [minimum, maximum] = zoomBehavior.scaleExtent();
+    const currentScale = wheelTarget ?? zoomTransform(svg).k;
+    const factor = 2 ** zoomBehavior.wheelDelta().call(svg, event, 0, [svg]);
+    const scale = Math.max(minimum, Math.min(maximum, currentScale * factor));
+    if (scale === currentScale) return;
+    selection.interrupt();
+    const anchor = pointer(event, svg);
+    if (motion.matches) {
+      selection.call(zoomBehavior.scaleTo, scale, anchor);
+      return;
+    }
+    wheelTarget = scale;
+    selection.transition().duration(180).ease(wheelEase)
+      .on('end.wheel interrupt.wheel cancel.wheel', () => { wheelTarget = undefined; })
+      .call(zoomBehavior.scaleTo, scale, anchor);
+  }, { passive: false });
 
   function transformAround([x, y]: [number, number], scale: number) {
     const top = clampMapY(viewport.height / 2 - y * scale, projected.height * scale, viewport.height);
@@ -162,6 +187,17 @@ export function renderWorldMap(
     const [minimum] = zoomBehavior.scaleExtent();
     const scale = Math.max(minimum, Math.min(viewport.height / projected.height, minimum * 2));
     selection.interrupt().call(zoomBehavior.transform, transformAround(center, scale));
+  }
+
+  function flyTo([x, y]: [number, number], scale: number, animate: boolean) {
+    const currentX = zoomTransform(svg).invertX(viewport.width / 2);
+    const transform = transformAround([nearestWorldX(x, currentX), y], scale);
+    selection.interrupt();
+    if (animate && !motion.matches) {
+      selection.transition().duration(800).ease(flightEase).call(zoomBehavior.transform, transform);
+    } else {
+      selection.call(zoomBehavior.transform, transform);
+    }
   }
 
   function fitViewport() {
@@ -244,7 +280,7 @@ export function renderWorldMap(
   });
 
   svg.addEventListener('keydown', (event) => {
-    if (!activeTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+    if (!activeTarget || event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return;
     const id = event.target instanceof SVGElement ? event.target.dataset.countryId : undefined;
     if (id) {
       event.preventDefault();
@@ -257,36 +293,42 @@ export function renderWorldMap(
     zoomBy(factor: number) {
       selection.interrupt().call(zoomBehavior.scaleBy, factor);
     },
-    showQuestion(id: string, clickable: boolean) {
+    showQuestion(id: string, { clickable, restart, animate }: { clickable: boolean; restart: boolean; animate: boolean }) {
       for (const countryId of layers.keys()) showCountryState(countryId, '');
       if (!clickable) showCountryState(id, 'highlighted');
       activeTarget = clickable ? id : undefined;
       svg.classList.toggle('is-answerable', clickable);
-      resetView(clickable ? undefined : layers.get(id)?.center);
+      if (!clickable || restart) {
+        resetView(clickable ? undefined : layers.get(id)?.center);
+      } else if (returnView) {
+        const [minimum] = zoomBehavior.scaleExtent();
+        flyTo(returnView.center, returnView.relativeScale * minimum, animate);
+      } else {
+        updateKeyboardTargets();
+      }
+      returnView = undefined;
     },
-    revealAnswer(correctId: string, selectedId: string, animate: boolean) {
+    revealAnswer(correctId: string, selectedId: string | undefined, { fly, animate }: { fly: boolean; animate: boolean }) {
+      selection.interrupt();
       activeTarget = undefined;
       svg.classList.remove('is-answerable');
       updateKeyboardTargets();
-      if (correctId !== selectedId) showCountryState(selectedId, 'incorrect');
+      if (selectedId && correctId !== selectedId) showCountryState(selectedId, 'incorrect');
       showCountryState(correctId, 'correct');
 
       const country = layers.get(correctId);
-      if (!country) return;
+      if (!country || !fly) return;
+      const current = zoomTransform(svg);
+      const [minimum, maximum] = zoomBehavior.scaleExtent();
+      returnView = {
+        center: current.invert([viewport.width / 2, viewport.height / 2]),
+        relativeScale: current.k / minimum,
+      };
       const { bounds } = country.geometry;
       const [[left, top], [right, bottom]] = bounds;
-      const [x, y] = countryCenter(bounds);
-      const [minimum, maximum] = zoomBehavior.scaleExtent();
       const fit = Math.min(viewport.width * 0.58 / (right - left), viewport.height * 0.48 / (bottom - top));
       const scale = Math.min(maximum, Math.max(minimum * 1.3, fit));
-      const currentX = zoomTransform(svg).invertX(viewport.width / 2);
-      const transform = transformAround([nearestWorldX(x, currentX), y], scale);
-      selection.interrupt();
-      if (animate && !motion.matches) {
-        selection.transition().delay(250).duration(550).call(zoomBehavior.transform, transform);
-      } else {
-        selection.call(zoomBehavior.transform, transform);
-      }
+      flyTo(country.center, scale, animate);
     },
   };
 }

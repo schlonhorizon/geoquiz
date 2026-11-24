@@ -19,12 +19,9 @@ function shuffle<T>(items: readonly T[], random: () => number): T[] {
 export function createMapQuestion(
   entities: readonly Entity[],
   mode: MapMode,
-  previousId?: string,
+  target: Entity,
   random: () => number = Math.random,
 ): MapQuestion {
-  const eligible = entities.length > 1 ? entities.filter(({ id }) => id !== previousId) : entities;
-  const target = eligible[Math.floor(random() * eligible.length)];
-  if (!target) throw new Error('The map quiz needs at least one entity');
   if (mode === 'find') return { target, options: [] };
 
   const alternatives = shuffle(entities.filter(({ id }) => id !== target.id), random);
@@ -37,4 +34,13 @@ export function createMapQuestion(
   }
   if (options.size < 4) throw new Error('Naming questions need four distinct country names');
   return { target, options: shuffle([...options.values()], random) };
+}
+
+export function createMapRound(
+  entities: readonly Entity[],
+  mode: MapMode,
+  random: () => number = Math.random,
+): MapQuestion[] {
+  return shuffle(entities, random).slice(0, 20)
+    .map((target) => createMapQuestion(entities, mode, target, random));
 }
