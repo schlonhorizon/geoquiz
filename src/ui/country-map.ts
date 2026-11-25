@@ -3,6 +3,8 @@ import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
 import type { D3ZoomEvent } from 'd3-zoom';
 import type { Coordinate } from '../data/map';
 import type { CountryMap } from '../map/country-map';
+import { createCapitalFeedback } from './capital-feedback';
+import type { CapitalAttempt } from './capital-feedback';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const dragThreshold = 5;
@@ -39,6 +41,7 @@ export function renderCountryMap(
     onResolvedClick?: () => void;
     onInteraction?: (active: boolean) => void;
     answer?: Coordinate;
+    capitalName?: string;
   } = {},
 ) {
   const svg = element('svg', 'country-map');
@@ -56,11 +59,15 @@ export function renderCountryMap(
   land.setAttribute('d', model.outline);
   land.setAttribute('pathLength', '1');
   const line = element('line', 'capital-line');
-  const guessPin = pin('capital-guess');
+  line.setAttribute('pathLength', '1');
   const answerPin = pin('capital-answer');
   const cursorPin = pin('capital-cursor');
-  scene.append(land, line, guessPin, answerPin);
+  scene.append(land, line, answerPin);
   svg.append(scene, cursorPin);
+  const frame = document.createElement('div');
+  frame.className = 'country-map-frame';
+  frame.append(svg);
+  const feedback = options.onPick ? createCapitalFeedback(frame, scene) : undefined;
   let cursor: Coordinate = [left + width / 2, top + height / 2];
   let selecting = Boolean(options.onPick);
   let active = false;
@@ -81,6 +88,7 @@ export function renderCountryMap(
     .on('zoom', ({ sourceEvent, transform }: D3ZoomEvent<SVGSVGElement, unknown>) => {
       if (sourceEvent && !active) options.onInteraction?.(active = true);
       scene.setAttribute('transform', transform.toString());
+      feedback?.layout();
     })
     .on('end', () => {
       if (active) options.onInteraction?.(active = false);
@@ -104,7 +112,7 @@ export function renderCountryMap(
     selection.call(behavior.transform, behavior.constrain()(fit, extent(), model.world));
   }
 
-  function reveal(answer: Coordinate, guess?: Coordinate) {
+  function reveal(answer: Coordinate, attempt?: CapitalAttempt) {
     selecting = false;
     svg.removeAttribute('data-selecting');
     svg.removeAttribute('tabindex');
@@ -112,15 +120,18 @@ export function renderCountryMap(
     svg.setAttribute('aria-label', label);
     svg.removeAttribute('data-cursor');
     const solution = model.project(answer);
-    placePin(answerPin, solution);
     svg.setAttribute('data-solution', '');
-    if (guess) {
-      const chosen = model.project(guess);
-      placePin(guessPin, chosen);
+    if (!feedback) {
+      placePin(answerPin, solution);
+      return;
+    }
+    const chosen = attempt ? model.project(attempt.guess) : undefined;
+    if (chosen) {
       endpoints(line, chosen, solution);
       svg.setAttribute('data-guess', '');
-      showMarkers([solution, chosen]);
-    } else showMarkers([solution]);
+    }
+    showMarkers(chosen ? [solution, chosen] : [solution]);
+    feedback.reveal(options.capitalName ?? label, solution, chosen, attempt);
   }
 
   if (options.answer) reveal(options.answer);
@@ -184,5 +195,5 @@ export function renderCountryMap(
       }
     });
   }
-  return { svg, reveal };
+  return { svg, frame, reveal, dispose: () => feedback?.dispose() };
 }

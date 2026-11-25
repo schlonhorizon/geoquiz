@@ -3,6 +3,8 @@ import type { Entity } from '../data/schema';
 import type { CountryMap } from '../map/country-map';
 import { renderCountryHero } from './country-hero';
 
+const disposeHero = new WeakMap<HTMLElement, () => void>();
+
 export function renderProfile(
   sheet: HTMLElement,
   { definition, entities }: QuizSet,
@@ -13,7 +15,9 @@ export function renderProfile(
   overlay = false,
 ) {
   const previousColor = sheet.querySelector<HTMLElement>('.country-hero')?.style.getPropertyValue('--country-color');
-  const { header } = renderCountryHero({ entity, definition, map, onBack: onClose, previousColor, overlay });
+  disposeHero.get(sheet)?.();
+  const { header, dispose } = renderCountryHero({ entity, definition, map, onBack: onClose, previousColor, overlay });
+  disposeHero.set(sheet, dispose);
 
   const names = new Map(entities.map(({ id, name }) => [id, name]));
   const fields = document.createElement('dl');

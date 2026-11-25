@@ -38,7 +38,7 @@ button:disabled {
   cursor: default;
 }
 
-button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tabindex]:focus-visible {
+button:focus-visible, input:focus-visible, select:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
@@ -90,8 +90,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
   transition: fill 350ms ease;
 }
 
-.map-country, .map-marker-hit {
+.world-map [tabindex]:focus {
   outline: none;
+}
+
+.map-country:focus-visible, .map-marker-hit:focus-visible + .map-marker {
+  --pulse-stroke: var(--ink);
+  --pulse-stroke-width: 3px;
+  stroke: var(--ink);
+  stroke-width: 3px;
 }
 
 .map-marker, .map-marker-hit {
@@ -699,7 +706,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
 }
 
 @keyframes target-pulse {
-  50% { fill-opacity: .5; stroke: var(--highlight); stroke-width: 2.5px; }
+  50% { fill-opacity: .5; stroke: var(--pulse-stroke, var(--highlight)); stroke-width: var(--pulse-stroke-width, 2.5px); }
 }
 
 @keyframes target-marker-pulse {

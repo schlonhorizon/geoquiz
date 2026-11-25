@@ -5,6 +5,37 @@ import { renderCountryMap } from './country-map';
 import { flagImage } from './flag-image';
 
 const wideOutlineRatio = 1.6;
+const nameMaxSize = 60;
+const nameMinSize = 36;
+const nameSizeStep = 2;
+
+function fitCountryName(art: HTMLElement, measure: HTMLElement, name: string, wide: boolean) {
+  const width = art.clientWidth - 32;
+  if (width <= 0) return;
+
+  function measureAt(text: string, size: number) {
+    measure.style.fontSize = `${size}px`;
+    measure.textContent = text;
+    return Math.ceil(measure.getBoundingClientRect().width);
+  }
+
+  const sideWidth = Math.floor(width * .66);
+  const widestWord = Math.max(...name.split(/\s+/).map((word) => measureAt(word, nameMinSize)));
+  const stack = wide || widestWord > sideWidth;
+  const limit = stack ? Math.max(width, widestWord) : sideWidth;
+  let size = nameMaxSize;
+  let nameWidth = measureAt(name, size);
+  while (size > nameMinSize && nameWidth > limit) {
+    size -= nameSizeStep;
+    nameWidth = measureAt(name, size);
+  }
+
+  art.toggleAttribute('data-stack-outline', stack);
+  art.style.setProperty('--country-identity-width', `${Math.max(70, Math.min(nameWidth, limit))}px`);
+  art.style.setProperty('--country-name-size', `${size}px`);
+  art.style.setProperty('--country-name-width', `${stack ? limit : Math.min(nameWidth, limit)}px`);
+  art.style.setProperty('--country-name-scale', String(Math.min(1, width / limit)));
+}
 
 function luminance(color: string) {
   const weights = [.2126, .7152, .0722];
@@ -31,9 +62,10 @@ export function renderCountryHero(options: {
   const lightness = luminance(color);
   const paperContrast = 1.05 / (lightness + .05);
   const inkContrast = (lightness + .05) / (luminance('#111111') + .05);
+  const wide = Boolean(map && map.aspect > wideOutlineRatio);
   const header = document.createElement('header');
   header.className = 'country-hero';
-  header.toggleAttribute('data-wide', Boolean(map && map.aspect > wideOutlineRatio));
+  header.toggleAttribute('data-wide', wide);
   header.toggleAttribute('data-profile-overlay', Boolean(overlay));
   header.style.setProperty('--country-color', color);
   header.style.setProperty('--previous-color', previousColor ?? 'var(--paper)');
@@ -65,11 +97,8 @@ export function renderCountryHero(options: {
   const mask = document.createElement('div');
   mask.className = 'country-name-mask';
   const title = document.createElement('h2');
-  title.className = 'country-title';
+  title.className = 'country-title country-name-type';
   title.id = overlay ? 'quiz-profile-title' : profile ? 'profile-title' : 'country-round-title';
-  const length = Array.from(entity.name).length;
-  title.toggleAttribute('data-long', length > 10);
-  title.toggleAttribute('data-extra-long', length > 21);
   title.tabIndex = -1;
   title.textContent = entity.name;
   mask.append(title);
@@ -87,7 +116,22 @@ export function renderCountryHero(options: {
     art.append(outline.svg);
   }
   art.append(mapSlot, identity);
-  header.append(background, bar, art);
+  const measure = document.createElement('span');
+  measure.className = 'country-name-type country-name-measure';
+  measure.setAttribute('aria-hidden', 'true');
+  header.append(background, bar, art, measure);
+
+  let measuredWidth = 0;
+  let disposed = false;
+  const fit = (force = false) => {
+    if (disposed || !header.isConnected) return;
+    const width = art.clientWidth;
+    if (force || measuredWidth !== width) fitCountryName(art, measure, entity.name, wide || header.hasAttribute('data-point'));
+    measuredWidth = width;
+  };
+  const sizes = new ResizeObserver(() => fit());
+  sizes.observe(art);
+  void document.fonts?.ready.then(() => fit(true));
 
   function revealFlag(animate = true) {
     const flagKey = definition.attributes.find(({ type }) => type === 'flag')?.key;
@@ -98,9 +142,15 @@ export function renderCountryHero(options: {
   }
   if (profile) revealFlag(false);
 
-  function setPointMap(svg?: SVGSVGElement) {
-    header.toggleAttribute('data-point', Boolean(svg));
-    mapSlot.replaceChildren(...(svg ? [svg] : []));
+  function setPointMap(map?: HTMLElement) {
+    const changed = Boolean(map) !== header.hasAttribute('data-point');
+    header.toggleAttribute('data-point', Boolean(map));
+    mapSlot.replaceChildren(...(map ? [map] : []));
+    if (changed) fit(true);
   }
-  return { header, bar, color, setPointMap, revealFlag };
+  function dispose() {
+    disposed = true;
+    sizes.disconnect();
+  }
+  return { header, bar, color, setPointMap, revealFlag, dispose };
 }
