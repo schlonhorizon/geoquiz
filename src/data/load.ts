@@ -1,4 +1,5 @@
 import type { Topology } from 'topojson-specification';
+import type { PresetLibrary } from '../quiz/round-settings';
 import type { Entity, SetDefinition, SetIndex } from './schema';
 
 export interface QuizSet {
@@ -28,4 +29,8 @@ export async function loadSets(): Promise<QuizSet[]> {
 
 export function loadMap({ id, map }: SetDefinition): Promise<Topology> {
   return fetchJson(`sets/${id}/${map.file}`);
+}
+
+export function loadPresets(): Promise<PresetLibrary> {
+  return fetchJson('presets.json');
 }

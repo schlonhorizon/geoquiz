@@ -8,7 +8,8 @@ import type { GeometryCollection, Topology } from 'topojson-specification';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Entity, SetDefinition } from '../src/data/schema';
 import { projectWorldMap } from '../src/map/geometry';
-import { createMapQuestion } from '../src/quiz/map-questions';
+import { createPracticeEngine } from '../src/quiz/practice';
+import type { PresetLibrary } from '../src/quiz/round-settings';
 import { buildData } from './build-data';
 
 const attributes: SetDefinition['attributes'] = [
@@ -72,7 +73,8 @@ async function emitted(file: string) {
 describe('buildData', () => {
   it('builds the complete world set and joins quiz countries to their geometries', async () => {
     const sample = fileURLToPath(new URL('../data/sets', import.meta.url));
-    const result = await buildData(sample, output);
+    const presetsFile = fileURLToPath(new URL('../data/presets.json', import.meta.url));
+    const result = await buildData(sample, output, presetsFile);
 
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
@@ -121,8 +123,8 @@ describe('buildData', () => {
       expect(background).not.toContain(area);
     }
 
-    const { map }: SetDefinition = await emitted('sets/world/set.json');
-    const projected = projectWorldMap(topology, map);
+    const definition: SetDefinition = await emitted('sets/world/set.json');
+    const projected = projectWorldMap(topology, definition.map);
     expect(projected.countries).toHaveLength(197);
     for (const country of projected.countries) {
       expect(country.bounds.flat().every(Number.isFinite)).toBe(true);
@@ -134,12 +136,19 @@ describe('buildData', () => {
       'FSM', 'KIR', 'MHL', 'NRU', 'PLW', 'TON', 'TUV',
     ]));
 
-    for (const entity of entities) {
-      expect(createMapQuestion(entities, 'find', entity).target.id).toBe(entity.id);
-      const question = createMapQuestion(entities, 'name', entity, () => 0.5);
-      expect(question.target.id).toBe(entity.id);
-      expect(new Set(question.options.map(({ name }) => name)).size).toBe(4);
-      expect(question.options.filter(({ id }) => id === entity.id)).toHaveLength(1);
+    const library: PresetLibrary = await emitted('presets.json');
+    const engine = createPracticeEngine({ definition, entities });
+    for (const preset of library.presets.filter(({ upcoming }) => !upcoming)) {
+      expect(engine.createRound({ ...library.defaults, ...preset.settings })).toHaveLength(20);
+    }
+    const location = { ...library.defaults, categories: ['location'], length: 'all' as const };
+    const find = engine.createRound({ ...location, direction: 'forward', format: 'map' });
+    const name = engine.createRound({ ...location, direction: 'reverse', format: 'choice' });
+    expect(new Set(find.map(({ entity }) => entity.id))).toEqual(new Set(entities.map(({ id }) => id)));
+    expect(name).toHaveLength(197);
+    for (const { options, entity } of name) {
+      expect(new Set(options.map(({ name }) => name)).size).toBe(4);
+      expect(options.filter(({ id }) => id === entity.id)).toHaveLength(1);
     }
   });
 

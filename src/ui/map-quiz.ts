@@ -1,24 +1,21 @@
 import type { Topology } from 'topojson-specification';
 import type { QuizSet } from '../data/load';
 import { renderWorldMap } from '../map/world-map';
-import { createAnswerMatcher } from '../match/answers';
-import { createAttributeEngine } from '../quiz/attribute-questions';
-import type { AttributeQuestion, AttributeRoundSettings } from '../quiz/attribute-questions';
-import { createMapRound } from '../quiz/map-questions';
-import type { MapMode, MapQuestion } from '../quiz/map-questions';
-import { configureAttributeMenu } from './attribute-settings';
-import type { AttributeMode } from './attribute-settings';
+import { createPracticeEngine, locationCategory } from '../quiz/practice';
+import type { PracticeQuestion } from '../quiz/practice';
+import type { PresetLibrary, RoundSettings } from '../quiz/round-settings';
+import { LocalSettingsStore } from '../settings/store';
+import { renderProfile } from './atlas';
+import { flagImage } from './flag-image';
+import { renderMenu } from './menu';
 
 const answerDelay = 1100;
-const modeLabels = { find: 'Finden', name: 'Benennen', category: 'Kategorie', random: 'Zufall' };
-type Mode = MapMode | AttributeMode;
 const verdictLabels = { correct: 'Richtig.', incorrect: 'Falsch.', skipped: 'Übersprungen.' };
 type Verdict = keyof typeof verdictLabels;
 
-export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: Topology) {
+export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: Topology, library: PresetLibrary) {
   const { definition, entities } = set;
-  const prompts = definition.map.prompts;
-  if (!prompts || !entities.length) throw new Error('The world set needs countries and map prompts');
+  if (!entities.length) throw new Error('The world set needs countries');
 
   container.style.setProperty('--answer-delay', `${answerDelay}ms`);
   container.innerHTML = `
@@ -30,6 +27,9 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
             <span id="question-number"></span>
             <span><span id="correct-count"></span> Punkte</span>
           </div>
+          <button type="button" class="square-button skip-question" aria-label="Überspringen" aria-keyshortcuts="S" hidden>
+            <svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><path d="M1 9h13M8 3l6 6-6 6M20 1v16"/></svg>
+          </button>
           <button type="button" class="square-button menu-button" aria-label="Menü öffnen" aria-haspopup="dialog" aria-expanded="false" aria-controls="quiz-menu">
             <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg>
           </button>
@@ -51,7 +51,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
         <form class="typed-answer" hidden>
           <div class="typed-answer-field">
             <label class="meta-label" for="country-answer"></label>
-            <input id="country-answer" type="text" required autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go">
+            <input id="country-answer" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go">
           </div>
           <button type="submit" class="primary-button">Antwort prüfen</button>
         </form>
@@ -61,6 +61,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
           <span class="timer-bar" aria-hidden="true" hidden></span>
         </button>
       </section>
+      <section class="answer-sheet atlas-sheet" aria-labelledby="profile-title" hidden></section>
       <section class="answer-sheet round-summary" aria-labelledby="summary-title" hidden>
         <div class="summary-content">
           <h2 class="meta-label" id="summary-title">Runde beendet</h2>
@@ -73,98 +74,27 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
         </button>
       </section>
     </div>
-    <button type="button" class="skip-question">Überspringen</button>
-    <div class="zoom-controls" role="group" aria-label="Kartenansicht">
-      <button type="button" class="square-button" id="zoom-in" aria-label="Hineinzoomen">
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0v16M0 8h16"/></svg>
-      </button>
-      <button type="button" class="square-button" id="zoom-out" aria-label="Herauszoomen">
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 8h16"/></svg>
-      </button>
-    </div>
     <svg class="world-map" role="group" aria-label="Weltkarte" aria-describedby="map-instructions"></svg>
     <p class="sr-only" id="map-instructions">Ziehen zum Verschieben. Mit Mausrad oder zwei Fingern zoomen.</p>
     <p class="sr-only feedback" role="status" aria-atomic="true"></p>
-    <dialog class="menu-overlay" id="quiz-menu" aria-labelledby="menu-title">
-      <div class="menu-content">
-        <header class="menu-header">
-          <h2 id="menu-title">GeoQuiz</h2>
-          <button type="button" class="square-button close-menu" aria-label="Menü schließen" autofocus>
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1l14 14M15 1L1 15"/></svg>
-          </button>
-        </header>
-        <p class="meta-label" id="mode-label">Modus</p>
-        <nav class="menu-modes" aria-labelledby="mode-label">
-          <button class="menu-mode" type="button" id="find-mode"><span class="menu-number" aria-hidden="true">01</span><span>Finden</span><span class="menu-arrow" aria-hidden="true">→</span></button>
-          <button class="menu-mode" type="button" id="name-mode"><span class="menu-number" aria-hidden="true">02</span><span>Benennen</span><span class="menu-arrow" aria-hidden="true">→</span></button>
-          <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">03</span><span>Flaggen</span><span class="meta-label">Folgt</span></button>
-          <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">04</span><span>Länder</span><span class="meta-label">Folgt</span></button>
-          <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">05</span><span>Statistik</span><span class="meta-label">Folgt</span></button>
-          <div class="attribute-modes">
-            <button type="button" id="category-mode" aria-expanded="false" aria-controls="attribute-settings">Kategorie <span aria-hidden="true">→</span></button>
-            <button type="button" id="random-mode" aria-expanded="false" aria-controls="attribute-settings">Zufall <span aria-hidden="true">→</span></button>
-          </div>
-        </nav>
-        <form class="attribute-settings" id="attribute-settings" hidden aria-labelledby="attribute-title">
-          <h3 id="attribute-title" tabindex="-1"></h3>
-          <p class="meta-label" id="attribute-set"></p>
-          <div class="attribute-fields">
-            <label>Attribut<select id="attribute-category"></select></label>
-            <label>Fragerichtung<select id="attribute-direction">
-              <option value="forward">Land → Attribut</option>
-              <option value="reverse">Attribut → Land</option>
-            </select></label>
-            <label>Kontinent<select id="attribute-region"><option value="">Alle Kontinente</option></select></label>
-            <label>Antwortart<select id="attribute-format">
-              <option value="choice">Antwortmöglichkeiten</option>
-              <option value="typed">Tippen</option>
-              <option value="map">Karte</option>
-              <option value="mixed">Gemischt</option>
-            </select></label>
-            <label>Rundenlänge<select id="attribute-length">
-              <option value="10">10 Fragen</option>
-              <option value="25">25 Fragen</option>
-              <option value="all">Alle Fragen</option>
-            </select></label>
-          </div>
-          <p class="attribute-status" role="status" hidden>Für diese Auswahl gibt es keine Fragen.</p>
-          <button type="submit" class="primary-button">Runde starten</button>
-        </form>
-        <div class="menu-settings">
-          <p class="meta-label">Einstellungen</p>
-          <label class="answer-format">
-            Antwort in Benennen
-            <select id="answer-format">
-              <option value="choice">4 Optionen</option>
-              <option value="typed">Tippen</option>
-            </select>
-          </label>
-          <label><input type="checkbox" id="animate-feedback" checked> Lösungszoom animieren</label>
-          <label><input type="checkbox" id="marker-rings" autocomplete="off"> Kleinstaaten-Ringe anzeigen</label>
-          <button type="button" id="reset-map">Weltansicht zurücksetzen</button>
-        </div>
-      </div>
-    </dialog>
+    <dialog class="menu-overlay" id="quiz-menu" aria-label="GeoQuiz"></dialog>
   `;
 
   const menu = container.querySelector<HTMLDialogElement>('#quiz-menu')!;
-  const menuModes = container.querySelector<HTMLElement>('.menu-modes')!;
   const menuButton = container.querySelector<HTMLButtonElement>('.menu-button')!;
-  const animation = container.querySelector<HTMLInputElement>('#animate-feedback')!;
-  const markerRings = container.querySelector<HTMLInputElement>('#marker-rings')!;
-  const findButton = container.querySelector<HTMLButtonElement>('#find-mode')!;
-  const nameButton = container.querySelector<HTMLButtonElement>('#name-mode')!;
+  const questionBar = container.querySelector<HTMLElement>('.question-bar')!;
   const questionBody = container.querySelector<HTMLElement>('.question-body')!;
   const questionFlag = container.querySelector<HTMLElement>('.question-flag')!;
   const prompt = container.querySelector<HTMLElement>('.question')!;
   const modeName = container.querySelector<HTMLElement>('#mode-name')!;
   const questionNumber = container.querySelector<HTMLElement>('#question-number')!;
-  const correctCount = container.querySelector<HTMLElement>('#correct-count')!;
+  const scoreDisplay = container.querySelector<HTMLElement>('#correct-count')!;
+  const scoreLine = scoreDisplay.parentElement!;
+  const dock = container.querySelector<HTMLElement>('.answer-dock')!;
   const sheet = container.querySelector<HTMLElement>('.answer-sheet')!;
   const options = container.querySelector<HTMLElement>('.answers')!;
-  const answerFormat = container.querySelector<HTMLSelectElement>('#answer-format')!;
   const typedAnswer = container.querySelector<HTMLFormElement>('.typed-answer')!;
-  const typedInput = container.querySelector<HTMLInputElement>('#country-answer')!;
+  const typedInput = typedAnswer.querySelector('input')!;
   const typedLabel = typedAnswer.querySelector('label')!;
   const verdictPanel = container.querySelector<HTMLElement>('.verdict')!;
   const verdictNumber = container.querySelector<HTMLElement>('.verdict-number')!;
@@ -175,130 +105,78 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   const nextLabel = container.querySelector<HTMLElement>('.next-label')!;
   const timer = container.querySelector<HTMLElement>('.timer-bar')!;
   const skip = container.querySelector<HTMLButtonElement>('.skip-question')!;
+  const atlas = container.querySelector<HTMLElement>('.atlas-sheet')!;
   const summary = container.querySelector<HTMLElement>('.round-summary')!;
   const summaryScore = container.querySelector<HTMLElement>('.summary-score')!;
   const summaryDetail = container.querySelector<HTMLElement>('.summary-detail')!;
   const newRound = container.querySelector<HTMLButtonElement>('.new-round')!;
-  const zoomControls = container.querySelector<HTMLElement>('.zoom-controls')!;
   const svg = container.querySelector<SVGSVGElement>('.world-map')!;
-  const attributeEngine = createAttributeEngine(set);
-  const setAttributeMode = configureAttributeMenu(menu, definition.label, attributeEngine, (nextMode, settings) => {
-    closeMenu(() => startRound(nextMode, true, settings));
-  });
 
-  const names = new Map(entities.map(({ id, name }) => [id, name]));
-  const matchAnswer = createAnswerMatcher(entities);
+  const byId = new Map(entities.map((entity) => [entity.id, entity]));
+  const engine = createPracticeEngine(set);
   const map = renderWorldMap(svg, topology, definition.map, entities, (id) => {
-    const question = questions[index];
-    if (mode === 'find' || (question && !('target' in question) && question.format === 'map')) submitAnswer(id);
+    if (!round) showProfile(id);
+    else if (round.questions[index]?.format === 'map') submitAnswer(id);
   });
   const optionButtons = new Map<string, HTMLButtonElement>();
-  let mode: Mode = 'find';
-  let activeSettings: AttributeRoundSettings | undefined;
-  let questions: (MapQuestion | AttributeQuestion)[] = [];
+  let round: { questions: PracticeQuestion[]; settings: RoundSettings; label: string } | undefined;
+  let focusIds: string[] = [];
+  let animateZoom = true;
   let index = 0;
   let score = 0;
   let verdict: Verdict | undefined;
   let autoTimer: number | undefined;
-
   const pad = (number: number) => String(number).padStart(2, '0');
 
-  function focusQuestion() {
-    (typedAnswer.hidden ? prompt : typedInput).focus({ preventScroll: true });
+  function measureFrame() {
+    const top = (questionBar.parentElement?.offsetTop ?? 0) + questionBar.offsetHeight;
+    dock.style.setProperty('--quiz-top', `${top}px`);
+    return { top, bottom: dock.offsetHeight ? dock.offsetTop : svg.clientHeight };
   }
 
-  function updateAnswerFormat() {
-    const question = questions[index];
-    if (!question) return;
-    const format = 'target' in question ? mode === 'find' ? 'map' : answerFormat.value : question.format;
-    typedLabel.textContent = 'target' in question ? 'Ländername' : question.answerLabel;
-    typedAnswer.hidden = format !== 'typed';
-    options.hidden = format !== 'choice';
-    sheet.hidden = format === 'map';
+  function focusMap(ids: string[], animate = animateZoom) {
+    focusIds = ids;
+    const frame = measureFrame();
+    if (ids.length) map.focusCountries(ids, frame, animate);
   }
 
   function updateScore(pop: boolean) {
     const value = document.createElement('span');
     if (pop) value.className = 'score-pop';
     value.textContent = pad(score);
-    correctCount.replaceChildren(value);
+    scoreDisplay.replaceChildren(value);
   }
 
-  function flagImage(code: string) {
-    const image = document.createElement('img');
-    image.src = `${import.meta.env.BASE_URL}data/flags/${code}.svg`;
-    image.alt = '';
-    image.width = 80;
-    image.height = 60;
-    return image;
-  }
-
-  function showPrompt(question: MapQuestion | AttributeQuestion) {
+  function showPrompt(question: PracticeQuestion) {
     const text = document.createElement('span');
     text.className = 'question-entry';
-    questionFlag.hidden = !('flag' in question && question.flag);
-    questionFlag.replaceChildren();
-    if (!('target' in question)) {
-      text.textContent = question.prompt;
-      if (question.flag) {
-        const image = flagImage(question.flag);
-        image.alt = 'Gesuchte Flagge';
-        questionFlag.append(image);
-      }
-    } else if (mode === 'find') {
-      const { target } = question;
-      const [lead, ending] = prompts!.find.split('{entity}', 2);
-      const preface = document.createElement('span');
-      preface.className = 'question-lead';
-      preface.textContent = lead.trim();
-      const country = document.createElement('span');
-      country.className = 'country-name';
-      const size = Array.from(target.name).length;
-      country.dataset.size = size <= 11 ? 'large' : size <= 18 ? 'medium' : 'small';
-      country.textContent = target.name + (ending ?? '');
-      text.append(preface, ' ', country);
+    const nameStart = question.prompt.indexOf(question.entity.name);
+    if (question.category === locationCategory.key && question.direction === 'forward' && nameStart > 0) {
+      const lead = document.createElement('span');
+      lead.className = 'question-lead';
+      lead.textContent = question.prompt.slice(0, nameStart).trim();
+      const name = document.createElement('span');
+      name.className = 'country-name';
+      const length = Array.from(question.entity.name).length;
+      name.dataset.size = length <= 11 ? 'large' : length <= 18 ? 'medium' : 'small';
+      name.textContent = question.prompt.slice(nameStart);
+      text.append(lead, ' ', name);
     } else {
-      text.textContent = prompts!.name;
+      text.textContent = question.prompt;
     }
     prompt.replaceChildren(text);
+    questionFlag.hidden = !question.flag;
+    questionFlag.replaceChildren(...(question.flag ? [flagImage(question.flag, 'Gesuchte Flagge')] : []));
   }
 
-  function showQuestion(restart: boolean, focus: boolean) {
-    const question = questions[index];
-    verdict = undefined;
-    feedback.textContent = '';
-    questionBody.hidden = false;
-    modeName.textContent = modeLabels[mode];
-    questionNumber.textContent = `${pad(index + 1)} / ${questions.length}`;
-    questionNumber.setAttribute('aria-label', `Frage ${index + 1} von ${questions.length}`);
-    showPrompt(question);
-    if ('target' in question) {
-      map.showQuestion(question.target.id, { clickable: mode === 'find', restart, animate: animation.checked });
-    } else {
-      const clickable = question.format === 'map';
-      map.showQuestion(clickable ? question.answer.id : undefined, {
-        clickable, restart, animate: animation.checked, assist: question.acceptedIds.size === 1,
-      });
-    }
-
-    next.hidden = true;
-    timer.hidden = true;
-    summary.hidden = true;
-    verdictPanel.hidden = true;
-    skip.hidden = false;
-    zoomControls.hidden = false;
-    typedInput.value = '';
-    updateAnswerFormat();
-
+  function showOptions(question: PracticeQuestion) {
     optionButtons.clear();
-    const flagOptions = question.options.some((option) => 'flag' in option && option.flag);
-    options.classList.toggle('flag-options', flagOptions);
-    options.replaceChildren(...question.options.map((option, position) => {
-      const { id, name } = option;
+    options.classList.toggle('flag-options', question.options.some(({ flag }) => flag));
+    options.replaceChildren(...question.options.map(({ id, name, flag }, position) => {
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'answer';
-      row.dataset.countryId = id;
+      row.dataset.answerId = id;
       row.style.setProperty('--delay', `${position * 50}ms`);
       row.setAttribute('aria-keyshortcuts', String(position + 1));
       const key = document.createElement('span');
@@ -308,184 +186,225 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
       const text = document.createElement('span');
       text.className = 'answer-label';
       text.textContent = name;
-      if ('flag' in option && typeof option.flag === 'string') {
+      if (flag) {
         row.classList.add('flag-option');
         row.setAttribute('aria-label', `Flagge ${position + 1}`);
-        row.append(flagImage(option.flag));
+        const caption = document.createElement('span');
+        caption.className = 'flag-caption';
+        caption.append(key, text);
+        row.append(flagImage(flag), caption);
+      } else {
+        row.append(key, text);
       }
-      row.append(key, text);
       row.addEventListener('click', () => submitAnswer(id));
       optionButtons.set(id, row);
       return row;
     }));
-    if (focus && !menu.open) focusQuestion();
   }
 
-  function startRound(nextMode: Mode, focus = true, nextSettings = activeSettings) {
-    const nextQuestions = nextMode === 'find' || nextMode === 'name'
-      ? createMapRound(entities, nextMode)
-      : nextSettings ? attributeEngine.createRound(nextSettings) : [];
-    if (!nextQuestions.length) return;
+  function showQuestion(focus: boolean) {
+    if (!round) return;
+    const question = round.questions[index];
+    verdict = undefined;
+    feedback.textContent = '';
+    questionBody.hidden = false;
+    modeName.textContent = engine.categories.find(({ key }) => key === question.category)?.label ?? round.label;
+    questionNumber.textContent = `${pad(index + 1)} / ${round.questions.length}`;
+    questionNumber.setAttribute('aria-label', `Frage ${index + 1} von ${round.questions.length}`);
+    questionNumber.hidden = scoreLine.hidden = false;
+    showPrompt(question);
+
+    next.hidden = timer.hidden = summary.hidden = verdictPanel.hidden = atlas.hidden = true;
+    skip.hidden = false;
+    typedInput.value = '';
+    typedLabel.textContent = question.answerLabel;
+    typedAnswer.hidden = question.format !== 'typed';
+    options.hidden = question.format !== 'choice';
+    sheet.hidden = question.format === 'map';
+    dock.toggleAttribute('data-flag-question', Boolean(question.flag || question.options.some(({ flag }) => flag)));
+    dock.scrollTop = 0;
+    showOptions(question);
+
+    const clickable = question.format === 'map';
+    const visibleCountry = !clickable && (question.category === locationCategory.key || question.direction === 'forward');
+    map.clear();
+    map.setPicking(clickable, clickable && question.acceptedIds.size === 1 ? question.entity.id : undefined);
+    if (visibleCountry) {
+      map.mark(question.entity.id, 'highlighted', true);
+      focusMap([question.entity.id]);
+    } else {
+      focusMap([]);
+      map.resetView();
+    }
+    if (focus && !menu.open) (typedAnswer.hidden ? prompt : typedInput).focus({ preventScroll: true });
+  }
+
+  function startRound(settings: RoundSettings, label: string, questions: PracticeQuestion[]) {
+    if (!questions.length) return;
     window.clearTimeout(autoTimer);
-    mode = nextMode;
-    activeSettings = nextSettings;
-    questions = nextQuestions;
-    index = 0;
-    score = 0;
-    findButton.setAttribute('aria-current', String(mode === 'find'));
-    nameButton.setAttribute('aria-current', String(mode === 'name'));
-    setAttributeMode(mode);
+    round = { settings, label, questions };
+    index = score = 0;
     updateScore(false);
-    showQuestion(true, focus);
+    showQuestion(true);
   }
 
-  function submitAnswer(selectedId?: string) {
-    const question = questions[index];
-    if (!question) return;
-    const correct = selectedId && ('target' in question ? selectedId === question.target.id : question.acceptedIds.has(selectedId));
-    showVerdict(correct ? 'correct' : selectedId ? 'incorrect' : 'skipped', selectedId);
+  function showAtlas() {
+    window.clearTimeout(autoTimer);
+    round = undefined;
+    verdict = undefined;
+    questionBody.hidden = false;
+    questionFlag.hidden = questionNumber.hidden = scoreLine.hidden = skip.hidden = true;
+    questionFlag.replaceChildren();
+    sheet.hidden = summary.hidden = atlas.hidden = true;
+    modeName.textContent = 'Atlas';
+    prompt.textContent = 'Land antippen';
+    feedback.textContent = '';
+    dock.removeAttribute('data-flag-question');
+    map.clear();
+    map.setPicking(true);
+    focusMap([]);
+    map.resetView();
   }
 
-  function showVerdict(outcome: Verdict, selectedId?: string, typo = false) {
-    const question = questions[index];
-    if (!question || verdict) return;
+  function showProfile(id: string) {
+    const entity = byId.get(id);
+    if (!entity) return;
+    renderProfile(atlas, set, entity, (neighbor) => {
+      showProfile(neighbor);
+      const title = atlas.querySelector<HTMLElement>('#profile-title')!;
+      title.tabIndex = -1;
+      title.focus({ preventScroll: true });
+    }, () => {
+      atlas.hidden = true;
+      map.clear();
+      focusMap([]);
+      prompt.focus({ preventScroll: true });
+    });
+    dock.scrollTop = 0;
+    map.clear();
+    map.mark(id, 'highlighted', true);
+    focusMap([id]);
+    feedback.textContent = `Steckbrief: ${entity.name}`;
+  }
+
+  function submitAnswer(selectedId?: string, typo = false, unmatched = false) {
+    const question = round?.questions[index];
+    if (!round || !question || verdict) return;
+    const outcome = selectedId && question.acceptedIds.has(selectedId) ? 'correct'
+      : selectedId || unmatched ? 'incorrect' : 'skipped';
     const correct = outcome === 'correct';
-    const answer = 'target' in question ? question.target : question.answer;
-    const mapped = 'target' in question || question.format === 'map';
-    const correctId = mapped && correct && selectedId ? selectedId : answer.id;
-    const correctName = mapped && correct && selectedId ? names.get(selectedId) ?? answer.name : answer.name;
     verdict = outcome;
     if (correct) {
       score++;
       updateScore(true);
     }
 
-    if (mapped) {
-      map.revealAnswer(correctId, selectedId, { fly: (mode === 'find' || !('target' in question)) && !correct, animate: animation.checked });
-    }
+    const countryAnswer = question.category === locationCategory.key || question.direction === 'reverse';
+    const rightCountry = countryAnswer && correct && selectedId ? selectedId : question.entity.id;
+    const wrongCountry = countryAnswer && !correct && selectedId && byId.has(selectedId) ? selectedId : undefined;
+    map.setPicking(false);
+    map.mark(rightCountry, countryAnswer || correct ? 'correct' : outcome === 'incorrect' ? 'incorrect' : 'highlighted');
+    if (wrongCountry) map.mark(wrongCountry, 'incorrect');
+
     for (const [id, button] of optionButtons) {
       button.disabled = true;
-      button.dataset.state = id === answer.id ? 'correct' : id === selectedId ? 'incorrect' : 'muted';
-      if (button.classList.contains('flag-option')) {
-        button.setAttribute('aria-label', button.querySelector('.answer-label')!.textContent!);
-      }
+      button.dataset.state = id === question.answer.id ? 'correct' : id === selectedId ? 'incorrect' : 'muted';
+      if (button.classList.contains('flag-option')) button.setAttribute('aria-label', button.querySelector('.answer-label')!.textContent!);
     }
-    verdictPanel.dataset.state = verdict;
+    verdictPanel.dataset.state = outcome;
     verdictNumber.textContent = `Frage ${pad(index + 1)}`;
-    verdictTitle.textContent = verdictLabels[verdict];
-    const selectedName = mapped ? names.get(selectedId ?? '') : question.options.find(({ id }) => id === selectedId)?.name;
-    const solution = mapped ? `${answer.name} ist blau markiert.` : `Richtig ist „${answer.name}“.`;
-    if (correct) {
-      const spelling = selectedId ? names.get(selectedId) ?? correctName : correctName;
-      verdictDetail.textContent = typo ? `Die richtige Schreibweise ist „${spelling}“.` : 'Weiter geht’s gleich.';
-    } else {
-      verdictDetail.textContent = selectedName ? `Du hast ${selectedName} gewählt. ${solution}` : solution;
-    }
-    feedback.textContent = `${verdictLabels[verdict]} ${verdictDetail.textContent}`;
-    nextLabel.textContent = index === questions.length - 1 ? 'Ergebnis' : 'Weiter';
-    skip.hidden = true;
-    zoomControls.hidden = true;
-    typedAnswer.hidden = true;
-    sheet.hidden = false;
-    verdictPanel.hidden = false;
+    verdictTitle.textContent = verdictLabels[outcome];
+    const selected = question.options.find(({ id }) => id === selectedId)?.name ?? (selectedId ? byId.get(selectedId)?.name : undefined);
+    const solution = `Richtig ist „${question.answer.name}“.`;
+    verdictDetail.textContent = correct
+      ? typo ? `Die richtige Schreibweise ist „${selected ?? question.answer.name}“.` : 'Weiter geht’s gleich.'
+      : selected ? `Du hast ${selected} gewählt. ${solution}` : solution;
+    feedback.textContent = `${verdictLabels[outcome]} ${verdictDetail.textContent}`;
+    nextLabel.textContent = index === round.questions.length - 1 ? 'Ergebnis' : 'Weiter';
+    skip.hidden = typedAnswer.hidden = true;
+    sheet.hidden = verdictPanel.hidden = next.hidden = false;
     timer.hidden = !correct;
-    next.hidden = false;
-    if (!menu.open) next.focus({ preventScroll: true });
+    focusMap(wrongCountry ? [rightCountry, wrongCountry] : [rightCountry]);
+    if (menu.open) dock.scrollTop = dock.scrollHeight;
+    else next.focus({ preventScroll: true });
+    if (next.offsetTop + next.offsetHeight > dock.scrollTop + dock.clientHeight) dock.scrollTop = dock.scrollHeight;
     if (correct) autoTimer = window.setTimeout(() => advance(true), answerDelay);
   }
 
+  function repeatRound() {
+    if (round) startRound(round.settings, round.label, engine.createRound(round.settings));
+  }
+
   function advance(automatic = false) {
-    if (!verdict || index >= questions.length) return;
+    if (!round || !verdict || index >= round.questions.length) return;
     window.clearTimeout(autoTimer);
     const focus = !automatic || document.activeElement === next;
     index++;
-    if (index < questions.length) {
-      showQuestion(false, focus);
+    if (index < round.questions.length) {
+      showQuestion(focus);
       return;
     }
-
-    questionBody.hidden = true;
-    sheet.hidden = true;
-    summaryScore.textContent = `${score}/${questions.length}`;
-    summaryDetail.textContent = `Du hast ${score} von ${questions.length} Fragen richtig beantwortet.`;
+    questionBody.hidden = sheet.hidden = true;
+    summaryScore.textContent = `${score}/${round.questions.length}`;
+    summaryDetail.textContent = `Du hast ${score} von ${round.questions.length} Fragen richtig beantwortet.`;
     summary.hidden = false;
     if (focus && !menu.open) newRound.focus({ preventScroll: true });
   }
 
-  function closeMenu(afterClose?: () => void) {
-    if (!menu.open || menu.hasAttribute('data-closing')) return;
-    menu.dataset.closing = '';
-    const finish = () => {
-      menu.close();
-      delete menu.dataset.closing;
-      menuButton.setAttribute('aria-expanded', 'false');
-      afterClose?.();
-    };
-    const slide = menuModes.getAnimations?.()[0];
-    if (slide) void slide.finished.then(finish, finish);
-    else finish();
-  }
+  renderMenu(menu, menuButton, {
+    area: definition.areaLabel ?? definition.label,
+    setId: definition.id,
+    engine,
+    library,
+    store: new LocalSettingsStore(),
+    startRound,
+    showAtlas,
+    setAnimation: (animate) => { animateZoom = animate; },
+    setMarkerRings: (show) => svg.classList.toggle('show-marker-rings', show),
+    resetMap: () => { focusIds = []; map.resetView(); },
+  });
 
-  nameButton.disabled = new Set(entities.map(({ name }) => name)).size < 4;
-  menuButton.addEventListener('click', () => {
-    menu.showModal();
-    menuButton.setAttribute('aria-expanded', 'true');
-  });
-  container.querySelector('.close-menu')!.addEventListener('click', () => closeMenu());
-  findButton.addEventListener('click', () => {
-    closeMenu(() => {
-      if (mode !== 'find') startRound('find');
-    });
-  });
-  nameButton.addEventListener('click', () => {
-    closeMenu(() => {
-      if (mode !== 'name') startRound('name');
-    });
-  });
-  container.querySelector('#reset-map')!.addEventListener('click', () => {
-    closeMenu(() => map.resetView());
-  });
-  answerFormat.addEventListener('change', () => {
-    if (mode === 'name' && !verdict) updateAnswerFormat();
-  });
+  let viewportWidth = svg.clientWidth;
+  let viewportHeight = svg.clientHeight;
+  new ResizeObserver(() => {
+    if (svg.clientWidth === viewportWidth && svg.clientHeight === viewportHeight) return;
+    viewportWidth = svg.clientWidth;
+    viewportHeight = svg.clientHeight;
+    focusMap(focusIds, false);
+  }).observe(svg);
+
   typedAnswer.addEventListener('submit', (event) => {
     event.preventDefault();
-    const question = questions[index];
-    if (typedAnswer.hidden || verdict || !question || !typedInput.value.trim()) return;
-    if ('target' in question) {
-      const result = matchAnswer(typedInput.value, question.target.id);
-      if (result === 'incorrect') showVerdict('incorrect');
-      else showVerdict('correct', question.target.id, result === 'typo');
-    } else {
-      const result = question.match?.(typedInput.value);
-      if (result && question.acceptedIds.has(result.id)) showVerdict('correct', result.id, result.kind === 'typo');
-      else showVerdict('incorrect');
-    }
-  });
-  markerRings.addEventListener('change', () => svg.classList.toggle('show-marker-rings', markerRings.checked));
-  container.querySelector('#zoom-out')!.addEventListener('click', () => map.zoomBy(1 / 1.6));
-  container.querySelector('#zoom-in')!.addEventListener('click', () => map.zoomBy(1.6));
-  skip.addEventListener('click', () => submitAnswer());
-  next.addEventListener('click', () => advance());
-  newRound.addEventListener('click', () => startRound(mode));
-
-  window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && menu.open) {
-      event.preventDefault();
-      closeMenu(() => menuButton.focus({ preventScroll: true }));
+    if (typedAnswer.hidden || verdict) return;
+    const input = typedInput.value.trim();
+    if (!input) {
+      submitAnswer();
       return;
     }
-    if (menu.open || event.defaultPrevented || event.isComposing || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+    const result = round?.questions[index]?.match?.(input);
+    submitAnswer(result?.id, result?.kind === 'typo', !result);
+  });
+  skip.addEventListener('click', () => submitAnswer());
+  next.addEventListener('click', () => advance());
+  newRound.addEventListener('click', repeatRound);
+
+  window.addEventListener('keydown', (event) => {
+    if (!svg.isConnected || !round || menu.open || event.defaultPrevented || event.isComposing || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target;
     if (target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'))) return;
     if ((event.key === ' ' || event.key === 'Enter') && verdict) {
       event.preventDefault();
-      if (index === questions.length) startRound(mode);
+      if (index === round.questions.length) repeatRound();
       else advance();
-      return;
-    }
-    if (!options.hidden && !verdict && /^[1-4]$/.test(event.key)) {
-      const option = questions[index]?.options[Number(event.key) - 1];
+    } else if (event.key === 'Enter' && !typedAnswer.hidden && !typedInput.value.trim()
+      && !(target instanceof Element && target.closest('button, a'))) {
+      event.preventDefault();
+      submitAnswer();
+    } else if (!skip.hidden && event.key.toLowerCase() === 's') {
+      event.preventDefault();
+      submitAnswer();
+    } else if (!options.hidden && !verdict && /^[1-4]$/.test(event.key)) {
+      const option = round.questions[index]?.options[Number(event.key) - 1];
       if (option) {
         event.preventDefault();
         submitAnswer(option.id);
@@ -493,5 +412,5 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     }
   });
 
-  startRound('find', false);
+  showAtlas();
 }
