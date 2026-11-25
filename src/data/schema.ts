@@ -18,7 +18,7 @@ const attributeFields = {
 const attributeSchema = z.discriminatedUnion('type', [
   z.object({
     ...attributeFields,
-    type: z.enum(['text', 'boolean', 'list', 'entityRefList']),
+    type: z.enum(['text', 'boolean', 'list', 'entityRefList', 'flag']),
   }),
   z.object({
     ...attributeFields,

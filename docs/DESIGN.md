@@ -73,7 +73,7 @@ Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. 
 - **Flagge**: immer 4:3 mit 2 px Kontur (`outline`), damit weiße Flaggen auf weißem Grund sichtbar bleiben.
 - **Urteils-Punkt**: 10 × 10-px-Quadrat vor dem Label: `--ok` (richtig), `--accent` (falsch), `--muted` (übersprungen).
 - **Fortschritt** (Länder-Modus): eine Zelle pro Frage, 10 px hoch, 2 px Rahmen, 4 px Abstand; Füllung schwarz (richtig), rot (falsch), grau `--land-hover` (aktuelle Frage).
-- **Menü**. Der Hintergrund des Vollbild-Overlays ist weiß. Der Inhalt ist horizontal zentriert und maximal 560 px breit. Unter dem Kopf „GEOQUIZ“ mit Schließen-Button stehen das Label „Modus“ und die nummerierte Liste mit 2-px-Trennlinien. Die Einträge sind `01 Finden`, `02 Benennen`, `03 Flaggen`, `04 Länder` und `05 Statistik`. Noch nicht fertige Modi sind grau und mit „FOLGT“ gekennzeichnet. Beim Hover rückt der Eintrag 12 px ein.
+- **Menü**. Der Hintergrund des Vollbild-Overlays ist weiß. Der Inhalt ist horizontal zentriert und maximal 560 px breit. Unter dem Kopf „GEOQUIZ“ mit Schließen-Button stehen das Label „Modus“ und die nummerierte Liste mit 2-px-Trennlinien. Die Einträge sind `01 Finden`, `02 Benennen`, `03 Flaggen`, `04 Länder` und `05 Statistik`. Noch nicht fertige Modi sind grau und mit „FOLGT“ gekennzeichnet. Beim Hover rückt der Eintrag 12 px ein. Unter der Liste öffnen „Kategorie“ und „Zufall“ die Rundeneinstellungen.
 
 ## 4. Karte
 
@@ -135,7 +135,7 @@ Der Aufbau entspricht Finden. Das gesuchte Land ist blau markiert. Das zentriert
 | Flaggen-Modus: neue Flagge | 700 ms | `--ease-inout` | wird von links nach rechts aufgedeckt |
 | Beschriftung unter Flagge | 400 ms, 100 ms Verzögerung | `--ease-out` | fährt von unten ein |
 | Menü | 200 ms | ease | einblenden |
-| Menüpunkte | je 180 ms | `--ease-out` beim Öffnen, `--ease-inout` beim Schließen | Modusliste gleitet 16 px von links ein und nach links aus |
+| Menüpunkte | je 260 ms | `--ease-out` beim Öffnen, `--ease-inout` beim Schließen | Modusliste gleitet 16 px von links ein und nach links aus |
 
 Bei `prefers-reduced-motion: reduce` ersetzen Einblendungen von 150 ms die sonstigen Bewegungen. Kartenflüge springen direkt, hervorgehobene Länder und ihre Marker bleiben ruhig.
 
@@ -154,5 +154,5 @@ Bei `prefers-reduced-motion: reduce` ersetzen Einblendungen von 150 ms die sonst
 ## 8. Daten für das Design
 
 - **Hauptfarbe**: neue Spalte `color` (Hex) in `data/sets/world/entities.csv`. Startwert automatisch aus der Flagge berechnen (größte Fläche, die nicht weiß oder fast weiß ist), dann von Hand korrigierbar. Weiße oder sehr helle Ergebnisse vermeiden.
-- **Flaggen**: Paket `flag-icons` (MIT), 4:3-SVGs als statische Dateien ausliefern; Zuordnung über ISO-Codes (Kosovo `XKX` → `xk`). Keine CSV-Spalte nötig.
-- **Flagge als Kategorie**: eigener Fragetyp `flag` – vorwärts „Welche Flagge gehört zu X?“ (4 Flaggen-Kacheln) und rückwärts „Welches Land ist das?“ (Flaggen-Modus). Optionale Spalte `flag_similar` (Liste von IDs) für bewusst ähnliche Ablenker (Schweden ↔ Finnland/Norwegen/Dänemark, Niederlande ↔ Luxemburg, Indonesien ↔ Monaco …); ohne Eintrag werden Nachbarländer genommen.
+- **Flaggen**. Der Daten-Build legt die 4:3-SVGs aus `flag-icons` (MIT) anhand der ISO-Codes unter `public/data/flags/` ab. Kosovo `XKX` erhält `xk`.
+- **Flagge als Kategorie**. Der Typ `flag` erzeugt vorwärts die Frage „Welche Flagge gehört zu X?“ mit vier Flaggen-Kacheln. Rückwärts zeigt das Fragepanel die Flagge neben „Welches Land ist das?“ und erlaubt Tippen oder vier Ländernamen zur Auswahl. Die optionale Spalte `flag_similar` enthält eine mit `|` getrennte Liste ähnlicher Länder-IDs. Für Ablenker haben diese IDs Vorrang, gefolgt von Nachbarländern und Ländern desselben Kontinents.

@@ -2,15 +2,21 @@ import type { Topology } from 'topojson-specification';
 import type { QuizSet } from '../data/load';
 import { renderWorldMap } from '../map/world-map';
 import { createAnswerMatcher } from '../match/answers';
+import { createAttributeEngine } from '../quiz/attribute-questions';
+import type { AttributeQuestion, AttributeRoundSettings } from '../quiz/attribute-questions';
 import { createMapRound } from '../quiz/map-questions';
 import type { MapMode, MapQuestion } from '../quiz/map-questions';
+import { configureAttributeMenu } from './attribute-settings';
+import type { AttributeMode } from './attribute-settings';
 
 const answerDelay = 1100;
-const modeLabels = { find: 'Finden', name: 'Benennen' };
+const modeLabels = { find: 'Finden', name: 'Benennen', category: 'Kategorie', random: 'Zufall' };
+type Mode = MapMode | AttributeMode;
 const verdictLabels = { correct: 'Richtig.', incorrect: 'Falsch.', skipped: 'Übersprungen.' };
 type Verdict = keyof typeof verdictLabels;
 
-export function renderMapQuiz(container: HTMLElement, { definition, entities }: QuizSet, topology: Topology) {
+export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: Topology) {
+  const { definition, entities } = set;
   const prompts = definition.map.prompts;
   if (!prompts || !entities.length) throw new Error('The world set needs countries and map prompts');
 
@@ -30,7 +36,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
         </div>
         <div class="question-body">
           <h1 class="question" tabindex="-1"></h1>
-          <span class="question-flag" aria-hidden="true"></span>
+          <span class="question-flag" hidden></span>
         </div>
       </div>
     </header>
@@ -44,7 +50,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
         <div class="answers" role="group" aria-label="Antwortmöglichkeiten" hidden></div>
         <form class="typed-answer" hidden>
           <div class="typed-answer-field">
-            <label class="meta-label" for="country-answer">Ländername</label>
+            <label class="meta-label" for="country-answer"></label>
             <input id="country-answer" type="text" required autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go">
           </div>
           <button type="submit" class="primary-button">Antwort prüfen</button>
@@ -94,7 +100,36 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
           <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">03</span><span>Flaggen</span><span class="meta-label">Folgt</span></button>
           <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">04</span><span>Länder</span><span class="meta-label">Folgt</span></button>
           <button class="menu-mode" type="button" disabled><span class="menu-number" aria-hidden="true">05</span><span>Statistik</span><span class="meta-label">Folgt</span></button>
+          <div class="attribute-modes">
+            <button type="button" id="category-mode" aria-expanded="false" aria-controls="attribute-settings">Kategorie <span aria-hidden="true">→</span></button>
+            <button type="button" id="random-mode" aria-expanded="false" aria-controls="attribute-settings">Zufall <span aria-hidden="true">→</span></button>
+          </div>
         </nav>
+        <form class="attribute-settings" id="attribute-settings" hidden aria-labelledby="attribute-title">
+          <h3 id="attribute-title" tabindex="-1"></h3>
+          <p class="meta-label" id="attribute-set"></p>
+          <div class="attribute-fields">
+            <label>Attribut<select id="attribute-category"></select></label>
+            <label>Fragerichtung<select id="attribute-direction">
+              <option value="forward">Land → Attribut</option>
+              <option value="reverse">Attribut → Land</option>
+            </select></label>
+            <label>Kontinent<select id="attribute-region"><option value="">Alle Kontinente</option></select></label>
+            <label>Antwortart<select id="attribute-format">
+              <option value="choice">Antwortmöglichkeiten</option>
+              <option value="typed">Tippen</option>
+              <option value="map">Karte</option>
+              <option value="mixed">Gemischt</option>
+            </select></label>
+            <label>Rundenlänge<select id="attribute-length">
+              <option value="10">10 Fragen</option>
+              <option value="25">25 Fragen</option>
+              <option value="all">Alle Fragen</option>
+            </select></label>
+          </div>
+          <p class="attribute-status" role="status" hidden>Für diese Auswahl gibt es keine Fragen.</p>
+          <button type="submit" class="primary-button">Runde starten</button>
+        </form>
         <div class="menu-settings">
           <p class="meta-label">Einstellungen</p>
           <label class="answer-format">
@@ -120,6 +155,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   const findButton = container.querySelector<HTMLButtonElement>('#find-mode')!;
   const nameButton = container.querySelector<HTMLButtonElement>('#name-mode')!;
   const questionBody = container.querySelector<HTMLElement>('.question-body')!;
+  const questionFlag = container.querySelector<HTMLElement>('.question-flag')!;
   const prompt = container.querySelector<HTMLElement>('.question')!;
   const modeName = container.querySelector<HTMLElement>('#mode-name')!;
   const questionNumber = container.querySelector<HTMLElement>('#question-number')!;
@@ -129,6 +165,7 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   const answerFormat = container.querySelector<HTMLSelectElement>('#answer-format')!;
   const typedAnswer = container.querySelector<HTMLFormElement>('.typed-answer')!;
   const typedInput = container.querySelector<HTMLInputElement>('#country-answer')!;
+  const typedLabel = typedAnswer.querySelector('label')!;
   const verdictPanel = container.querySelector<HTMLElement>('.verdict')!;
   const verdictNumber = container.querySelector<HTMLElement>('.verdict-number')!;
   const verdictTitle = container.querySelector<HTMLElement>('.verdict-title')!;
@@ -144,13 +181,21 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   const newRound = container.querySelector<HTMLButtonElement>('.new-round')!;
   const zoomControls = container.querySelector<HTMLElement>('.zoom-controls')!;
   const svg = container.querySelector<SVGSVGElement>('.world-map')!;
+  const attributeEngine = createAttributeEngine(set);
+  const setAttributeMode = configureAttributeMenu(menu, definition.label, attributeEngine, (nextMode, settings) => {
+    closeMenu(() => startRound(nextMode, true, settings));
+  });
 
   const names = new Map(entities.map(({ id, name }) => [id, name]));
   const matchAnswer = createAnswerMatcher(entities);
-  const map = renderWorldMap(svg, topology, definition.map, entities, submitAnswer);
+  const map = renderWorldMap(svg, topology, definition.map, entities, (id) => {
+    const question = questions[index];
+    if (mode === 'find' || (question && !('target' in question) && question.format === 'map')) submitAnswer(id);
+  });
   const optionButtons = new Map<string, HTMLButtonElement>();
-  let mode: MapMode = 'find';
-  let questions: MapQuestion[] = [];
+  let mode: Mode = 'find';
+  let activeSettings: AttributeRoundSettings | undefined;
+  let questions: (MapQuestion | AttributeQuestion)[] = [];
   let index = 0;
   let score = 0;
   let verdict: Verdict | undefined;
@@ -163,9 +208,13 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   }
 
   function updateAnswerFormat() {
-    const typing = mode === 'name' && answerFormat.value === 'typed';
-    typedAnswer.hidden = !typing;
-    options.hidden = mode !== 'name' || typing;
+    const question = questions[index];
+    if (!question) return;
+    const format = 'target' in question ? mode === 'find' ? 'map' : answerFormat.value : question.format;
+    typedLabel.textContent = 'target' in question ? 'Ländername' : question.answerLabel;
+    typedAnswer.hidden = format !== 'typed';
+    options.hidden = format !== 'choice';
+    sheet.hidden = format === 'map';
   }
 
   function updateScore(pop: boolean) {
@@ -175,10 +224,29 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     correctCount.replaceChildren(value);
   }
 
-  function showPrompt({ target }: MapQuestion) {
+  function flagImage(code: string) {
+    const image = document.createElement('img');
+    image.src = `${import.meta.env.BASE_URL}data/flags/${code}.svg`;
+    image.alt = '';
+    image.width = 80;
+    image.height = 60;
+    return image;
+  }
+
+  function showPrompt(question: MapQuestion | AttributeQuestion) {
     const text = document.createElement('span');
     text.className = 'question-entry';
-    if (mode === 'find') {
+    questionFlag.hidden = !('flag' in question && question.flag);
+    questionFlag.replaceChildren();
+    if (!('target' in question)) {
+      text.textContent = question.prompt;
+      if (question.flag) {
+        const image = flagImage(question.flag);
+        image.alt = 'Gesuchte Flagge';
+        questionFlag.append(image);
+      }
+    } else if (mode === 'find') {
+      const { target } = question;
       const [lead, ending] = prompts!.find.split('{entity}', 2);
       const preface = document.createElement('span');
       preface.className = 'question-lead';
@@ -204,7 +272,14 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     questionNumber.textContent = `${pad(index + 1)} / ${questions.length}`;
     questionNumber.setAttribute('aria-label', `Frage ${index + 1} von ${questions.length}`);
     showPrompt(question);
-    map.showQuestion(question.target.id, { clickable: mode === 'find', restart, animate: animation.checked });
+    if ('target' in question) {
+      map.showQuestion(question.target.id, { clickable: mode === 'find', restart, animate: animation.checked });
+    } else {
+      const clickable = question.format === 'map';
+      map.showQuestion(clickable ? question.answer.id : undefined, {
+        clickable, restart, animate: animation.checked, assist: question.acceptedIds.size === 1,
+      });
+    }
 
     next.hidden = true;
     timer.hidden = true;
@@ -214,10 +289,12 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     zoomControls.hidden = false;
     typedInput.value = '';
     updateAnswerFormat();
-    sheet.hidden = mode === 'find';
 
     optionButtons.clear();
-    options.replaceChildren(...question.options.map(({ id, name }, position) => {
+    const flagOptions = question.options.some((option) => 'flag' in option && option.flag);
+    options.classList.toggle('flag-options', flagOptions);
+    options.replaceChildren(...question.options.map((option, position) => {
+      const { id, name } = option;
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'answer';
@@ -231,6 +308,11 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
       const text = document.createElement('span');
       text.className = 'answer-label';
       text.textContent = name;
+      if ('flag' in option && typeof option.flag === 'string') {
+        row.classList.add('flag-option');
+        row.setAttribute('aria-label', `Flagge ${position + 1}`);
+        row.append(flagImage(option.flag));
+      }
       row.append(key, text);
       row.addEventListener('click', () => submitAnswer(id));
       optionButtons.set(id, row);
@@ -239,47 +321,63 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
     if (focus && !menu.open) focusQuestion();
   }
 
-  function startRound(nextMode: MapMode, focus = true) {
+  function startRound(nextMode: Mode, focus = true, nextSettings = activeSettings) {
+    const nextQuestions = nextMode === 'find' || nextMode === 'name'
+      ? createMapRound(entities, nextMode)
+      : nextSettings ? attributeEngine.createRound(nextSettings) : [];
+    if (!nextQuestions.length) return;
     window.clearTimeout(autoTimer);
     mode = nextMode;
-    questions = createMapRound(entities, mode);
+    activeSettings = nextSettings;
+    questions = nextQuestions;
     index = 0;
     score = 0;
     findButton.setAttribute('aria-current', String(mode === 'find'));
     nameButton.setAttribute('aria-current', String(mode === 'name'));
+    setAttributeMode(mode);
     updateScore(false);
     showQuestion(true, focus);
   }
 
   function submitAnswer(selectedId?: string) {
-    const target = questions[index]?.target;
-    if (!target) return;
-    showVerdict(selectedId === target.id ? 'correct' : selectedId ? 'incorrect' : 'skipped', selectedId);
+    const question = questions[index];
+    if (!question) return;
+    const correct = selectedId && ('target' in question ? selectedId === question.target.id : question.acceptedIds.has(selectedId));
+    showVerdict(correct ? 'correct' : selectedId ? 'incorrect' : 'skipped', selectedId);
   }
 
   function showVerdict(outcome: Verdict, selectedId?: string, typo = false) {
     const question = questions[index];
     if (!question || verdict) return;
-    const { target } = question;
     const correct = outcome === 'correct';
+    const answer = 'target' in question ? question.target : question.answer;
+    const mapped = 'target' in question || question.format === 'map';
+    const correctId = mapped && correct && selectedId ? selectedId : answer.id;
+    const correctName = mapped && correct && selectedId ? names.get(selectedId) ?? answer.name : answer.name;
     verdict = outcome;
     if (correct) {
       score++;
       updateScore(true);
     }
 
-    map.revealAnswer(target.id, selectedId, { fly: mode === 'find' && !correct, animate: animation.checked });
+    if (mapped) {
+      map.revealAnswer(correctId, selectedId, { fly: (mode === 'find' || !('target' in question)) && !correct, animate: animation.checked });
+    }
     for (const [id, button] of optionButtons) {
       button.disabled = true;
-      button.dataset.state = id === target.id ? 'correct' : id === selectedId ? 'incorrect' : 'muted';
+      button.dataset.state = id === answer.id ? 'correct' : id === selectedId ? 'incorrect' : 'muted';
+      if (button.classList.contains('flag-option')) {
+        button.setAttribute('aria-label', button.querySelector('.answer-label')!.textContent!);
+      }
     }
     verdictPanel.dataset.state = verdict;
     verdictNumber.textContent = `Frage ${pad(index + 1)}`;
     verdictTitle.textContent = verdictLabels[verdict];
-    const selectedName = selectedId ? names.get(selectedId) : undefined;
-    const solution = `${target.name} ist blau markiert.`;
+    const selectedName = mapped ? names.get(selectedId ?? '') : question.options.find(({ id }) => id === selectedId)?.name;
+    const solution = mapped ? `${answer.name} ist blau markiert.` : `Richtig ist „${answer.name}“.`;
     if (correct) {
-      verdictDetail.textContent = typo ? `Die richtige Schreibweise ist „${target.name}“.` : 'Weiter geht’s gleich.';
+      const spelling = selectedId ? names.get(selectedId) ?? correctName : correctName;
+      verdictDetail.textContent = typo ? `Die richtige Schreibweise ist „${spelling}“.` : 'Weiter geht’s gleich.';
     } else {
       verdictDetail.textContent = selectedName ? `Du hast ${selectedName} gewählt. ${solution}` : solution;
     }
@@ -352,11 +450,17 @@ export function renderMapQuiz(container: HTMLElement, { definition, entities }: 
   });
   typedAnswer.addEventListener('submit', (event) => {
     event.preventDefault();
-    const target = questions[index]?.target;
-    if (typedAnswer.hidden || verdict || !target || !typedInput.value.trim()) return;
-    const result = matchAnswer(typedInput.value, target.id);
-    if (result === 'incorrect') showVerdict('incorrect');
-    else showVerdict('correct', target.id, result === 'typo');
+    const question = questions[index];
+    if (typedAnswer.hidden || verdict || !question || !typedInput.value.trim()) return;
+    if ('target' in question) {
+      const result = matchAnswer(typedInput.value, question.target.id);
+      if (result === 'incorrect') showVerdict('incorrect');
+      else showVerdict('correct', question.target.id, result === 'typo');
+    } else {
+      const result = question.match?.(typedInput.value);
+      if (result && question.acceptedIds.has(result.id)) showVerdict('correct', result.id, result.kind === 'typo');
+      else showVerdict('incorrect');
+    }
   });
   markerRings.addEventListener('change', () => svg.classList.toggle('show-marker-rings', markerRings.checked));
   container.querySelector('#zoom-out')!.addEventListener('click', () => map.zoomBy(1 / 1.6));

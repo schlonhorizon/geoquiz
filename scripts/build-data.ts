@@ -1,6 +1,8 @@
-import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import isoCountries from 'i18n-iso-countries';
 import { setDefinitionSchema } from '../src/data/schema';
 import type { Entity, SetDefinition, SetIndex } from '../src/data/schema';
 import { readEntities } from './data/entities';
@@ -12,6 +14,7 @@ interface BuiltSet {
   definitionJson: string;
   entities: Map<string, Entity>;
   mapJson: string;
+  flagFiles: Set<string>;
 }
 
 interface BuildResult extends DataIssues {
@@ -22,6 +25,9 @@ async function readUtf8(file: string): Promise<string> {
   return new TextDecoder('utf-8', { fatal: true }).decode(await readFile(file));
 }
 
+const flagPackage = dirname(createRequire(import.meta.url).resolve('flag-icons/package.json'));
+const flagDirectory = join(flagPackage, 'flags', '4x3');
+
 async function readSet(setsDirectory: string, id: string, issues: DataIssues): Promise<BuiltSet> {
   const source = join(setsDirectory, id);
   const definitionJson = await readUtf8(join(source, 'set.json'));
@@ -31,9 +37,21 @@ async function readSet(setsDirectory: string, id: string, issues: DataIssues): P
   }
 
   const entities = readEntities(await readUtf8(join(source, 'entities.csv')), definition, issues);
+  const flagFiles = new Set<string>();
+  const flags = definition.attributes.filter(({ type }) => type === 'flag');
+  if (flags.length) {
+    const available = new Set(await readdir(flagDirectory));
+    for (const entity of entities.values()) {
+      const code = entity.id === 'XKX' ? 'xk' : isoCountries.alpha3ToAlpha2(entity.id)?.toLowerCase();
+      const flag = code && available.has(`${code}.svg`) ? code : null;
+      if (flag) flagFiles.add(`${flag}.svg`);
+      else issues.warnings.push(`${entity.id}: Keine 4:3-Flagge verfügbar.`);
+      for (const { key } of flags) entity[key] = flag;
+    }
+  }
   const mapJson = mergeLandAreas(await readUtf8(join(source, definition.map.file)), definition.map);
   validateMap(mapJson, definition.map, entities, issues);
-  return { definition, definitionJson, entities, mapJson };
+  return { definition, definitionJson, entities, mapJson, flagFiles };
 }
 
 async function writeData(outputDirectory: string, sets: Map<string, BuiltSet>) {
@@ -48,6 +66,15 @@ async function writeData(outputDirectory: string, sets: Map<string, BuiltSet>) {
         writeFile(join(directory, 'set.json'), set.definitionJson),
         writeFile(join(directory, 'entities.json'), encodeJson([...set.entities.values()])),
         writeFile(join(directory, set.definition.map.file), set.mapJson),
+      ]);
+    }
+    const flags = new Set([...sets.values()].flatMap(({ flagFiles }) => [...flagFiles]));
+    if (flags.size) {
+      const directory = join(staging, 'flags');
+      await mkdir(directory);
+      await Promise.all([
+        copyFile(join(flagPackage, 'LICENSE'), join(directory, 'LICENSE')),
+        ...[...flags].map((file) => copyFile(join(flagDirectory, file), join(directory, file))),
       ]);
     }
     const index: SetIndex = { sets: [...sets.keys()] };

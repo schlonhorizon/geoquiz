@@ -17,7 +17,7 @@ export function typoTolerance(length: number): number {
   return Math.round(length * 0.3);
 }
 
-export function createAnswerMatcher(entities: readonly Candidate[]) {
+export function createAnswerLookup(entities: readonly Candidate[]) {
   const bySpelling = new Map<string, Set<string>>();
   for (const { id, name, name_aliases } of entities) {
     for (const spelling of [name, ...name_aliases]) {
@@ -35,14 +35,14 @@ export function createAnswerMatcher(entities: readonly Candidate[]) {
   const spellings = [...bySpelling].map(([spelling, ids]) => ({ letters: Array.from(spelling), ids }));
   const maxLength = spellings.reduce((length, { letters }) => Math.max(length, letters.length), 0);
 
-  return (input: string, correctId: string): 'exact' | 'typo' | 'incorrect' => {
+  return (input: string): { id: string; kind: 'exact' | 'typo' } | undefined => {
     const normalized = normalizeAnswer(input);
-    if (!normalized) return 'incorrect';
+    if (!normalized) return;
     const exact = bySpelling.get(normalized);
-    if (exact) return exact.size === 1 && exact.has(correctId) ? 'exact' : 'incorrect';
+    if (exact) return exact.size === 1 ? { id: [...exact][0], kind: 'exact' } : undefined;
 
     const letters = Array.from(normalized);
-    if (letters.length > maxLength + typoTolerance(maxLength)) return 'incorrect';
+    if (letters.length > maxLength + typoTolerance(maxLength)) return;
     let bestDistance = Number.POSITIVE_INFINITY;
     const bestIds = new Set<string>();
     let withinTolerance = false;
@@ -57,11 +57,19 @@ export function createAnswerMatcher(entities: readonly Candidate[]) {
         withinTolerance = false;
       }
       for (const id of spelling.ids) bestIds.add(id);
-      if (spelling.ids.has(correctId) && distance <= typoTolerance(spelling.letters.length)) {
+      if (distance <= typoTolerance(spelling.letters.length)) {
         withinTolerance = true;
       }
     }
 
-    return bestIds.size === 1 && bestIds.has(correctId) && withinTolerance ? 'typo' : 'incorrect';
+    if (bestIds.size === 1 && withinTolerance) return { id: [...bestIds][0], kind: 'typo' };
+  };
+}
+
+export function createAnswerMatcher(entities: readonly Candidate[]) {
+  const lookup = createAnswerLookup(entities);
+  return (input: string, correctId: string): 'exact' | 'typo' | 'incorrect' => {
+    const answer = lookup(input);
+    return answer?.id === correctId ? answer.kind : 'incorrect';
   };
 }

@@ -2,7 +2,7 @@ import { parse } from 'csv-parse/sync';
 import type { AttributeDefinition, Entity, EntityValue, SetDefinition } from '../../src/data/schema';
 import type { DataIssues } from './issues';
 
-type ColumnRole = 'id' | 'name' | 'aliases' | 'attribute' | 'lat' | 'lon';
+type ColumnRole = 'id' | 'name' | 'aliases' | 'attribute' | 'lat' | 'lon' | 'flag' | 'flag-similar';
 
 interface CsvRecord {
   record: string[];
@@ -18,7 +18,7 @@ function getColumnRoles(definition: SetDefinition, issues: DataIssues): Map<stri
 
   function register(column: string, role: ColumnRole) {
     const previous = roles.get(column);
-    if (previous && (previous !== role || role === 'attribute')) {
+    if (previous && (previous !== role || role === 'attribute' || role === 'flag')) {
       issues.errors.push(`Spalte "${column}" ist mehrfach oder widersprüchlich definiert.`);
     } else {
       roles.set(column, role);
@@ -26,7 +26,7 @@ function getColumnRoles(definition: SetDefinition, issues: DataIssues): Map<stri
   }
 
   for (const attribute of definition.attributes) {
-    register(attribute.key, 'attribute');
+    register(attribute.key, attribute.type === 'flag' ? 'flag' : 'attribute');
     if (attribute.aliasesColumn) {
       register(attribute.aliasesColumn, 'aliases');
     }
@@ -38,6 +38,7 @@ function getColumnRoles(definition: SetDefinition, issues: DataIssues): Map<stri
       issues.errors.push(`Attribut "${attribute.key}" enthält doppelte Enum-Werte.`);
     }
   }
+  if (definition.attributes.some(({ type }) => type === 'flag')) register('flag_similar', 'flag-similar');
 
   return roles;
 }
@@ -59,6 +60,8 @@ function parseAttribute(value: string, attribute: AttributeDefinition, context: 
   }
 
   switch (attribute.type) {
+    case 'flag':
+      return null; // Populated from ISO codes by the build.
     case 'text':
       return value;
     case 'enum':
@@ -114,10 +117,13 @@ export function readEntities(csv: string, definition: SetDefinition, issues: Dat
   for (const column of headers) {
     if (column && !roles.has(column)) {
       issues.warnings.push(`CSV-Spalte "${column}" hat keine Attribut-Definition.`);
+    } else if (roles.get(column) === 'flag') {
+      issues.errors.push(`CSV-Spalte "${column}" wird aus der Entity-ID erzeugt.`);
     }
   }
   const requiresNameAliases = definition.attributes.some(({ aliasesColumn }) => aliasesColumn === 'name_aliases');
-  for (const column of roles.keys()) {
+  for (const [column, role] of roles) {
+    if (role === 'flag' || role === 'flag-similar') continue;
     if ((column !== 'name_aliases' || requiresNameAliases) && !headers.includes(column)) {
       issues.errors.push(`Erforderliche CSV-Spalte "${column}" fehlt.`);
     }
@@ -153,7 +159,7 @@ export function readEntities(csv: string, definition: SetDefinition, issues: Dat
       const context = `${location}, Spalte "${column}"`;
       if (role === 'attribute' && attribute) {
         values.set(column, parseAttribute(cell, attribute, context, issues));
-      } else if (role === 'aliases' && column !== 'name_aliases') {
+      } else if ((role === 'aliases' && column !== 'name_aliases') || role === 'flag-similar') {
         values.set(column, splitList(cell));
       } else if (role === 'lat' || role === 'lon') {
         const limit = role === 'lat' ? 90 : 180;
@@ -178,6 +184,15 @@ export function readEntities(csv: string, definition: SetDefinition, issues: Dat
         name_aliases: splitList(cells[nameAliasesColumn] ?? ''),
         ...Object.fromEntries(values),
       });
+    }
+  }
+
+  for (const [id, { flag_similar }] of entities) {
+    if (!Array.isArray(flag_similar)) continue;
+    for (const reference of flag_similar) {
+      if (reference === id || !entities.has(reference)) {
+        issues.errors.push(`${id}, Spalte "flag_similar": Ungültige Entity-ID "${reference}".`);
+      }
     }
   }
 
