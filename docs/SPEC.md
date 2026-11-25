@@ -172,6 +172,7 @@ Der Build schlägt fehl oder warnt bei:
 - **Weltkarte**: Natural Earth 50m (`Admin 0 – Countries`), Miller-Projektion (`d3-geo-projection`), Zoom und Verschieben (`d3-zoom`) per Maus und Touch. Drei Kartenkopien und ein horizontaler Versatz modulo Kartenbreite erlauben nahtloses, endloses Verschieben. Alle Kopien unterstützen Länder- und Markerklicks. Die Karte ist vertikal begrenzt und endet im Süden vor der Antarktis. Im Atlas bezieht sich die Begrenzung auf die gesamte Bildschirmhöhe. Bei der kleinsten Zoomstufe füllt die Karte diese Höhe.
 - **Vollbild-Layout**: Die Karte füllt den Viewport (`100dvw × 100dvh`). Fragepanel und Antwort-Sheet sind oben und unten horizontal zentriert. Rechts in der Meta-Zeile sitzen die 48-px-Felder für Überspringen und Menü. Zoom und Verschieben laufen über die Kartengesten. Die Overlays berücksichtigen die Safe Area und lassen die übrige Karte bedienbar. Auf der Karte sind Browser-Scrollen, Pull-to-refresh und Doppeltipp-Zoom deaktiviert. Der Fokusrahmen wird bei Tastaturbedienung sichtbar.
 - **Homescreen**: Das Web-App-Manifest startet GeoQuiz im Standalone-Modus und enthält Theme-Farbe und App-Icons.
+- **Mobil-Layout**: Bildschirmhöhe und Safe Areas folgen `100dvh` und `viewport-fit=cover`. Bei geöffnetem Tippfeld berücksichtigt die App den sichtbaren Viewport (`visualViewport`). Menü, Länder-Modus sowie Antwort- und Steckbriefinhalte sind in Hoch- und Querformat scrollbar. [Mobilgestaltung](DESIGN.md#handy-und-querformat)
 - **Kleinstaaten**: Länder unter einer Flächenschwelle (z. B. < 2.000 km² oder Inselstaaten) bekommen einen klickbaren Kreis als Marker; zusätzlich zählt ein Klick als Treffer, wenn er innerhalb einer kleinen Toleranz (in Pixeln, zoomabhängig) zum richtigen Land liegt.
 - **Kerngebiet**. Der Build entfernt eine Teilfläche aus dem Kerngebiet, wenn ihr kleinstmöglicher Großkreisabstand zur Außenkante der größten Teilfläche über 1500 km und ihre Fläche unter 20 % der größten Teilfläche liegt. Ausnahmen in `set.json` haben Vorrang. Farbblock, automatische Quiz-Ausschnitte und Landeskartendiagonale verwenden das Kerngebiet. Die Karte zeichnet alle Teilflächen. Überseegebiete zählen weiterhin als Treffer für ihr Land. [Ausgeschlossene Teilflächen](world-data-report.md#kerngebiete)
 - **Landeskarten** verwenden eine zum Kerngebiet gedrehte Miller-Projektion. Dadurch bleiben Länder über den Antimeridian zusammenhängend im Ausschnitt. Hauptstadtfragen starten mit 15 % Rand um das Kerngebiet und zeigen in der Breite mindestens 12 Längengrade (`MIN_CAPITAL_VIEW_SPAN_DEG`). Das Zielland ist weiß und die Umgebung grau. Mausrad und Zwei-Finger-Gesten zoomen, Ziehen verschiebt die Karte und ein unbewegter Tipp setzt einen Punkt. Die Auflösung zeigt die richtige Position, die Verbindung zum Tipp und die Entfernung in Kilometern.
@@ -205,6 +206,7 @@ Pflicht-Testfälle (Vitest):
 - 4 Optionen, eine richtig
 - Ablenker bevorzugt plausibel: gleicher Kontinent bzw. gleiches Eltern-Set, ähnlicher Wert-Typ; bei `enum` mit ≤ 4 Werten alle Werte zeigen, die als Optionen infrage kommen
 - `1`–`4` wählen eine Option. `S` überspringt außerhalb von Textfeldern, leeres Enter überspringt bei Tippfragen. Enter oder Leertaste gehen nach dem Urteil weiter.
+- Im mobilen Layout bleiben nach der Auswahl die korrekte und gegebenenfalls die falsch gewählte Option sichtbar. Das Urteil steht über dem integrierten Weiter-Balken. Bei Flaggenfragen passen sich Frageflagge und Antwort-Raster an die verfügbare Höhe an.
 
 ### 5.3 Punkte auf der Landeskarte
 
@@ -247,6 +249,8 @@ Der Rundenaufbau hat sechs Stellschrauben:
 Im Atlas steht oben „ATLAS“ und „Land antippen“. Die Karte lässt sich frei erkunden. Ein Klick auf ein Land öffnet unten seinen Steckbrief und rückt das Land in den sichtbaren Kartenausschnitt. Der Steckbrief verwendet den Farbblock des Länderdesigns mit Umriss, Flagge, Name und gegebenenfalls Hauptstadtpunkt. Unterhalb stehen befüllte Kategorien, zugehörige Hinweise und der Leitindex-Status. Bei verknüpften Ländern, etwa Nachbarn, springt ein Tipp direkt zum verknüpften Steckbrief und Kartenort.
 
 Die Quizauflösung verlinkt auf die Steckbriefe des gesuchten Landes und des gegebenenfalls gewählten Landes. Ein Attributwert führt ebenfalls zu einem Steckbrief, wenn er genau einem Land zugeordnet ist. Das Overlay pausiert den bestehenden Countdown und hält die Frage an derselben Stelle. Es schließt per Schließen-Feld, Escape oder Wischen nach unten am oberen Ende des Steckbriefs.
+
+Im mobilen Layout öffnen beide Steckbriefe als randbündiges Bottom-Sheet mit Rastpunkten bei halber und fast voller Bildschirmhöhe. Der Griff lässt sich ziehen oder antippen. Der Inhalt scrollt im Sheet. Ein Wisch nach unten aus der halben Höhe schließt es.
 
 ### 6.3 Ein Land komplett
 
@@ -297,6 +301,7 @@ Alle Zugriffe auf den Fortschritt laufen über ein Interface `ProgressStore` (`l
 - **Vollbild-Layout**. Rahmenlose Miller-Karte mit nahtlosem horizontalem Verschieben, Overlays für die Bedienung und Standalone-Manifest.
 - **Üben, Atlas und Vollbildmenü**. Vorlagen und Rundenaufbau, gespeicherte Einstellungen je Vorlage, Atlas-Steckbrief, beide Flaggenlayouts und gestaffelte Menü-Animationen sind umgesetzt. [Design-Spezifikation](DESIGN.md)
 - **Meilenstein 6 – Ein Land komplett und Landeskarten**. Die Vorlage führt mit festgelegter Fragenfolge und eigenem Steckbrief durch ein oder mehrere Länder. Der Atlas verwendet das Länderdesign. Hauptstadtpositionen werden auf eingepassten Landeskarten nach Distanz bewertet. [Länderdesign](DESIGN.md#ein-land-komplett-und-atlas-landesdesign)
+- **Mobiloptimierung**. Steckbrief-Sheets mit zwei Rastpunkten, kompaktes Quizurteil, angepasste Flaggenfragen und Tippfeld oberhalb der Bildschirmtastatur. [Mobilgestaltung](DESIGN.md#handy-und-querformat)
 
 ### Offen in Umsetzungsreihenfolge
 

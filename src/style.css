@@ -291,6 +291,24 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   pointer-events: auto;
 }
 
+.atlas-sheet {
+  position: fixed;
+  z-index: 2;
+  inset: auto var(--right) var(--bottom) var(--left);
+  max-width: 560px;
+  max-height: calc(100dvh - var(--quiz-top, 190px) - var(--bottom) - 92px);
+  margin-inline: auto;
+}
+
+.profile-sheet:not([hidden]):not(dialog), .profile-sheet[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.profile-grip { display: none; }
+.profile-content { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+
 .question-bar:has(.question-flag:not([hidden])) {
   max-inline-size: min(460px, max(200px, 61dvh));
 }
@@ -330,7 +348,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   animation: flag-enter 550ms 80ms var(--ease-out) both;
 }
 
-.answer-dock[data-flag-question], .answer-dock:has(.atlas-sheet:not([hidden])) { max-inline-size: 560px; }
+.answer-dock[data-flag-question] { max-inline-size: 560px; }
 
 @media (hover: hover) and (pointer: fine) {
   .skip-question:hover::after {
@@ -356,6 +374,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   gap: 8px;
   padding: 12px 14px 16px;
 }
+.verdict-context { display: contents; }
 
 .verdict-meta, .button-hint {
   display: flex;
@@ -427,6 +446,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   flex-direction: column;
 }
 
+.answer-row, .answer-clip { display: contents; }
+
 .answer {
   position: relative;
   display: grid;
@@ -441,7 +462,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   animation: question-enter 500ms var(--ease-out) var(--delay) both;
 }
 
-.answer + .answer {
+.answer-row + .answer-row .answer {
   margin-top: calc(-1 * var(--line));
 }
 
@@ -513,7 +534,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   overflow: hidden;
 }
 
-.flag-option + .flag-option { margin-top: 0; }
+.answer-row + .answer-row .flag-option { margin-top: 0; }
 .flag-option::before { content: none; }
 
 .flag-option > img {
