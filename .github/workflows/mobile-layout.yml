@@ -31,7 +31,7 @@ jobs:
           npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
           trap 'kill $!' EXIT
           for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:4173/geoquiz/ -o /dev/null; then break; fi
+            if curl --fail --silent http://127.0.0.1:4173/data/index.json -o /dev/null; then break; fi
             sleep 1
           done
           node scripts/check-mobile-layout.mjs

@@ -3,7 +3,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 
 const engine = process.env.GEOQUIZ_BROWSER ?? 'webkit';
 const { [engine]: browserType, devices } = await import(process.env.PLAYWRIGHT_ENTRY ?? 'playwright');
-const app = process.env.GEOQUIZ_PREVIEW ?? 'http://127.0.0.1:4173/geoquiz/';
+const app = process.env.GEOQUIZ_PREVIEW ?? 'http://127.0.0.1:4173/';
 const artifacts = process.env.GEOQUIZ_SCREENSHOTS ?? 'mobile-layout-screenshots';
 const countryData = JSON.parse(await readFile('dist/data/sets/world/entities.json', 'utf8'));
 const browser = await browserType.launch({
@@ -23,6 +23,7 @@ async function verify([device, width, height]) {
   });
   const page = await context.newPage();
   const errors = [];
+  const diagnostics = [];
   const snap = (name, options = {}) => page.screenshot({ path: `${directory}/${name}.png`, ...options });
   const menu = page.getByRole('dialog', { name: 'GeoQuiz' });
   const choose = (name) => menu.getByRole('button', { name, exact: true }).tap();
@@ -34,6 +35,7 @@ async function verify([device, width, height]) {
   const question = page.locator('.question');
   const box = (locator) => locator.boundingBox();
   page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => { if (message.type() === 'error') diagnostics.push(message.text()); });
   page.setDefaultTimeout(12000);
   await page.addInitScript(() => { Math.random = () => .999999; });
   await page.route('**/entities.json', (route) => route.fulfill({
@@ -114,6 +116,9 @@ async function verify([device, width, height]) {
     await verdict.waitFor();
     await page.waitForFunction(() => [...document.querySelectorAll('.answer-row[data-muted]')]
       .every(row => Math.round(row.getBoundingClientRect().height) === 0));
+    if (name === 'flag-to-land') {
+      await page.waitForFunction(() => Math.round(document.querySelector('.question-flag').getBoundingClientRect().width) === 96);
+    }
     await assertPanel();
     await snap(`${name}-after`);
   }
@@ -195,7 +200,6 @@ async function verify([device, width, height]) {
       assert.match(await flag.evaluate(el => getComputedStyle(el).transitionDuration), /0\.4s/);
     }
     await answerChoice('flag-to-land');
-    await page.waitForFunction(() => Math.round(document.querySelector('.question-flag').getBoundingClientRect().width) === 96);
     assert.equal(Math.round((await box(flag)).width), 96);
     await page.emulateMedia({ reducedMotion: 'reduce' });
 
@@ -249,6 +253,10 @@ async function verify([device, width, height]) {
     await snap('typed-after');
     assert.deepEqual(errors, []);
     console.log(`${engine} ${width} × ${height}: navigated every preset and verified mobile layout.`);
+  } catch (error) {
+    console.error(`${engine} ${device}:`, ...errors, ...diagnostics);
+    await snap('failure').catch(() => {});
+    throw error;
   } finally {
     await context.close();
   }
