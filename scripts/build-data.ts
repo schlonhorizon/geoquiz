@@ -8,6 +8,7 @@ import type { Entity, SetDefinition, SetIndex } from '../src/data/schema';
 import { readEntities } from './data/entities';
 import { mergeLandAreas, validateMap } from './data/map';
 import type { DataIssues } from './data/issues';
+import { presetsSchema } from '../src/quiz/round-settings';
 
 interface BuiltSet {
   definition: SetDefinition;
@@ -54,7 +55,7 @@ async function readSet(setsDirectory: string, id: string, issues: DataIssues): P
   return { definition, definitionJson, entities, mapJson, flagFiles };
 }
 
-async function writeData(outputDirectory: string, sets: Map<string, BuiltSet>) {
+async function writeData(outputDirectory: string, sets: Map<string, BuiltSet>, presetsJson?: string) {
   const parentDirectory = dirname(outputDirectory);
   await mkdir(parentDirectory, { recursive: true });
   const staging = await mkdtemp(join(parentDirectory, '.data-'));
@@ -77,6 +78,7 @@ async function writeData(outputDirectory: string, sets: Map<string, BuiltSet>) {
         ...[...flags].map((file) => copyFile(join(flagDirectory, file), join(directory, file))),
       ]);
     }
+    if (presetsJson) await writeFile(join(staging, 'presets.json'), presetsJson);
     const index: SetIndex = { sets: [...sets.keys()] };
     await writeFile(join(staging, 'index.json'), encodeJson(index));
     await rm(outputDirectory, { recursive: true, force: true });
@@ -90,7 +92,7 @@ function encodeJson(value: unknown): string {
   return JSON.stringify(value, null, 2) + '\n';
 }
 
-export async function buildData(setsDirectory: string, outputDirectory: string): Promise<BuildResult> {
+export async function buildData(setsDirectory: string, outputDirectory: string, presetsFile?: string): Promise<BuildResult> {
   const result: BuildResult = { errors: [], warnings: [], report: [] };
   const entries = await readdir(setsDirectory, { withFileTypes: true });
   const directories = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
@@ -123,8 +125,20 @@ export async function buildData(setsDirectory: string, outputDirectory: string):
     }
   }
 
+  const presetsJson = presetsFile ? await readUtf8(presetsFile) : undefined;
+  if (presetsJson !== undefined) {
+    const library = presetsSchema.parse(JSON.parse(presetsJson));
+    const known = new Set(['location', ...[...sets.values()].flatMap(({ definition }) => definition.attributes.map(({ key }) => key))]);
+    for (const { label, settings } of [{ label: 'Standardwerte', settings: library.defaults }, ...library.presets]) {
+      if (!Array.isArray(settings.categories)) continue;
+      for (const key of settings.categories) {
+        if (!known.has(key)) result.errors.push(`[${label}] Unbekannte Kategorie "${key}".`);
+      }
+    }
+  }
+
   if (result.errors.length === 0) {
-    await writeData(outputDirectory, sets);
+    await writeData(outputDirectory, sets, presetsJson);
   }
   return result;
 }
@@ -132,7 +146,8 @@ export async function buildData(setsDirectory: string, outputDirectory: string):
 async function main() {
   const setsDirectory = fileURLToPath(new URL('../data/sets', import.meta.url));
   const outputDirectory = fileURLToPath(new URL('../public/data', import.meta.url));
-  const result = await buildData(setsDirectory, outputDirectory);
+  const presetsFile = fileURLToPath(new URL('../data/presets.json', import.meta.url));
+  const result = await buildData(setsDirectory, outputDirectory, presetsFile);
   for (const warning of result.warnings) console.warn(`Warnung: ${warning}`);
   for (const line of result.report) console.log(line);
   for (const error of result.errors) console.error(`Fehler: ${error}`);

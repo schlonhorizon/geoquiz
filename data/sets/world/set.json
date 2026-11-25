@@ -1,6 +1,7 @@
 {
   "id": "world",
   "label": "Länder der Welt",
+  "areaLabel": "Welt",
   "entityLabel": "Land",
   "entityLabelPlural": "Länder",
   "parent": null,

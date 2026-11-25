@@ -4,7 +4,7 @@ const text = z.string().regex(/\S/, 'Expected a non-empty string');
 const setId = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
 const attributeFields = {
-  key: text,
+  key: text.refine((key) => key !== 'location', 'location is a built-in category'),
   label: text,
   aliasesColumn: text.optional(),
   point: z.object({ lat: text, lon: text }).optional(),
@@ -36,6 +36,7 @@ const attributeSchema = z.discriminatedUnion('type', [
 export const setDefinitionSchema = z.object({
   id: setId,
   label: text,
+  areaLabel: text.optional(),
   entityLabel: text,
   entityLabelPlural: text,
   parent: z.object({ set: setId, entity: text }).nullable(),

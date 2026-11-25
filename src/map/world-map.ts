@@ -8,7 +8,11 @@ import type { Entity, SetDefinition } from '../data/schema';
 import { countryCenter, projectWorldMap } from './geometry';
 import type { ProjectedCountry } from './geometry';
 import { boundaryTolerancePx, isNearMarker, markerDistance, markerHitRadiusPx, markerRadiusPx, resolveCountryClick } from './hit-test';
-import { clampMapY, nearestWorldX, worldWidth, wrapWorldX } from './viewport';
+import { clampMapY, fitCountryBounds, nearestWorldX, worldWidth, wrapWorldX } from './viewport';
+
+import type { MapFrame } from './viewport';
+
+type CountryState = 'highlighted' | 'correct' | 'incorrect' | '';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const copyOffsets = [-worldWidth, 0, worldWidth];
@@ -98,13 +102,13 @@ export function renderWorldMap(
   }
   for (const { tile, markers } of copies) tile.append(markers);
 
-  let activeTarget: string | undefined;
-  let assistTarget = true;
+  let picking = false;
+  let assistedId: string | undefined;
   let viewport = { width: 0, height: 0 };
   let displayCenterX = worldWidth / 2;
   let markerScale = 0;
   let wheelTarget: number | undefined;
-  let returnView: { center: [number, number]; relativeScale: number } | undefined;
+  let frame: MapFrame | undefined;
   const hitContext = document.createElement('canvas').getContext('2d');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const selection = select(svg);
@@ -113,7 +117,7 @@ export function renderWorldMap(
     for (const layer of layers.values()) {
       const [centerX] = layer.center;
       const copy = 1 + Math.round((displayCenterX - centerX) / worldWidth);
-      const current = activeTarget ? layer.views[copy] : undefined;
+      const current = picking ? layer.views[copy] : undefined;
       if (current === layer.keyboardView) continue;
       if (layer.keyboardView) {
         const { hitArea } = layer.keyboardView;
@@ -130,11 +134,16 @@ export function renderWorldMap(
     }
   }
 
+  function constrainY(y: number, scale: number) {
+    const { top, bottom } = frame ?? { top: 0, bottom: viewport.height };
+    return top + clampMapY(y - top, projected.height * scale, bottom - top);
+  }
+
   function draw(transform: ZoomTransform) {
     const { k } = transform;
     displayCenterX = wrapWorldX(transform.invertX(viewport.width / 2));
     const x = viewport.width / 2 - displayCenterX * k;
-    const y = clampMapY(transform.y, projected.height * k, viewport.height);
+    const y = transform.y;
     group.setAttribute('transform', `translate(${x},${y}) scale(${k})`);
 
     if (markerScale !== k) {
@@ -151,7 +160,7 @@ export function renderWorldMap(
   const zoomBehavior = zoom<SVGSVGElement, unknown>()
     .extent(() => [[0, 0], [viewport.width, viewport.height]])
     .constrain((transform) => zoomIdentity
-      .translate(transform.x, clampMapY(transform.y, projected.height * transform.k, viewport.height))
+      .translate(transform.x, constrainY(transform.y, transform.k))
       .scale(transform.k))
     // Interpolate the view center and width without zooming out past either endpoint.
     .interpolate((from, to) => (t) => [
@@ -183,11 +192,14 @@ export function renderWorldMap(
   }, { passive: false });
 
   function transformAround([x, y]: [number, number], scale: number) {
-    const top = clampMapY(viewport.height / 2 - y * scale, projected.height * scale, viewport.height);
+    const midY = frame ? (frame.top + frame.bottom) / 2 : viewport.height / 2;
+    const top = constrainY(midY - y * scale, scale);
     return zoomIdentity.translate(viewport.width / 2 - x * scale, top).scale(scale);
   }
 
-  function resetView(center: [number, number] = [worldWidth * 0.38, projected.height / 2]) {
+  function resetView() {
+    frame = undefined;
+    const center: [number, number] = [worldWidth * 0.38, projected.height / 2];
     const [minimum] = zoomBehavior.scaleExtent();
     const scale = Math.max(minimum, Math.min(viewport.height / projected.height, minimum * 2));
     selection.interrupt().call(zoomBehavior.transform, transformAround(center, scale));
@@ -210,6 +222,7 @@ export function renderWorldMap(
     const before = viewport;
     const transform = zoomTransform(svg);
     viewport = { width, height };
+    frame = undefined;
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     const minimum = width / worldWidth;
     zoomBehavior.scaleExtent([minimum, minimum * maxZoom]);
@@ -225,7 +238,7 @@ export function renderWorldMap(
   new ResizeObserver(fitViewport).observe(svg);
   fitViewport();
 
-  function showCountryState(id: string, state: 'highlighted' | 'correct' | 'incorrect' | '', pulse = false) {
+  function showCountryState(id: string, state: CountryState, pulse = false) {
     for (const { shape, marker, hitArea } of layers.get(id)?.views ?? []) {
       shape.dataset.state = state;
       shape.classList.toggle('map-target-pulse', pulse);
@@ -256,9 +269,8 @@ export function renderWorldMap(
   }
 
   svg.addEventListener('click', (event) => {
-    if (!activeTarget) return;
-    const target = layers.get(activeTarget);
-    if (!target) return;
+    if (!picking) return;
+    const target = assistedId ? layers.get(assistedId) : undefined;
     const clicked = event.target instanceof SVGElement ? event.target : null;
     const point = pointerOnMap(event);
     const clickedMarker = clicked?.classList.contains('map-marker-hit') ?? false;
@@ -275,10 +287,10 @@ export function renderWorldMap(
         }
       }
     }
-    const id = assistTarget ? resolveCountryClick(
+    const id = assistedId && target ? resolveCountryClick(
       clickedId,
       clickedMarker,
-      activeTarget,
+      assistedId,
       Boolean(target.geometry.marker),
       () => Boolean(point && isNearCountry(target, point)),
     ) : clickedId;
@@ -286,7 +298,7 @@ export function renderWorldMap(
   });
 
   svg.addEventListener('keydown', (event) => {
-    if (!activeTarget || event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return;
+    if (!picking || event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return;
     const id = event.target instanceof SVGElement ? event.target.dataset.countryId : undefined;
     if (id) {
       event.preventDefault();
@@ -296,56 +308,29 @@ export function renderWorldMap(
 
   return {
     resetView,
-    zoomBy(factor: number) {
-      selection.interrupt().call(zoomBehavior.scaleBy, factor);
-    },
-    showQuestion(id: string | undefined, { clickable, restart, animate, assist = true }: {
-      clickable: boolean; restart: boolean; animate: boolean; assist?: boolean;
-    }) {
-      for (const countryId of layers.keys()) showCountryState(countryId, '');
-      activeTarget = clickable ? id : undefined;
-      assistTarget = assist;
-      svg.classList.toggle('is-answerable', clickable);
-      if (id === undefined) {
-        selection.interrupt();
-        updateKeyboardTargets();
-        returnView = undefined;
-        return;
-      }
-      if (!clickable) showCountryState(id, 'highlighted', true);
-      if (!clickable || restart) {
-        resetView(clickable ? undefined : layers.get(id)?.center);
-      } else if (returnView) {
-        const [minimum] = zoomBehavior.scaleExtent();
-        flyTo(returnView.center, returnView.relativeScale * minimum, animate);
-      } else {
-        updateKeyboardTargets();
-      }
-      returnView = undefined;
-    },
-    revealAnswer(correctId: string, selectedId: string | undefined, { fly, animate }: { fly: boolean; animate: boolean }) {
+    clear() {
       selection.interrupt();
-      const finding = activeTarget !== undefined;
-      const correctMapClick = finding && selectedId === correctId;
-      activeTarget = undefined;
-      svg.classList.remove('is-answerable');
+      for (const id of layers.keys()) showCountryState(id, '');
+    },
+    setPicking(enabled: boolean, assist?: string) {
+      picking = enabled;
+      assistedId = assist;
+      svg.classList.toggle('is-answerable', enabled);
       updateKeyboardTargets();
-      if (selectedId && correctId !== selectedId) showCountryState(selectedId, 'incorrect');
-      showCountryState(correctId, correctMapClick ? 'correct' : 'highlighted', finding && !correctMapClick);
-
-      const country = layers.get(correctId);
-      if (!country || !fly) return;
-      const current = zoomTransform(svg);
-      const [minimum, maximum] = zoomBehavior.scaleExtent();
-      returnView = {
-        center: current.invert([viewport.width / 2, viewport.height / 2]),
-        relativeScale: current.k / minimum,
-      };
-      const { bounds } = country.geometry;
-      const [[left, top], [right, bottom]] = bounds;
-      const fit = Math.min(viewport.width * 0.58 / (right - left), viewport.height * 0.48 / (bottom - top));
-      const scale = Math.min(maximum, Math.max(minimum * 1.3, fit));
-      flyTo(country.center, scale, animate);
+    },
+    mark: showCountryState,
+    focusCountries(ids: readonly string[], visible: MapFrame, animate: boolean) {
+      const bounds = ids.flatMap((id) => {
+        const country = layers.get(id);
+        return country ? [country.geometry.bounds] : [];
+      });
+      if (!bounds.length || !viewport.width) return;
+      const top = Math.min(viewport.height - 1, Math.max(0, visible.top));
+      const bottom = Math.max(top + 1, Math.min(viewport.height, visible.bottom));
+      frame = { top, bottom };
+      const [, maximum] = zoomBehavior.scaleExtent();
+      const { center, scale } = fitCountryBounds(bounds, viewport.width, frame, maximum);
+      flyTo(center, scale, animate);
     },
   };
 }
