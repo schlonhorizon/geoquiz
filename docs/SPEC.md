@@ -87,6 +87,7 @@ CIV;Elfenbeinküste;Côte d'Ivoire|Cote d'Ivoire;Afrika;Yamoussoukro;;6.8276;-5.
       "label": "Hauptstadt",
       "type": "text",
       "aliasesColumn": "capital_aliases",
+      "noteColumn": "capital_note",
       "point": { "lat": "capital_lat", "lon": "capital_lon" },
       "prompts": {
         "forward": "Was ist die Hauptstadt von {entity}?",
@@ -95,8 +96,10 @@ CIV;Elfenbeinküste;Côte d'Ivoire|Cote d'Ivoire;Afrika;Yamoussoukro;;6.8276;-5.
       }
     },
     { "key": "continent", "label": "Kontinent", "type": "enum",
-      "values": ["Europa", "Asien", "Afrika", "Nordamerika", "Südamerika", "Ozeanien"] },
+      "values": ["Europa", "Asien", "Afrika", "Nordamerika", "Südamerika", "Ozeanien"],
+      "alternativeValuesColumn": "continent_alt" },
     { "key": "flag", "label": "Flagge", "type": "flag" },
+    { "key": "color", "label": "Hauptfarbe", "type": "color", "quiz": false },
     { "key": "neighbors", "label": "Nachbarländer", "type": "entityRefList" },
     { "key": "seas", "label": "Meereszugang", "type": "list", "emptyMeans": "Binnenstaat" },
     { "key": "memberships", "label": "Mitgliedschaften", "type": "list", "groupQuiz": true },
@@ -117,6 +120,7 @@ Ein Unterteilungs-Set (z. B. `de`) hat `"parent": { "set": "world", "entity": "D
 | `text` | Hauptstadt, Währung, Zentralbank, Leitindex | vorwärts (Land → Wert), rückwärts (Wert → Land), jeweils getippt oder 4 Antwortmöglichkeiten; rückwärts zusätzlich „auf der Weltkarte anklicken“ |
 | `text` + `point` | Hauptstadt mit Koordinaten | zusätzlich: Punkt auf der Landeskarte markieren (Bewertung nach Distanz) |
 | `enum` | Kontinent, Regierungsform | vorwärts mit festen Optionen oder getippt; rückwärts ein passendes Land tippen oder aus vier Antworten wählen (genau eine richtige Option) |
+| `color` | Flaggen-Hauptfarbe | Gestaltungswert im Format `#RRGGBB`. |
 | `flag` | Länderflagge | vorwärts eine von vier Flaggen wählen; rückwärts Ländernamen tippen oder auswählen. Die Flaggen-Zuordnung wird beim Build erzeugt. |
 | `boolean` | Binnenstaat | Ja/Nein; Karten-Mehrfachauswahl „Markiere alle …“ |
 | `list` | Meere, Mitgliedschaften | „Zu welchem Meer hat X Zugang?“ (eine richtige Option); bei `groupQuiz: true` pro Listenwert eine Gruppe: „Markiere alle EU-Mitglieder“, „Ist X in der NATO?“ |
@@ -124,6 +128,8 @@ Ein Unterteilungs-Set (z. B. `de`) hat `"parent": { "set": "world", "entity": "D
 | `number` (Phase 2, spät) | Handelsbilanz, mit `year`/`source` | „Höher oder niedriger?“ zwischen zwei Ländern; Vorzeichen-Frage |
 
 Bei `text`, `enum` und `flag` kann `"modes": [...]` die verfügbaren Varianten eingrenzen. Ein Eintrag für die Richtung (`forward`, `reverse`), Antwortart (`typed`, `choice`, `map`) oder Kombination (z. B. `reverse-typed`) erlaubt die passenden Varianten. `"prompts"` kann Standardfragen über `forward`, `reverse` und `reverseMap` ersetzen. Die Platzhalter `{entity}` und `{value}` stehen für Ländernamen und Attributwert. Bei einer getippten rückwärtigen Frage oder einer Kartenfrage zählt jedes Land mit passendem Wert.
+
+Ein Enum-Attribut kann über `alternativeValuesColumn` eine mit `|` getrennte Liste weiterer richtiger Werte hinterlegen. Sie zählen bei getippten Antworten in beiden Richtungen. Auswahlfragen zeigen genau eine richtige Option und können bei wenigen verbleibenden Ablenkern kürzer ausfallen. Die Auswahl nach Region nutzt die Hauptzuordnung. `noteColumn` hinterlegt zusätzliche Erläuterungen für Atlas und Quizfeedback.
 
 `location` verwendet Länder-IDs und Geometrien direkt aus dem Set. Die Kategorie ist automatisch vorhanden. Eine CSV-Spalte oder ein Eintrag in `attributes` ist dafür entbehrlich. Die Fragetexte kommen aus `map.prompts.find` und `map.prompts.name`, falls das Set sie definiert.
 
@@ -144,14 +150,14 @@ Der Build schlägt fehl oder warnt bei:
 - `entityRefList`-Werten, die auf keine existierende ID zeigen
 - Nachbarschaften, die nicht symmetrisch sind (Warnung)
 - Entities ohne Geometrie in der Karte und umgekehrt
-- `enum`-Werten außerhalb der erlaubten Liste
+- `enum`-Werten außerhalb der erlaubten Liste, doppelten Enum-Alternativen, Alternativen ohne Hauptwert und ungültigen Hex-Farben
 - Ausgabe: Report pro Attribut, wie viele Entities befüllt sind
 
 ### 3.8 Länderauswahl und Sonderfälle
 
 - Basis: 193 UN-Mitglieder + Vatikanstadt, Palästina, Kosovo, Taiwan (Attribut `un_member` unterscheidet). In den Einstellungen: „Nur UN-Mitglieder“ an/aus.
 - Gebiete ohne Quiz (z. B. Westsahara, Grönland als Teil Dänemarks) werden grau gezeichnet, aber nicht abgefragt.
-- Mehrere Hauptstädte (Südafrika, Bolivien …): Hauptwert in `capital`, weitere in `capital_aliases` werden als richtig akzeptiert; Hinweis im Feedback.
+- Mehrere Hauptstädte (Südafrika, Bolivien …): Der Hauptwert steht in `capital`. Weitere gültige Bezeichnungen stehen in `capital_aliases`. `capital_note` erklärt die unterschiedlichen Rollen im Feedback und Atlas. Der Atlas kann den Hinweis auch bei leerem `capital` anzeigen.
 - Natural-Earth-Falle: In manchen Versionen ist `ISO_A3` für Frankreich und Norwegen `-99` → IDs über `ADM0_A3` bzw. eine Mapping-Tabelle zuordnen.
 
 ## 4. Karten
@@ -189,7 +195,7 @@ Pflicht-Testfälle (Vitest):
 ### 5.2 Multiple Choice
 
 - 4 Optionen, eine richtig
-- Ablenker bevorzugt plausibel: gleicher Kontinent bzw. gleiches Eltern-Set, ähnlicher Wert-Typ; bei `enum` mit ≤ 4 Werten alle Werte zeigen
+- Ablenker bevorzugt plausibel: gleicher Kontinent bzw. gleiches Eltern-Set, ähnlicher Wert-Typ; bei `enum` mit ≤ 4 Werten alle Werte zeigen, die als Optionen infrage kommen
 - `1`–`4` wählen eine Option. `S` überspringt außerhalb von Textfeldern, leeres Enter überspringt bei Tippfragen. Enter oder Leertaste gehen nach dem Urteil weiter.
 
 ## 6. Üben, Atlas und Fortschritt
@@ -264,17 +270,17 @@ Alle Zugriffe auf den Fortschritt laufen über ein Interface `ProgressStore` (`l
 - **Meilenstein 3 – Antwort-Engine**. Getippte Antworten in Benennen werden normalisiert und mit allen Ländernamen und Aliasen verglichen. Die Pflichtfälle aus Abschnitt 5.1 sind automatisiert geprüft.
 - **Meilenstein 4 – Attribut-Engine**. Die gemeinsame Übungs-Engine erzeugt Lage-, Text-, Enum- und Flaggenfragen in beiden Richtungen. Rückwärtige Textfragen lassen sich auch auf der Weltkarte beantworten.
 - **Meilenstein 5 – Grunddaten**. Das vollständige Weltset enthält 197 Spielentitäten mit passenden Natural-Earth-Geometrien. [Validierungsreport](world-data-report.md)
+- **Datenkorrekturen**. Alternative Kontinente, Hauptstadt-Hinweise und editierbare Flaggen-Hauptfarben sind im Weltset erfasst. [Validierungsreport](world-data-report.md)
 - **Vollbild-Layout**. Rahmenlose Miller-Karte mit nahtlosem horizontalem Verschieben, Overlays für die Bedienung und Standalone-Manifest.
 - **Üben, Atlas und Vollbildmenü**. Vorlagen und Rundenaufbau, gespeicherte Einstellungen je Vorlage, Atlas-Steckbrief, beide Flaggenlayouts und gestaffelte Menü-Animationen sind umgesetzt. [Design-Spezifikation](DESIGN.md)
 
 ### Offen in Umsetzungsreihenfolge
 
-1. **Datenkorrekturen**. Das Weltset um `continent_alt` und `capital_note` ergänzen. Die Spalte `color` mit der aus der Flagge abgeleiteten Hauptfarbe befüllen. Die Farbwerte lassen sich von Hand korrigieren. [Daten für das Design](DESIGN.md#8-daten-für-das-design)
-2. **Meilenstein 5 – Weitere Länderdaten**. Währung, Zentralbank, Leitindex und Regierungsform befüllen. Quellen und Report über fehlende Werte folgen den Abschnitten 3.6 und 3.7.
-3. **Meilenstein 6 – Ein Land komplett und Landeskarten**. Die Vorlage „Ein Land komplett“ freischalten. Der Atlas-Steckbrief übernimmt das Länderdesign mit Farbblock, Landesumriss und Flagge. Landeskarten ergänzen und das Markieren der Hauptstadt nach Distanz bewerten. [Länderdesign](DESIGN.md#ein-land-komplett-und-atlas-landesdesign)
-4. **Meilenstein 7 – Weitere Typen**. `boolean`, `list` mit Gruppen-Modus (EU, NATO) und `entityRefList` zum Markieren von Nachbarn auf der Karte.
-5. **Meilenstein 8 – Unterteilungen**. `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl und Durchgangsmodus mit Bestzeit.
-6. **Meilenstein 9 – Fortschritt**. Lernkarten, Statistik-Seite mit Wissenskarte sowie Export und Import.
+1. **Meilenstein 5 – Weitere Länderdaten**. Währung, Zentralbank, Leitindex und Regierungsform befüllen. Quellen und Report über fehlende Werte folgen den Abschnitten 3.6 und 3.7.
+2. **Meilenstein 6 – Ein Land komplett und Landeskarten**. Die Vorlage „Ein Land komplett“ freischalten. Der Atlas-Steckbrief übernimmt das Länderdesign mit Farbblock, Landesumriss und Flagge. Landeskarten ergänzen und das Markieren der Hauptstadt nach Distanz bewerten. [Länderdesign](DESIGN.md#ein-land-komplett-und-atlas-landesdesign)
+3. **Meilenstein 7 – Weitere Typen**. `boolean`, `list` mit Gruppen-Modus (EU, NATO) und `entityRefList` zum Markieren von Nachbarn auf der Karte.
+4. **Meilenstein 8 – Unterteilungen**. `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl und Durchgangsmodus mit Bestzeit.
+5. **Meilenstein 9 – Fortschritt**. Lernkarten, Statistik-Seite mit Wissenskarte sowie Export und Import.
 
 ## 9. Nicht in Phase 1/2
 

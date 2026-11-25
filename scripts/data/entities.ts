@@ -2,7 +2,7 @@ import { parse } from 'csv-parse/sync';
 import type { AttributeDefinition, Entity, EntityValue, SetDefinition } from '../../src/data/schema';
 import type { DataIssues } from './issues';
 
-type ColumnRole = 'id' | 'name' | 'aliases' | 'attribute' | 'lat' | 'lon' | 'flag' | 'flag-similar';
+type ColumnRole = 'id' | 'name' | 'aliases' | 'attribute' | 'lat' | 'lon' | 'flag' | 'flag-similar' | 'note' | 'alternatives';
 
 interface CsvRecord {
   record: string[];
@@ -18,7 +18,7 @@ function getColumnRoles(definition: SetDefinition, issues: DataIssues): Map<stri
 
   function register(column: string, role: ColumnRole) {
     const previous = roles.get(column);
-    if (previous && (previous !== role || role === 'attribute' || role === 'flag')) {
+    if (previous && (previous !== role || role === 'attribute' || role === 'flag' || role === 'alternatives')) {
       issues.errors.push(`Spalte "${column}" ist mehrfach oder widersprüchlich definiert.`);
     } else {
       roles.set(column, role);
@@ -30,12 +30,16 @@ function getColumnRoles(definition: SetDefinition, issues: DataIssues): Map<stri
     if (attribute.aliasesColumn) {
       register(attribute.aliasesColumn, 'aliases');
     }
+    if (attribute.noteColumn) register(attribute.noteColumn, 'note');
     if (attribute.point) {
       register(attribute.point.lat, 'lat');
       register(attribute.point.lon, 'lon');
     }
-    if (attribute.type === 'enum' && new Set(attribute.values).size !== attribute.values.length) {
-      issues.errors.push(`Attribut "${attribute.key}" enthält doppelte Enum-Werte.`);
+    if (attribute.type === 'enum') {
+      if (attribute.alternativeValuesColumn) register(attribute.alternativeValuesColumn, 'alternatives');
+      if (new Set(attribute.values).size !== attribute.values.length) {
+        issues.errors.push(`Attribut "${attribute.key}" enthält doppelte Enum-Werte.`);
+      }
     }
   }
   if (definition.attributes.some(({ type }) => type === 'flag')) register('flag_similar', 'flag-similar');
@@ -63,6 +67,11 @@ function parseAttribute(value: string, attribute: AttributeDefinition, context: 
     case 'flag':
       return null; // Populated from ISO codes by the build.
     case 'text':
+      return value;
+    case 'color':
+      if (!/^#[0-9a-f]{6}$/i.test(value)) {
+        issues.errors.push(`${context}: Erwartet wird eine Hex-Farbe im Format #RRGGBB.`);
+      }
       return value;
     case 'enum':
       if (!attribute.values.includes(value)) {
@@ -159,6 +168,11 @@ export function readEntities(csv: string, definition: SetDefinition, issues: Dat
       const context = `${location}, Spalte "${column}"`;
       if (role === 'attribute' && attribute) {
         values.set(column, parseAttribute(cell, attribute, context, issues));
+      } else if (role === 'note') {
+        values.set(column, cell || null);
+      } else if (role === 'alternatives') {
+        const alternatives = splitList(cell);
+        values.set(column, alternatives.length ? alternatives : null);
       } else if ((role === 'aliases' && column !== 'name_aliases') || role === 'flag-similar') {
         values.set(column, splitList(cell));
       } else if (role === 'lat' || role === 'lon') {
@@ -171,9 +185,24 @@ export function readEntities(csv: string, definition: SetDefinition, issues: Dat
       }
     }
 
-    for (const { key, point } of definition.attributes) {
+    for (const attribute of definition.attributes) {
+      const { key, point } = attribute;
       if (point && ((values.get(point.lat) == null) !== (values.get(point.lon) == null))) {
         issues.errors.push(`${location}, Attribut "${key}": Breiten- und Längengrad müssen zusammen angegeben werden.`);
+      }
+      if (attribute.type === 'enum' && attribute.alternativeValuesColumn) {
+        const column = attribute.alternativeValuesColumn;
+        const alternatives = values.get(column);
+        if (!Array.isArray(alternatives)) continue;
+        const context = `${location}, Spalte "${column}"`;
+        const primary = values.get(key);
+        if (primary == null) issues.errors.push(`${context}: Der Hauptwert in "${key}" fehlt.`);
+        if (new Set(alternatives).size !== alternatives.length || alternatives.some((value) => value === primary)) {
+          issues.errors.push(`${context}: Hauptwert und Alternativen müssen verschieden sein.`);
+        }
+        for (const value of alternatives) {
+          if (!attribute.values.includes(value)) issues.errors.push(`${context}: "${value}" ist kein erlaubter Enum-Wert.`);
+        }
       }
     }
 

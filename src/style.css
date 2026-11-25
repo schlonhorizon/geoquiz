@@ -805,6 +805,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, .world-map [tab
 .atlas-fields > div + div { border-top: 1px solid var(--ink); }
 .atlas-fields dt { font-weight: 700; }
 .atlas-fields dd { overflow-wrap: anywhere; }
+.atlas-note { font-size: 14px; }
+.atlas-note:not(:first-child) { margin-top: 4px; }
 
 .atlas-fields dd:has(button) {
   display: flex;

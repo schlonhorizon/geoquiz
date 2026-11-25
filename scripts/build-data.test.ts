@@ -83,7 +83,14 @@ describe('buildData', () => {
     const entities: Entity[] = await emitted('sets/world/entities.json');
     expect(entities).toHaveLength(197);
     expect(result.report).toContain('  flag: 197/197');
+    expect(result.report).toEqual(expect.arrayContaining([
+      '  capital: 194/197', '  capital_note: 16/197', '  continent_alt: 19/197', '  color: 197/197',
+    ]));
+    expect(entities.every(({ color }) => typeof color === 'string' && /^#[0-9A-F]{6}$/i.test(color))).toBe(true);
     expect(entities.find(({ id }) => id === 'XKX')?.flag).toBe('xk');
+    expect(entities.find(({ id }) => id === 'FRA')?.continent_alt).toEqual(['Afrika', 'Nordamerika', 'Südamerika']);
+    expect(entities.find(({ id }) => id === 'GNQ')?.capital).toBe('Ciudad de la Paz');
+    expect(entities.find(({ id }) => id === 'NRU')).toMatchObject({ capital: null, capital_note: expect.stringContaining('Yaren') });
     await Promise.all(entities.map(async ({ flag }) => {
       expect(await readFile(join(output, 'flags', `${flag}.svg`), 'utf8')).toContain('<svg');
     }));
@@ -211,6 +218,34 @@ describe('buildData', () => {
     expect((await buildData(sources, output)).errors).toEqual([
       '[world] DEU, Spalte "flag_similar": Ungültige Entity-ID "AAA".',
     ]);
+  });
+
+  it('validates alternative enum values and hex colors and keeps notes as text', async () => {
+    const settings: Partial<SetDefinition> = {
+      attributes: [
+        { key: 'region', label: 'Region', type: 'enum', values: ['Europa', 'Asien', 'Afrika'], alternativeValuesColumn: 'region_alt' },
+        { key: 'capital', label: 'Hauptstadt', type: 'text', noteColumn: 'capital_note' },
+        { key: 'color', label: 'Hauptfarbe', type: 'color', quiz: false },
+      ],
+    };
+    const metaHeader = 'id;name;region;region_alt;capital;capital_note;color';
+    await fixture('world', `${metaHeader}\nDEU;Deutschland;Europa;Asien|Afrika;Berlin;"Ein Hinweis; mit Trennzeichen";#273846\n`, ['DEU'], settings);
+    expect((await buildData(sources, output)).errors).toEqual([]);
+    expect((await emitted('sets/world/entities.json'))[0]).toMatchObject({
+      region_alt: ['Asien', 'Afrika'],
+      capital_note: 'Ein Hinweis; mit Trennzeichen',
+      color: '#273846',
+    });
+
+    const invalid = `${metaHeader}\nDEU;Deutschland;Europa;Europa|Atlantis;Berlin;;#123\nFRA;Frankreich;;Afrika;Paris;;#001122\n`;
+    await fixture('world', invalid, ['DEU', 'FRA'], settings);
+    expect((await buildData(sources, output)).errors).toEqual(expect.arrayContaining([
+      expect.stringContaining('eine Hex-Farbe im Format #RRGGBB'),
+      expect.stringContaining('Hauptwert und Alternativen müssen verschieden sein'),
+      expect.stringContaining('"Atlantis" ist kein erlaubter Enum-Wert'),
+      expect.stringContaining('Der Hauptwert in "region" fehlt'),
+    ]));
+    expect((await emitted('sets/world/entities.json'))[0].color).toBe('#273846');
   });
 
   it('reports reference, enum, duplicate and geometry errors and keeps the previous build', async () => {

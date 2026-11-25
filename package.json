@@ -10,6 +10,7 @@
     "predev": "npm run data",
     "dev": "vite",
     "data": "tsx scripts/build-data.ts",
+    "data:seed-colors": "tsx scripts/seed-flag-colors.ts",
     "test": "vitest run",
     "build": "npm run data && tsc --noEmit && vite build",
     "preview": "vite preview"
@@ -25,6 +26,7 @@
     "topojson-client": "^3.1.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
     "@types/d3-geo": "^3.1.1",
     "@types/d3-selection": "^3.0.12",
     "@types/d3-transition": "^3.0.9",

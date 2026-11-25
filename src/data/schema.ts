@@ -7,6 +7,7 @@ const attributeFields = {
   key: text.refine((key) => key !== 'location', 'location is a built-in category'),
   label: text,
   aliasesColumn: text.optional(),
+  noteColumn: text.optional(),
   point: z.object({ lat: text, lon: text }).optional(),
   prompts: z.record(z.string(), text).optional(),
   modes: z.array(text).optional(),
@@ -18,12 +19,13 @@ const attributeFields = {
 const attributeSchema = z.discriminatedUnion('type', [
   z.object({
     ...attributeFields,
-    type: z.enum(['text', 'boolean', 'list', 'entityRefList', 'flag']),
+    type: z.enum(['text', 'boolean', 'list', 'entityRefList', 'flag', 'color']),
   }),
   z.object({
     ...attributeFields,
     type: z.literal('enum'),
     values: z.array(text).min(1),
+    alternativeValuesColumn: text.optional(),
   }),
   z.object({
     ...attributeFields,
