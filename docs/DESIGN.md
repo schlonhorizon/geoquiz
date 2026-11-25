@@ -100,7 +100,7 @@ Vor den Kategorie-Segmenten steht „Alle / Keine“. Ein Tipp schaltet zwischen
 - Beim Zeigen der Lösung für einen Kleinstaat laufen drei blaue Radar-Ringe mit 2 px Strichstärke zum Marker zusammen. Der letzte Ring bleibt stehen. Eine kurze Linie verbindet ihn mit einem weißen Namensschild mit 2 px Rahmen und 13 px/700. Das Schild sitzt im freien Kartenbereich oberhalb des Weiter-Overlays und unterhalb des Fragepanels. Es folgt dem Marker beim Verschieben und Zoomen.
 - In den Menü-Einstellungen lassen sich blaue Kleinstaaten-Ringe einschalten. Sie sind standardmäßig ausgeblendet. Die klickbaren Marker bleiben sichtbar. Der Ring hat 2 px Strichstärke mit `vector-effect: non-scaling-stroke`.
 - Blau markierte Länder pulsieren bei ihrer ersten Hervorhebung kurz, unabhängig von ihrer Größe und der Ring-Einstellung. Bei Kleinstaaten pulsiert auch der Marker.
-- **Hauptstadt auf der Landeskarte**. Der Startausschnitt zeigt das Kerngebiet mit 15 % Rand und mindestens 12 Längengraden Breite. Das Zielland ist weiß (`--paper`), die Nachbarflächen sind grau (`--land-off`). Ziehen verschiebt die Karte, Mausrad und Zwei-Finger-Gesten zoomen. Ein Tipp ohne Ziehbewegung setzt den Punkt. Bei der Auflösung erscheint der Hauptstadtpunkt in `--ok`, der eigene Tipp in `--highlight` und eine Linie dazwischen. Das Urteil zeigt die Distanz in Kilometern. Die Toleranz beträgt 10 % der Kerngebietsdiagonale, mindestens 25 und höchstens 150 km.
+- **Hauptstadt auf der Landeskarte**. Der Startausschnitt zeigt das Kerngebiet mit 15 % Rand und mindestens 12 Längengraden Breite. Das Zielland ist weiß (`--paper`), die Nachbarflächen sind grau (`--land-off`). Der Mauscursor ist beim Markieren ein Fadenkreuz. Ziehen verschiebt die Karte, Mausrad und Zwei-Finger-Gesten zoomen. Ein Tipp ohne Ziehbewegung setzt den Punkt. Zwei Ringe laufen vom Tipp weg. Das eigene Quadrat (12 px, 2 px Rahmen in `--ink`) erscheint mit weißer Füllung und bleibt am Ende leer stehen. Das weiße Namensschild (2 px Rahmen, 13 px/700) beginnt am Tipp mit Fragezeichen und folgt der gezeichneten Linie zur Hauptstadt. Beim Einrasten entfällt das Fragezeichen. Die Hauptstadt erscheint in `--ok` bei einem Treffer und in `--accent` bei einer Fehlschätzung. Das Distanzschild erscheint entlang der Linienmitte. Schild und Urteil zeigen ganze Kilometer, zum Beispiel „84 km“. Die Schilder bleiben im freien Kartenbereich und weichen bei wenig Platz auf eine andere Seite des Punkts aus. Die Toleranz beträgt 10 % der Kerngebietsdiagonale, mindestens 25 und höchstens 150 km.
 
 ## 5. Bildschirme
 
@@ -121,7 +121,7 @@ Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick d
 
 ### Ein Land komplett und Atlas-Landesdesign
 
-- Oben ein **Farbblock** in der Hauptfarbe des Landes, Höhe `clamp(250px, 36dvh, 380px)`, unten 2 px Linie. „← Karte“ ist in der Textfarbe umrandet. Die Kopfzeile zeigt „LAND 02 / 05“ und das Menüfeld. Der Umriss zeigt das Kerngebiet, zu 90 % in der Textfarbe gefüllt. Seine Größe wird pro Land mit 8 % Rand in die verfügbare Fläche eingepasst. Bei einem Seitenverhältnis über 1,6 nutzt er die Breite oberhalb von Flagge und Name, sonst steht er rechts neben beiden. Die Kopfzeile hat einen eigenen Bereich. Der Atlas-Steckbrief verwendet denselben Farbblock mit „ATLAS“ und eingezeichnetem Hauptstadtpunkt.
+- Oben ein **Farbblock** in der Hauptfarbe des Landes, Höhe `clamp(250px, 36dvh, 380px)`, unten 2 px Linie. „← Karte“ ist in der Textfarbe umrandet. Die Kopfzeile zeigt „LAND 02 / 05“ und das Menüfeld. Flagge, Label „LAND“ und Name beginnen bündig am linken Innenrand bei 16 px. Der Name startet mit 60 px und wird in Schritten von 2 px bis auf 36 px verkleinert, bevor er an Wortgrenzen umbricht (`hyphens: manual`). Die Namensmaske hält oben `.12em` und unten `.2em` für Akzente und Unterlängen frei. Negative Ränder gleichen das Padding aus. Der Umriss zeigt das Kerngebiet, zu 90 % in der Textfarbe gefüllt. Er passt sich mit 8 % Rand der verbleibenden Fläche an. Bei einem Seitenverhältnis über 1,6 oder wenn ein einzelnes Wort seitlich bei 36 px zu breit wäre, liegt der Umriss oberhalb der Länderangaben. Die Kopfzeile hat einen eigenen Bereich. Der Atlas-Steckbrief verwendet denselben Farbblock mit „ATLAS“ und eingezeichnetem Hauptstadtpunkt.
 - Textfarbe im Farbblock automatisch: Weiß oder `--ink`, je nachdem, was nach WCAG den höheren Kontrast zur Landesfarbe hat.
 - Darunter Spalte (max. 560 px): Fortschrittszellen, Fragenummer + Kategorie (Label-Stil), Frage, Optionen, Primärbutton.
 - In Reihenfolge werden Flagge, Name der Hauptstadt, Hauptstadtpunkt, Kontinent, Währung, Zentralbank, Leitindex, Staatsform und Regierungsform nach V-Dem 2025 gefragt. Kategorien und Koordinaten ohne hinterlegten Wert werden übersprungen.
@@ -153,6 +153,11 @@ Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick d
 | Landesumriss | 1800 ms, 350 ms Verzögerung | `--ease-inout` | erst als Linie gezeichnet (`stroke-dashoffset`), ab 70 % füllt er sich |
 | Landeskarte im Farbblock | 600 ms | `--ease-smooth` | Farbblock auf ca. 60 % der sichtbaren Höhe vergrößern und beim Weitergehen zurücksetzen |
 | Landeskarte im freien Kartenbereich | 650 ms | `--ease-smooth` | auf den eingepassten Ausschnitt vergrößern |
+| Hauptstadt-Tipp | 2 × 500 ms | `--ease-out` | zwei auslaufende und verblassende Ringe, 100 ms versetzt |
+| Eigenes Hauptstadt-Quadrat | 300 ms | `--ease-pop` | am Tipp auf volle Größe bringen. Bei Ankunft am Ziel wird die weiße Innenfläche transparent. |
+| Linie mit Hauptstadtname | 600 ms, 300 ms Verzögerung | `--ease-inout` | Linie per `stroke-dashoffset` vom Tipp zum Ziel zeichnen. Das Namensschild folgt der Linie. |
+| Richtiger Hauptstadtpunkt | 300 ms und einmal 500 ms | `--ease-pop`, dann `--ease-out` | bei Ankunft erscheinen und einmal pulsieren |
+| Distanzschild | 150 ms | ease | nach der Linie einblenden |
 | Flagge fällt in den Farbblock | 600 ms | `--ease-pop` | von oben, −8°, 70 % Größe |
 | Fortschrittszelle | 450 ms | `--ease-inout` | füllt sich von links |
 | Steckbrief | | | Ergebnis zählt alle 140 ms um 1 hoch; Zeilen je 60 ms versetzt |
@@ -165,7 +170,7 @@ Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick d
 | Menü schließen | 200 ms | `--ease-smooth` | Blöcke 12 px nach unten ausblenden, je 15 ms Versatz in umgekehrter Reihenfolge |
 | Einstellungen | 350 ms | `--ease-smooth` | Höhe aufklappen, Zeilen je 40 ms versetzt einblenden und Plus um 45° zum × drehen |
 
-Die Menüblöcke sind die Kopfzeilen, Listenzeilen, Abschnittslabels und Aktionsflächen. Bei `prefers-reduced-motion: reduce` bleiben nur Ein- und Ausblendungen mit 150 ms ohne Versatz. Kartenflüge springen direkt. Länder und Marker bleiben ruhig. Beim Radar erscheinen der stehende Ring und das Namensschild direkt als Überblendung.
+Die Menüblöcke sind die Kopfzeilen, Listenzeilen, Abschnittslabels und Aktionsflächen. Bei `prefers-reduced-motion: reduce` bleiben nur Ein- und Ausblendungen mit 150 ms ohne Versatz. Kartenflüge springen direkt. Länder und Marker bleiben ruhig. Beim Radar erscheinen der stehende Ring und das Namensschild direkt als Überblendung. Die Hauptstadt-Auflösung blendet Quadrat, vollständige Linie, Zielpunkt und Schilder ohne Ringe und ohne Bewegung an ihrer Endposition ein.
 
 ## 7. Spielablauf und Tastatur
 
@@ -175,7 +180,7 @@ Die Menüblöcke sind die Kopfzeilen, Listenzeilen, Abschnittslabels und Aktions
 - Während einer Kartenbewegung, bei offenem Steckbrief-Overlay oder solange die Maus über dem Antwort-Sheet steht, pausiert der Countdown einer richtigen Antwort. Das Feld zeigt „PAUSIERT“ und der Balken bleibt stehen. Danach läuft die verbleibende Zeit weiter.
 - **Tastatur**. `1`–`4` wählen eine Option. `S` überspringt außerhalb von Textfeldern. Enter im Tippfeld prüft die Antwort, bei leerem Feld überspringt es. Leertaste und Enter gehen nach dem Urteil weiter oder starten eine neue Runde. Enter startet im Rundenaufbau. Escape geht im Menü eine Ebene zurück und schließt es auf der ersten Ebene.
 - **Landeskarten per Tastatur**. Die Pfeiltasten bewegen den Zeiger. Umschalt + Pfeiltaste bewegt ihn in größeren Schritten. Enter oder Leertaste bestätigen den Punkt.
-- Fokus für Tastaturnutzer ist als 3 px Kontur in `--ink` mit 2 px Abstand sichtbar (`:focus-visible`).
+- Tastenfokus auf der Karte zeichnet den Länderpfad oder den Kleinstaatenmarker mit 3 px in `--ink` und nicht skalierender Strichstärke (`:focus-visible`). Bei Maus und Touch bleibt die normale Ländergrenze sichtbar. Schaltflächen und Eingaben verwenden weiterhin eine 3 px Kontur mit 2 px Abstand.
 
 ## 8. Daten für das Design
 

@@ -1,6 +1,5 @@
 import type { Topology } from 'topojson-specification';
 import type { QuizSet } from '../data/load';
-import type { Coordinate } from '../data/map';
 import { assessCapital, createCountryMaps } from '../map/country-map';
 import { renderWorldMap } from '../map/world-map';
 import { createPracticeEngine, locationCategory } from '../quiz/practice';
@@ -9,6 +8,8 @@ import type { PresetLibrary, RoundSettings } from '../quiz/round-settings';
 import { LocalSettingsStore } from '../settings/store';
 import { createQuizProfile, renderProfile } from './atlas';
 import { AUTO_ADVANCE_MS, createAdvanceTimer } from './advance-timer';
+import { formatCapitalDistance } from './capital-feedback';
+import type { CapitalAttempt } from './capital-feedback';
 import { flagImage } from './flag-image';
 import { renderMenu } from './menu';
 import { renderCountryMap } from './country-map';
@@ -18,7 +19,6 @@ import type { QuestionOutcome } from './country-result';
 
 const continueGap = 8;
 const verdictLabels = { correct: 'Richtig.', incorrect: 'Falsch.', skipped: 'Übersprungen.' };
-const distanceFormat = new Intl.NumberFormat('de', { maximumFractionDigits: 1 });
 
 export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: Topology, library: PresetLibrary) {
   const { definition, entities } = set;
@@ -223,6 +223,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     else {
       stage.append(next);
       questionMeta.append(menuButton);
+      hero?.dispose();
       heroSlot.replaceChildren();
       hero = undefined;
     }
@@ -232,6 +233,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   }
 
   function resetPointMap() {
+    activePointMap?.dispose();
     activePointMap = undefined;
     countdown.setPaused('capital-map', false);
     pointStage.hidden = true;
@@ -245,14 +247,15 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     const model = countryMaps.get(id, 'capital');
     if (!model) return;
     const view = renderCountryMap(model, `Landeskarte von ${name}`, {
+      capitalName: question.answer.name,
       onPick: (guess) => submitAnswer(undefined, false, false, { guess, ...assessCapital(guess, solution, model.bounds) }),
       onResolvedClick: () => { if (verdict === 'correct') advance(); },
       onInteraction: (active) => { if (activePointMap === view) countdown.setPaused('capital-map', active); },
     });
     activePointMap = view;
-    if (hero) hero.setPointMap(view.svg);
+    if (hero) hero.setPointMap(view.frame);
     else {
-      pointStage.replaceChildren(view.svg);
+      pointStage.replaceChildren(view.frame);
       pointStage.hidden = false;
     }
   }
@@ -263,6 +266,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     countryEnd = index + 1;
     while (round.questions[countryEnd]?.entity.id === question.entity.id) countryEnd++;
     countryOutcomes = [];
+    hero?.dispose();
     hero = renderCountryHero({
       entity: question.entity, definition, map: countryMaps.get(question.entity.id), onBack: showAtlas,
       position: `Land ${pad(countryNumber)} / ${pad(round.countryCount)}`, previousColor: hero?.color,
@@ -442,7 +446,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
 
   function submitAnswer(
     selectedId?: string, typo = false, unmatched = false,
-    pointAttempt?: { guess: Coordinate; correct: boolean; distanceKm: number },
+    pointAttempt?: CapitalAttempt,
   ) {
     const question = round?.questions[index];
     if (!round || !question || verdict) return;
@@ -509,7 +513,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
       detail = typo ? `Die richtige Schreibweise ist „${accepted}“${source}.`
         : source || note || question.point ? `„${accepted}“${source}.` : 'Weiter geht’s gleich.';
     }
-    if (pointAttempt) detail += ` Entfernung: ${distanceFormat.format(pointAttempt.distanceKm)} km.`;
+    if (pointAttempt) detail += ` Entfernung: ${formatCapitalDistance(pointAttempt.distanceKm)}.`;
     verdictDetail.textContent = typeof note === 'string' ? `${detail} ${note}` : detail;
     feedback.textContent = `${verdictLabels[outcome]} ${verdictDetail.textContent}`;
     nextLabel.textContent = 'Weiter';
@@ -520,7 +524,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     dock.setAttribute('data-verdict', '');
     dock.scrollTop = 0;
     focusMap(countryRound || question.point ? [] : wrongCountry ? [rightCountry, wrongCountry] : [rightCountry], animateZoom, rightCountry);
-    if (question.point) activePointMap?.reveal(question.point, pointAttempt?.guess);
+    if (question.point) activePointMap?.reveal(question.point, pointAttempt);
     if (!menu.open) next.focus({ preventScroll: true });
     if (countryRound) next.scrollIntoView?.({ block: 'nearest' });
     if (correct) {

@@ -125,6 +125,7 @@ describe('buildData', () => {
     const coreFeatures = new Map(feature(topology, topology.objects.core).features.map((country) => [country.id, country]));
     for (const [id, point] of [
       ['FRA', [-53, 4]], ['FRA', [55.55, -21.1]], ['USA', [-155.5, 19.6]],
+      ['USA', [172.96, 52.9]], ['USA', [-170.70, 52.63]],
       ['ECU', [-90.35, -.63]], ['CHL', [-109.35, -27.12]], ['NLD', [-68.27, 12.2]],
       ['ESP', [-16.54, 28.29]], ['NOR', [15.94, 78.56]], ['NOR', [-8.43, 71.02]],
       ['COL', [-81.70495, 12.54785]], ['COL', [-81.36701, 13.34627]],
@@ -132,7 +133,7 @@ describe('buildData', () => {
       expect(geoContains(countryFeatures.get(id)!, [...point]), id).toBe(true);
       expect(geoContains(coreFeatures.get(id)!, [...point]), id).toBe(false);
     }
-    for (const point of [[-149.9, 61.22], [-153.56, 57.44], [172.96, 52.9]] as const) {
+    for (const point of [[-149.9, 61.22], [-153.56, 57.44], [-169.83, 52.84], [-170.32, 63.4]] as const) {
       expect(geoContains(coreFeatures.get('USA')!, [...point]), `Alaska: ${point.join(', ')}`).toBe(true);
     }
     for (const { id, capital, capital_lat: latitude, capital_lon: longitude } of entities) {
