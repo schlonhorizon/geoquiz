@@ -64,9 +64,9 @@ Beim Build werden CSVs in JSON umgewandelt (`public/data/...`). Die CSV ist die 
 Beispiel `data/sets/world/entities.csv` (Ausschnitt):
 
 ```
-id;name;name_aliases;continent;capital;capital_aliases;capital_lat;capital_lon;neighbors;seas;memberships;currency;central_bank;stock_index;regime_type;un_member
-BGR;Bulgarien;;Europa;Sofia;;42.6977;23.3219;GRC|MKD|ROU|SRB|TUR;Schwarzes Meer;EU|NATO;Bulgarischer Lew;Bulgarische Nationalbank;SOFIX;Wahldemokratie;true
-CIV;Elfenbeinküste;Côte d'Ivoire|Cote d'Ivoire;Afrika;Yamoussoukro;;6.8276;-5.2893;BFA|GHA|GIN|LBR|MLI;Atlantischer Ozean;AU;CFA-Franc BCEAO;BCEAO;BRVM Composite;Wahlautokratie;true
+id;name;name_aliases;continent;capital;capital_aliases;capital_lat;capital_lon;neighbors;seas;memberships;currency;currency_aliases;central_bank;stock_index;regime_type;un_member
+BGR;Bulgarien;;Europa;Sofia;;42.6977;23.3219;GRC|MKD|ROU|SRB|TUR;Schwarzes Meer;EU|NATO;Euro;EUR;Bulgarische Nationalbank;SOFIX;Wahldemokratie;true
+CIV;Elfenbeinküste;Côte d'Ivoire|Cote d'Ivoire;Afrika;Yamoussoukro;;6.8276;-5.2893;BFA|GHA|GIN|LBR|MLI;Atlantischer Ozean;AU;CFA-Franc (BCEAO);XOF;BCEAO;BRVM Composite;Wahlautokratie;true
 ```
 
 (Die Werte sind Beispiele für das Format; die echten Daten werden beim Seeding erzeugt und von Hand geprüft.)
@@ -136,10 +136,10 @@ Ein Enum-Attribut kann über `alternativeValuesColumn` eine mit `|` getrennte Li
 ### 3.6 Erstbefüllung (Seeding)
 
 `scripts/seed-world.ts` erzeugt einmalig einen Entwurf der `entities.csv`:
-- Grunddaten (deutscher Name, Nachbarn als ISO-Codes, Binnenstaat, Region, Währung): npm-Paket `world-countries` (enthält deutsche Übersetzungen der Ländernamen)
-- Hauptstadt-Koordinaten: Natural Earth `populated_places` (Admin-0-Hauptstädte)
-- Deutsche Hauptstadtnamen, Zentralbank, Leitindex: Wikidata (deutsche Labels), wenn erreichbar; sonst Spalte leer lassen
-- Regierungsform: V-Dem-Regimeklassifikation („Regimes of the World“), manuell eingepflegt
+- Die Grunddaten kommen aus dem npm-Paket `world-countries`. Für Hauptstadtnamen kann Wikidata deutsche Labels liefern. Natural Earth `populated_places` ist die Quelle für Admin-0-Hauptstadtkoordinaten.
+- Die Währungszuordnung folgt `world-countries`, abgeglichen mit ISO 4217 und amtlichen Angaben bei Änderungen oder mehreren Währungen. Pro Land steht eine Währung in der CSV. ISO-Codes und geläufige Namen werden über `currency_aliases` als Antworten akzeptiert.
+- Amtliche Verzeichnisse und die zuständigen Institutionen belegen die Zentralbanken und Währungsbehörden. Börsen und Indexanbieter belegen den ausgewählten Leitindex. Mitglieder gemeinsamer Währungsräume oder Börsen erhalten denselben Wert. Wikidata kann deutschsprachige Bezeichnungen ergänzen.
+- Die Regierungsform folgt `v2x_regime` aus „Regimes of the World“ im V-Dem Country-Year Dataset v16 für 2025. Die vier Klassen werden ins Deutsche übersetzt. Wo sich ein Wert für das Quizland nicht belegen lässt, bleibt das Feld leer. [Quellen und Abdeckung](world-data-report.md#weitere-länderdaten)
 
 Danach ist die CSV die Wahrheit; das Seed-Script überschreibt sie nie ungefragt (schreibt in `entities.seed.csv`).
 
@@ -270,17 +270,17 @@ Alle Zugriffe auf den Fortschritt laufen über ein Interface `ProgressStore` (`l
 - **Meilenstein 3 – Antwort-Engine**. Getippte Antworten in Benennen werden normalisiert und mit allen Ländernamen und Aliasen verglichen. Die Pflichtfälle aus Abschnitt 5.1 sind automatisiert geprüft.
 - **Meilenstein 4 – Attribut-Engine**. Die gemeinsame Übungs-Engine erzeugt Lage-, Text-, Enum- und Flaggenfragen in beiden Richtungen. Rückwärtige Textfragen lassen sich auch auf der Weltkarte beantworten.
 - **Meilenstein 5 – Grunddaten**. Das vollständige Weltset enthält 197 Spielentitäten mit passenden Natural-Earth-Geometrien. [Validierungsreport](world-data-report.md)
+- **Meilenstein 5 – Weitere Länderdaten**. Währung, Zentralbank, Leitindex und Regierungsform (V-Dem 2025) sind als Kategorien im Atlas und in Übungsrunden verfügbar. [Quellen und fehlende Werte](world-data-report.md#weitere-länderdaten)
 - **Datenkorrekturen**. Alternative Kontinente, Hauptstadt-Hinweise und editierbare Flaggen-Hauptfarben sind im Weltset erfasst. [Validierungsreport](world-data-report.md)
 - **Vollbild-Layout**. Rahmenlose Miller-Karte mit nahtlosem horizontalem Verschieben, Overlays für die Bedienung und Standalone-Manifest.
 - **Üben, Atlas und Vollbildmenü**. Vorlagen und Rundenaufbau, gespeicherte Einstellungen je Vorlage, Atlas-Steckbrief, beide Flaggenlayouts und gestaffelte Menü-Animationen sind umgesetzt. [Design-Spezifikation](DESIGN.md)
 
 ### Offen in Umsetzungsreihenfolge
 
-1. **Meilenstein 5 – Weitere Länderdaten**. Währung, Zentralbank, Leitindex und Regierungsform befüllen. Quellen und Report über fehlende Werte folgen den Abschnitten 3.6 und 3.7.
-2. **Meilenstein 6 – Ein Land komplett und Landeskarten**. Die Vorlage „Ein Land komplett“ freischalten. Der Atlas-Steckbrief übernimmt das Länderdesign mit Farbblock, Landesumriss und Flagge. Landeskarten ergänzen und das Markieren der Hauptstadt nach Distanz bewerten. [Länderdesign](DESIGN.md#ein-land-komplett-und-atlas-landesdesign)
-3. **Meilenstein 7 – Weitere Typen**. `boolean`, `list` mit Gruppen-Modus (EU, NATO) und `entityRefList` zum Markieren von Nachbarn auf der Karte.
-4. **Meilenstein 8 – Unterteilungen**. `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl und Durchgangsmodus mit Bestzeit.
-5. **Meilenstein 9 – Fortschritt**. Lernkarten, Statistik-Seite mit Wissenskarte sowie Export und Import.
+1. **Meilenstein 6 – Ein Land komplett und Landeskarten**. Die Vorlage „Ein Land komplett“ freischalten. Der Atlas-Steckbrief übernimmt das Länderdesign mit Farbblock, Landesumriss und Flagge. Landeskarten ergänzen und das Markieren der Hauptstadt nach Distanz bewerten. [Länderdesign](DESIGN.md#ein-land-komplett-und-atlas-landesdesign)
+2. **Meilenstein 7 – Weitere Typen**. `boolean`, `list` mit Gruppen-Modus (EU, NATO) und `entityRefList` zum Markieren von Nachbarn auf der Karte.
+3. **Meilenstein 8 – Unterteilungen**. `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl und Durchgangsmodus mit Bestzeit.
+4. **Meilenstein 9 – Fortschritt**. Lernkarten, Statistik-Seite mit Wissenskarte sowie Export und Import.
 
 ## 9. Nicht in Phase 1/2
 

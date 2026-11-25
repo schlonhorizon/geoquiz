@@ -49,14 +49,45 @@
     { "key": "neighbors", "label": "Nachbarländer", "type": "entityRefList" },
     { "key": "seas", "label": "Meereszugang", "type": "list" },
     { "key": "memberships", "label": "Mitgliedschaften", "type": "list", "groupQuiz": true },
-    { "key": "currency", "label": "Währung", "type": "text" },
-    { "key": "central_bank", "label": "Zentralbank", "type": "text" },
-    { "key": "stock_index", "label": "Leitindex", "type": "text" },
+    {
+      "key": "currency",
+      "label": "Währung",
+      "type": "text",
+      "aliasesColumn": "currency_aliases",
+      "prompts": {
+        "forward": "Welche Währung ist für {entity} hinterlegt?",
+        "reverse": "Für welches Land ist „{value}“ als Währung hinterlegt?"
+      }
+    },
+    {
+      "key": "central_bank",
+      "label": "Zentralbank",
+      "type": "text",
+      "aliasesColumn": "central_bank_aliases",
+      "prompts": {
+        "forward": "Wie heißt die für {entity} zuständige Zentralbank oder Währungsbehörde?",
+        "reverse": "Für welches Land ist „{value}“ die Zentralbank oder Währungsbehörde?"
+      }
+    },
+    {
+      "key": "stock_index",
+      "label": "Leitindex",
+      "type": "text",
+      "aliasesColumn": "stock_index_aliases",
+      "prompts": {
+        "forward": "Welcher Aktienindex ist für {entity} als Leitindex hinterlegt?",
+        "reverse": "Für welches Land ist „{value}“ als Leitindex hinterlegt?"
+      }
+    },
     {
       "key": "regime_type",
-      "label": "Regierungsform",
+      "label": "Regierungsform (V-Dem 2025)",
       "type": "enum",
-      "values": ["Geschlossene Autokratie", "Wahlautokratie", "Wahldemokratie", "Liberale Demokratie"]
+      "values": ["Geschlossene Autokratie", "Wahlautokratie", "Wahldemokratie", "Liberale Demokratie"],
+      "prompts": {
+        "forward": "Wie stuft V-Dem die Regierungsform von {entity} für 2025 ein?",
+        "reverse": "Welches Land stuft V-Dem für 2025 als „{value}“ ein?"
+      }
     },
     { "key": "un_member", "label": "UN-Mitglied", "type": "boolean", "quiz": false }
   ]

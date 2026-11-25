@@ -12,7 +12,11 @@
 | `continent_alt` | 19/197 |
 | `flag`, `color` | je 197/197 |
 | `neighbors` | 157/197 |
-| `seas`, `capital_lat`, `capital_lon`, `memberships`, `currency`, `central_bank`, `stock_index`, `regime_type` | je 0/197 |
+| `currency` | 196/197 |
+| `central_bank` | 185/197 |
+| `stock_index` | 95/197 |
+| `regime_type` | 173/197 |
+| `seas`, `capital_lat`, `capital_lon`, `memberships` | je 0/197 |
 
 - Ländernamen, Namensvarianten und die ursprünglichen Hauptstadtwerte stammen aus `world-countries` 5.1.0. Geläufige deutsche Schreibweisen wurden ergänzt. Die Korrekturen stehen unten. [world-countries 5.1.0](https://www.npmjs.com/package/world-countries/v/5.1.0)
 - Nachbarschaften sind beidseitig bestätigte Landgrenzen aus `borders` zwischen Spielentitäten. Verweise auf Französisch-Guayana, Gibraltar, Hongkong, Macau und Westsahara entfallen. Der einseitige Eintrag von Sri Lanka zu Indien entfällt ebenfalls. `world-countries` unterscheidet Binnenstaaten, liefert aber keine Meeresnamen. Leere `seas`-Felder stehen deshalb für fehlende Meeresangaben. [Feldbeschreibung von world-countries](https://github.com/mledoze/countries)
@@ -41,6 +45,39 @@ Südafrika und Bolivien akzeptieren ihre weiteren Hauptstadt- oder Regierungssta
 ## Flaggen-Hauptfarben
 
 Alle 197 Werte liegen als manuell änderbares `#RRGGBB` in `entities.csv`. Der Startwert ist die häufigste sichtbare RGB-Farbe im gerasterten 4:3-SVG. Pixel ab 225 in allen drei Kanälen und Pixel unter 50 % Deckkraft werden beim Seed übersprungen. Bei gleich großen Flächen entscheidet die erste gefundene Farbe. `npm run data:seed-colors` übernimmt vorhandene Werte und schreibt Ergänzungen in `entities.seed.csv`. [flag-icons 7.6.0](https://github.com/lipis/flag-icons/tree/v7.6.0)
+
+## Weitere Länderdaten
+
+Recherchestand der Wirtschaftsdaten ist der 25. November 2026. Die Regierungsformen haben das Berichtsjahr 2025. Befüllte Werte erscheinen im Atlas und stehen als Kategorien unter **Üben → Eigene Runde** zur Auswahl.
+
+- **Währung.** Die Zuordnung aus `world-countries` 5.1.0 wurde mit der ISO-4217-Liste vom 17. September 2026 und amtlichen Angaben abgeglichen. Das Quiz verwendet pro Land einen Wert, in der Regel die nationale Währung oder die übernommene Fremdwährung. In Panama ist der Balboa hinterlegt. Dort ist auch der US-Dollar gesetzliches Zahlungsmittel. In Palästina ist keine einheitliche Landeswährung hinterlegt. Deutsche Bezeichnungen folgen den lokalisierten Währungsnamen, ergänzt um ISO-Codes und geläufige Schreibweisen. [world-countries 5.1.0](https://github.com/mledoze/countries/blob/5.1.0/countries.json) · [ISO 4217](https://www.iso.org/iso-4217-currency-codes.html) · [Liste der ISO-Pflegestelle SIX](https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml) · [IMF zu Panama](https://www.elibrary.imf.org/view/journals/002/2025/245/article-A002-en.xml) · [Palästinensische Währungsbehörde](https://www.pma.ps/Portals/0/Users/002/02/2/Publications/English/Annual%20Reports/Financial%20Stability%20Reports/Financial_Stability_Report_English_Final_web_2013.pdf)
+- **Aktualisierte Währungszuordnungen.** Bulgarien verwendet seit dem 1. Januar 2026 den Euro. Für Sierra Leone gilt der neu denominierte Leone (`SLE`), für Simbabwe Zimbabwe Gold (`ZWG`) und für Kuba der kubanische Peso (`CUP`). Mikronesien verwendet den US-Dollar. Für Venezuelas Bolívar führt die ISO-Liste `VES` und `VED`. Das Quiz akzeptiert beide Codes. [EZB zur Euro-Einführung](https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.pr260101~c830245e42.en.html) · [ISO-Liste](https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml) · [Reserve Bank of Zimbabwe](https://www.rbz.co.zw/documents/press/2024/July/PRESS_STATEMENT_ON_ZiG_CURRENCY_CODE.pdf) · [IMF zu Mikronesien](https://www.elibrary.imf.org/view/journals/087/2024/003/article-A001-en.xml)
+- **Zentralbank.** Erfasst ist die zuständige nationale Zentralbank oder Währungsbehörde. Bei den drei regionalen Zentralbanken steht für alle Mitglieder dieselbe Institution. Für die nationalen Zentralbanken im Eurogebiet steht ihre jeweilige nationale Institution. Das kanadische Aufsichtsverzeichnis diente als Ausgangspunkt, abgeglichen mit Zentralbankverbänden und einzelnen Institutionen. [OSFI](https://www.osfi-bsif.gc.ca/en/data-forms/reporting-returns/filing-financial-returns/financial-reporting-instructions/geographic-distribution-assets-liabilities-booked-canada-gq) · [BIZ](https://www.bis.org/about/organisation/members) · [AACB](https://www.aacb.org/en/member-central-banks) · [CEMLA](https://www.cemla.org/members.html) · [BCEAO](https://www.bceao.int/fr/etats-membres) · [BEAC](https://www.beac.int/) · [Eastern Caribbean Central Bank](https://stratplan.eccb-centralbank.org/) · [Zentralbank des Kosovo](https://bqk-kos.org/rreth-bqk/?lang=en)
+- **Leitindex.** Pro Land ist ein repräsentativer Aktienindex hinterlegt. Wo mehrere Marktindizes infrage kommen, wurde einer ausgewählt. Die Vereinigten Arabischen Emirate sind mit dem FTSE ADX General Index der Börse Abu Dhabi vertreten. Die Mitglieder der Regionalbörsen BRVM und BVMAC teilen sich den jeweiligen Leitindex. [World Federation of Exchanges](https://focus.world-exchanges.org/issue/november-2026/market-statistics) · [FTSE Russell zu Abu Dhabi](https://www.lseg.com/en/ftse-russell/indices/adx) · [BRVM-Mitglieder](https://www.brvm.org/en/node/61597) · [BRVM Composite](https://www.brvm.org/en/summary) · [BVMAC-Mitglieder](https://www.bvm-ac.org/wp-content/uploads/2026/11/BOC-20261106.pdf) · [BVMAC All Share](https://www.bvm-ac.org/echos-du-marche/avis-n059-2023-bvmac-dg-relatif-au-lancement-de-lindice-boursier-de-la-bvmac/)
+- **Weitere Indexquellen.** Die ausgewählten Indizes, die von den WFE-Reihen abweichen oder dort fehlen, wurden auf den Seiten der jeweiligen Börse oder des Indexanbieters geprüft. [Euronext](https://www.euronext.com/en/euronext-indices) · [Nasdaq Nordic und Baltikum](https://www.nasdaq.com/products/global-indexes/beta/european-indexes) · [DAX](https://stoxx.com/solutions/dax-de/) · [FTSE 100](https://www.lseg.com/en/ftse-russell/indices/ftse100) · [IBEX 35](https://www.bolsasymercados.es/bme-exchange/en/Indices/IBEX) · [ATX](https://www.wienerborse.at/en/index/atx-AT0000999982/?w=profile) · [S&P 500](https://www.spglobal.com/spdji/en/indices/equity/sp-500/) · [Nikkei 225](https://indexes.nikkei.co.jp/en/nkave/index/profile?cid=7&idx=nk225) · [Nifty 50](https://nsearchives.nseindia.com/content/indices/Method_NIFTY_Equity_Indices.pdf) · [IDX Composite](https://www.idx.co.id/Media/4nfhvmpl/fs-composite-2026-10.pdf) · [MSCI Merval](https://www.byma.com.ar/) · [MSCI IPSA](https://servicioscms.bolsadesantiago.com/Sintesis%20y%20Estadisticas/S%C3%ADntesis%20Estad%C3%ADstica%20Mensual%20Octubre%202026.pdf) · [MSCI COLCAP](https://www.msci.com/indexes/index/737809) · [MSCI NUAM Peru General](https://documents.bvl.com.pe/pubdif/boldia/bolres.htm)
+- **Regierungsform.** Quelle ist Coppedge et al. (2026), *V-Dem Country-Year Dataset v16*, für 2025. Die Spalte `regime_type` enthält die deutschen Bezeichnungen des Indikators `v2x_regime` aus „Regimes of the World“. Die Werte 0 bis 3 stehen für geschlossene Autokratie, Wahlautokratie, Wahldemokratie und liberale Demokratie. Übernommen wurden belegte Zuordnungen über `country_text_id`. Für Palästina und Somalia liefert V-Dem unterschiedliche Werte für Westjordanland und Gaza beziehungsweise für Somalia und Somaliland. Diese Quizentitäten bleiben bei der Regierungsform leer. Die aus V-Dem abgeleitete Spalte steht unter CC BY-SA 4.0. [Datensatz und Zitierempfehlung](https://doi.org/10.23696/vdemds26) · [Codebook v16](https://www.v-dem.net/documents/70/codebook_v16.pdf) · [V-Dem zur Lizenz](https://www.v-dem.net/about/faq/) · [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+Bei Rückwärtsfragen mit vier Optionen enthält die Auswahl genau ein passendes Land. Beim Tippen oder auf der Karte zählen alle im Set hinterlegten Länder, die denselben Wert teilen.
+
+### Fehlende Werte
+
+| Feld | Leer | Länder und Gründe |
+|---|---:|---|
+| Währung | 1 | `PSE`. Keine einheitliche Landeswährung. |
+| Zentralbank | 12 | `AND FSM KIR LIE MCO MHL NRU PAN PLW TUV VAT` haben in diesem Datensatz keine eigene Zentralbank und keine zugeordnete gemeinsame Zentralbank. Für `YEM` bleibt der Wert wegen der getrennten Zuständigkeiten in Aden und Sanaa offen. [IMF zu Panama](https://dsbb.imf.org/egdds/dqaf-base/country/PAN/category/AAC00) · [IMF zu Jemen](https://www.elibrary.imf.org/view/journals/002/2026/080/article-A001-en.xml) |
+| Leitindex | 102 | Für diese Länder wurde in diesem Durchgang kein nationaler oder gemeinsamer Leitindex belegt. Die IDs stehen unten. |
+| Regierungsform | 24 | `AND ATG BHS BLZ BRN DMA FSM GRD KIR KNA LCA LIE MCO MHL NRU PLW SMR TON TUV VAT VCT WSM` fehlen in der V-Dem-Zuordnung für 2025. `PSE SOM` bleiben wegen unterschiedlicher Bewertungen der Teilgebiete leer. |
+
+Länder ohne hinterlegten Leitindex
+
+| Region | Länder-IDs |
+|---|---|
+| Afrika | `AGO BDI BWA COD COM CPV DJI DZA ERI ETH GIN GMB LBR LBY LSO MDG MOZ MRT MWI SDN SLE SOM SSD STP SWZ SYC UGA ZWE` |
+| Asien | `AFG ARM AZE BRN BTN GEO IRQ KGZ KHM LAO LBN MDV MMR MNG NPL PRK SYR TJK TKM TLS UZB YEM` |
+| Europa | `ALB AND BIH BLR LIE MCO MDA MKD MLT MNE SMR SRB UKR VAT XKX` |
+| Nordamerika | `ATG BHS BLZ BRB CUB DMA DOM GRD GTM HND HTI KNA LCA NIC PAN SLV TTO VCT` |
+| Ozeanien | `FJI FSM KIR MHL NRU PLW PNG SLB TON TUV VUT WSM` |
+| Südamerika | `BOL ECU GUY PRY SUR URY VEN` |
 
 ## Kontinentzuordnungen zur Prüfung
 
