@@ -118,7 +118,7 @@ Ein Unterteilungs-Set (z. B. `de`) hat `"parent": { "set": "world", "entity": "D
 |---|---|---|
 | `location` | Lage | eingebaut in jedem Set mit Karte. Land → Lage per Kartenklick. Lage → Land zeigt die Geometrie und erlaubt vier Optionen oder Tippen. |
 | `text` | Hauptstadt, Währung, Zentralbank, Leitindex | vorwärts (Land → Wert), rückwärts (Wert → Land), jeweils getippt oder 4 Antwortmöglichkeiten; rückwärts zusätzlich „auf der Weltkarte anklicken“ |
-| `text` + `point` | Hauptstadt mit Koordinaten | zusätzlich: Punkt auf der Landeskarte markieren (Bewertung nach Distanz) |
+| `text` + `point` | Hauptstadt mit Koordinaten | vorwärts mit Antwortart „Karte“ einen Punkt auf der Landeskarte markieren. Fragen verwenden nur befüllte Werte mit Koordinaten. |
 | `enum` | Kontinent, Regierungsform | vorwärts mit festen Optionen oder getippt; rückwärts ein passendes Land tippen oder aus vier Antworten wählen (genau eine richtige Option) |
 | `color` | Flaggen-Hauptfarbe | Gestaltungswert im Format `#RRGGBB`. |
 | `flag` | Länderflagge | vorwärts eine von vier Flaggen wählen; rückwärts Ländernamen tippen oder auswählen. Die Flaggen-Zuordnung wird beim Build erzeugt. |
@@ -127,7 +127,7 @@ Ein Unterteilungs-Set (z. B. `de`) hat `"parent": { "set": "world", "entity": "D
 | `entityRefList` | Nachbarn | „Markiere alle Nachbarn von X auf der Karte“; MC „Welches Land grenzt an X?“ |
 | `number` (Phase 2, spät) | Handelsbilanz, mit `year`/`source` | „Höher oder niedriger?“ zwischen zwei Ländern; Vorzeichen-Frage |
 
-Bei `text`, `enum` und `flag` kann `"modes": [...]` die verfügbaren Varianten eingrenzen. Ein Eintrag für die Richtung (`forward`, `reverse`), Antwortart (`typed`, `choice`, `map`) oder Kombination (z. B. `reverse-typed`) erlaubt die passenden Varianten. `"prompts"` kann Standardfragen über `forward`, `reverse` und `reverseMap` ersetzen. Die Platzhalter `{entity}` und `{value}` stehen für Ländernamen und Attributwert. Bei einer getippten rückwärtigen Frage oder einer Kartenfrage zählt jedes Land mit passendem Wert.
+Bei `text`, `enum` und `flag` kann `"modes": [...]` die verfügbaren Varianten eingrenzen. Ein Eintrag für die Richtung (`forward`, `reverse`), Antwortart (`typed`, `choice`, `map`) oder Kombination (z. B. `reverse-typed`) erlaubt die passenden Varianten. `"prompts"` kann Standardfragen über `forward`, `reverse`, `reverseMap` und `mapPoint` ersetzen. Die Platzhalter `{entity}` und `{value}` stehen für Ländernamen und Attributwert. Bei einer rückwärtigen Frage mit Tippen oder Kartenklick zählt jedes Land mit passendem Wert.
 
 `text` und `enum` können über `alternativeValuesColumn` weitere richtige Werte als Liste hinterlegen. Sie zählen beim Tippen in beiden Richtungen und bei passenden Kartenfragen. Auswahlfragen zeigen genau eine richtige Option und können bei wenigen verbleibenden Ablenkern kürzer ausfallen. Die Auswahl nach Region nutzt die Hauptzuordnung.
 
@@ -170,7 +170,7 @@ Der Build schlägt fehl oder warnt bei:
 - **Vollbild-Layout**: Die Karte füllt den Viewport (`100dvw × 100dvh`). Fragepanel und Antwort-Sheet sind oben und unten horizontal zentriert. Rechts in der Meta-Zeile sitzen die 48-px-Felder für Überspringen und Menü. Zoom und Verschieben laufen über die Kartengesten. Die Overlays berücksichtigen die Safe Area und lassen die übrige Karte bedienbar. Auf der Karte sind Browser-Scrollen, Pull-to-refresh und Doppeltipp-Zoom deaktiviert. Der Fokusrahmen wird bei Tastaturbedienung sichtbar.
 - **Homescreen**: Das Web-App-Manifest startet GeoQuiz im Standalone-Modus und enthält Theme-Farbe und App-Icons.
 - **Kleinstaaten**: Länder unter einer Flächenschwelle (z. B. < 2.000 km² oder Inselstaaten) bekommen einen klickbaren Kreis als Marker; zusätzlich zählt ein Klick als Treffer, wenn er innerhalb einer kleinen Toleranz (in Pixeln, zoomabhängig) zum richtigen Land liegt.
-- Landeskarten: einzelnes Land mit `fitExtent` automatisch eingepasst; Antimeridian-Fälle (Russland, USA, Fidschi, Neuseeland) mit rotierter Projektion lösen.
+- **Landeskarten** verwenden die vorhandenen Länderpolygone und eine um das Land gedrehte Miller-Projektion. Dadurch bleiben auch Länder über den Antimeridian zusammenhängend im Ausschnitt. Die vollständige Landesfläche füllt mit 10 % Rand den freien Bereich, mit weißem Zielland und grauem Umfeld. Nach einer Schätzung zeichnet die Karte die richtige Position, die Verbindung zum Tipp und die Entfernung in Kilometern.
 - Unterteilungen: aus Natural Earth 10m admin-1 pro Land extrahieren (`scripts/extract-subdivisions.ts`, z. B. mit mapshaper), IDs = `iso_3166_2`. Für die USA alternativ `us-atlas`.
 - Das Kartenfeedback folgt [DESIGN.md](DESIGN.md#4-karte). Kartenflüge verwenden den sichtbaren Bereich zwischen den Panels und bei Bedarf die nächstgelegenen Weltkopien. Bei einer falschen Länderantwort werden Lösung und Auswahl gemeinsam eingerahmt.
 
@@ -202,6 +202,10 @@ Pflicht-Testfälle (Vitest):
 - Ablenker bevorzugt plausibel: gleicher Kontinent bzw. gleiches Eltern-Set, ähnlicher Wert-Typ; bei `enum` mit ≤ 4 Werten alle Werte zeigen, die als Optionen infrage kommen
 - `1`–`4` wählen eine Option. `S` überspringt außerhalb von Textfeldern, leeres Enter überspringt bei Tippfragen. Enter oder Leertaste gehen nach dem Urteil weiter.
 
+### 5.3 Punkte auf der Landeskarte
+
+Die Bewertung verwendet die Großkreisentfernung vom gewählten Punkt zur hinterlegten Hauptstadt. Die Toleranz beträgt 10 % der Diagonale der geografischen Landesgrenzen, mit mindestens 25 und höchstens 150 km. Ein Punkt genau auf der Toleranzgrenze zählt als richtig. Die Werte stehen zentral in `src/map/country-map.ts`. Maus und Touch wählen direkt einen Punkt. Auf der fokussierten Karte bewegen die Pfeiltasten die Markierung. Enter oder Leertaste bestätigen sie.
+
 ## 6. Üben, Atlas und Fortschritt
 
 Die App startet im **Atlas**. Im weißen Vollbildmenü stehen neben „GEOQUIZ“ der Gebietshinweis „GEBIET: WELT“ und das Schließen-Feld. Die Liste führt zu **01 Üben**, **02 Atlas** und **03 Fortschritt**. Fortschritt ist als „Folgt“ markiert. Unter **Einstellungen** stehen Lösungszoom, Kleinstaaten-Ringe, das Zurücksetzen der Weltansicht sowie **Quellen und Lizenzen** mit Stand und Lizenzangaben. [Menü in der Design-Spezifikation](DESIGN.md#menü)
@@ -228,16 +232,23 @@ Der Rundenaufbau hat sechs Stellschrauben:
 | Länder finden | Lage · Land → Kategorie · Karte |
 | Länder benennen | Lage · Kategorie → Land · 4 Optionen |
 | Hauptstädte | Hauptstadt · beide Richtungen · 4 Optionen |
+| Hauptstädte auf der Karte | Hauptstadt · Land → Kategorie · Karte |
 | Flaggen | Flagge · beide Richtungen · 4 Optionen |
-| Ein Land komplett | Alle Kategorien · Land für Land · Folgt in Meilenstein 6 |
+| Ein Land komplett | Länderdesign · feste Fragenfolge · standardmäßig ein zufälliges Land |
 | Alles gemischt | Alle Kategorien · beide Richtungen · gemischte Reihenfolge |
 | Fällige Wiederholungen | Fällige Lernkarten · Folgt in Meilenstein 9 |
 
 ### 6.2 Atlas
 
-Im Atlas steht oben „ATLAS“ und „Land antippen“. Die Karte lässt sich frei erkunden. Ein Klick auf ein Land öffnet unten seinen Steckbrief und rückt das Land in den sichtbaren Kartenausschnitt. Der Steckbrief zeigt die Flagge und den Ländernamen sowie befüllte Einträge aus `set.json`. Bei verknüpften Ländern, etwa Nachbarn, springt ein Tipp direkt zum verknüpften Steckbrief und Kartenort.
+Im Atlas steht oben „ATLAS“ und „Land antippen“. Die Karte lässt sich frei erkunden. Ein Klick auf ein Land öffnet unten seinen Steckbrief und rückt das Land in den sichtbaren Kartenausschnitt. Der Steckbrief verwendet den Farbblock des Länderdesigns mit Umriss, Flagge, Name und gegebenenfalls Hauptstadtpunkt. Unterhalb stehen befüllte Kategorien, zugehörige Hinweise und der Leitindex-Status. Bei verknüpften Ländern, etwa Nachbarn, springt ein Tipp direkt zum verknüpften Steckbrief und Kartenort.
 
-### 6.3 Fortschritt
+### 6.3 Ein Land komplett
+
+„Anpassen“ bietet Zufall, Region oder ein per Name beziehungsweise Alias gesuchtes Startland. Eine Runde umfasst ein, drei, fünf oder zehn verschiedene Länder. Bei einem gewählten Startland folgen die übrigen Länder per Zufall. Die Vorlage speichert diese Auswahl je Set.
+
+Die datenbasierte Fragenfolge lautet Flagge, Name der Hauptstadt, Position der Hauptstadt, Kontinent, Währung, Zentralbank, Leitindex, Staatsform und Regierungsform nach V-Dem 2025. Fehlende Werte werden übersprungen. Nach jedem Land zeigt der Steckbrief die Lösungen und das Ergebnis dieses Landes. „Im Atlas öffnen“ wechselt zum zugehörigen Atlas-Eintrag. „Nächstes Land“ setzt die Runde fort. Der normale Weiter-Ablauf gilt auch in dieser Vorlage.
+
+### 6.4 Fortschritt
 
 „Fortschritt“ führt nach Meilenstein 9 zur Statistik, Wissenskarte und Verwaltung der Lernkarten nach Abschnitt 7.
 
@@ -279,13 +290,13 @@ Alle Zugriffe auf den Fortschritt laufen über ein Interface `ProgressStore` (`l
 - **Datenprüfung vor Meilenstein 6**. Hauptstadtpunkte sind gegen die Karte geprüft. Staatsformen, zusätzliche Leitindizes, Atlas-Hinweise und die Ansicht „Quellen und Lizenzen“ sind verfügbar. [Validierungsreport](world-data-report.md)
 - **Vollbild-Layout**. Rahmenlose Miller-Karte mit nahtlosem horizontalem Verschieben, Overlays für die Bedienung und Standalone-Manifest.
 - **Üben, Atlas und Vollbildmenü**. Vorlagen und Rundenaufbau, gespeicherte Einstellungen je Vorlage, Atlas-Steckbrief, beide Flaggenlayouts und gestaffelte Menü-Animationen sind umgesetzt. [Design-Spezifikation](DESIGN.md)
+- **Meilenstein 6 – Ein Land komplett und Landeskarten**. Die Vorlage führt mit festgelegter Fragenfolge und eigenem Steckbrief durch ein oder mehrere Länder. Der Atlas verwendet das Länderdesign. Hauptstadtpositionen werden auf eingepassten Landeskarten nach Distanz bewertet. [Länderdesign](DESIGN.md#ein-land-komplett-und-atlas-landesdesign)
 
 ### Offen in Umsetzungsreihenfolge
 
-1. **Meilenstein 6 – Ein Land komplett und Landeskarten**. Die Vorlage „Ein Land komplett“ freischalten. Der Atlas-Steckbrief übernimmt das Länderdesign mit Farbblock, Landesumriss und Flagge. Landeskarten ergänzen und das Markieren der Hauptstadt nach Distanz bewerten. [Länderdesign](DESIGN.md#ein-land-komplett-und-atlas-landesdesign)
-2. **Meilenstein 7 – Weitere Typen**. `boolean`, `list` mit Gruppen-Modus (EU, NATO) und `entityRefList` zum Markieren von Nachbarn auf der Karte.
-3. **Meilenstein 8 – Unterteilungen**. `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl und Durchgangsmodus mit Bestzeit.
-4. **Meilenstein 9 – Fortschritt**. Lernkarten, Statistik-Seite mit Wissenskarte sowie Export und Import.
+1. **Meilenstein 7 – Weitere Typen**. `boolean`, `list` mit Gruppen-Modus (EU, NATO) und `entityRefList` zum Markieren von Nachbarn auf der Karte.
+2. **Meilenstein 8 – Unterteilungen**. `extract-subdivisions.ts`, Sets `de` und `us`, Set-Auswahl und Durchgangsmodus mit Bestzeit.
+3. **Meilenstein 9 – Fortschritt**. Lernkarten, Statistik-Seite mit Wissenskarte sowie Export und Import.
 
 ## 9. Nicht in Phase 1/2
 

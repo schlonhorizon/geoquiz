@@ -12,8 +12,30 @@
     { "id": "find", "label": "Länder finden", "settings": { "categories": ["location"], "direction": "forward", "format": "map" } },
     { "id": "name", "label": "Länder benennen", "settings": { "categories": ["location"], "direction": "reverse", "format": "choice" } },
     { "id": "capitals", "label": "Hauptstädte", "settings": { "categories": ["capital"] } },
+    { "id": "capital-map", "label": "Hauptstädte auf der Karte", "settings": { "categories": ["capital"], "direction": "forward", "format": "map" } },
     { "id": "flags", "label": "Flaggen", "settings": { "categories": ["flag"] } },
-    { "id": "complete", "label": "Ein Land komplett", "upcoming": true, "settings": { "order": "country" } },
+    {
+      "id": "complete",
+      "label": "Ein Land komplett",
+      "settings": {
+        "countryRound": {
+          "selection": "random",
+          "countryId": "",
+          "count": 1,
+          "steps": [
+            { "category": "flag", "format": "choice" },
+            { "category": "capital", "format": "choice" },
+            { "category": "capital", "format": "map" },
+            { "category": "continent", "format": "choice" },
+            { "category": "currency", "format": "choice" },
+            { "category": "central_bank", "format": "choice" },
+            { "category": "stock_index", "format": "choice" },
+            { "category": "government_form", "format": "choice" },
+            { "category": "regime_type", "format": "choice" }
+          ]
+        }
+      }
+    },
     { "id": "mixed", "label": "Alles gemischt", "settings": {} },
     { "id": "review", "label": "Fällige Wiederholungen", "upcoming": true, "settings": {} }
   ]

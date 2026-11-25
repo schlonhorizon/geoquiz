@@ -1,6 +1,7 @@
 import type { Topology } from 'topojson-specification';
 import { describe, expect, it } from 'vitest';
 import { countryCenter, projectWorldMap } from './geometry';
+import { assessCapital, createCountryMaps } from './country-map';
 import { isNearMarker, resolveCountryClick } from './hit-test';
 import { clampMapY, nearestWorldX, wrapWorldX } from './viewport';
 
@@ -55,6 +56,25 @@ describe('country projection', () => {
     expect(country.bounds[1][0] - country.bounds[0][0]).toBeLessThan(20);
     const [x] = countryCenter(country.bounds);
     expect(Math.min(x, 960 - x)).toBeLessThan(5);
+    const local = createCountryMaps(split, {
+      file: 'map.topojson', object: 'countries', idProperty: 'id', projection: 'miller',
+    }).get('TEST')!;
+    const [west, south] = local.project([179, -16]);
+    const [east] = local.project([-179, -16]);
+    expect(Math.abs(east - west)).toBeLessThan(local.view[2] * .45);
+    expect(local.invert([west, south])[0]).toBeCloseTo(179, 8);
+    expect(local.invert([east, south])[0]).toBeCloseTo(-179, 8);
+  });
+});
+
+it('uses great-circle distance and clamps the capital tolerance to 25–150 km', () => {
+  expect(assessCapital([.2, 0], [0, 0], [[0, 0], [.1, .1]])).toMatchObject({ toleranceKm: 25, correct: true });
+  expect(assessCapital([.3, 0], [0, 0], [[0, 0], [.1, .1]])).toMatchObject({ toleranceKm: 25, correct: false });
+  const regional = assessCapital([0, 0], [0, 0], [[0, 0], [6, 8]]);
+  expect(regional.toleranceKm).toBeCloseTo(111, 0);
+  expect(regional.distanceKm).toBe(0);
+  expect(assessCapital([179.9, 0], [-179.9, 0], [[170, 0], [-170, 5]])).toMatchObject({
+    toleranceKm: 150, correct: true,
   });
 });
 
