@@ -84,12 +84,17 @@ describe('buildData', () => {
     expect(entities).toHaveLength(197);
     expect(result.report).toContain('  flag: 197/197');
     expect(result.report).toEqual(expect.arrayContaining([
-      '  capital: 194/197', '  capital_note: 16/197', '  continent_alt: 19/197', '  color: 197/197',
-      '  currency: 196/197', '  central_bank: 185/197', '  stock_index: 95/197', '  regime_type: 173/197',
+      '  capital: 194/197', '  capital_note: 16/197', '  capital_lat: 194/197', '  capital_lon: 194/197',
+      '  continent_alt: 7/197', '  continent_note: 29/197', '  color: 197/197',
+      '  currency: 196/197', '  currency_alt: 1/197', '  central_bank: 185/197', '  central_bank_note: 21/197',
+      '  stock_index: 134/197', '  stock_index_status: 63/197', '  regime_type: 173/197', '  government_form: 197/197',
     ]));
     expect(entities.every(({ color }) => typeof color === 'string' && /^#[0-9A-F]{6}$/i.test(color))).toBe(true);
     expect(entities.find(({ id }) => id === 'XKX')?.flag).toBe('xk');
-    expect(entities.find(({ id }) => id === 'FRA')?.continent_alt).toEqual(['Afrika', 'Nordamerika', 'Südamerika']);
+    expect(entities.filter(({ continent_alt }) => continent_alt).map(({ id }) => id))
+      .toEqual(['AZE', 'CYP', 'EGY', 'GEO', 'KAZ', 'RUS', 'TUR']);
+    expect(entities.find(({ id }) => id === 'FRA')?.continent_note).toContain('Französisch-Guayana');
+    expect(entities.find(({ id }) => id === 'NLD')?.color).toBe('#FF4F00');
     expect(entities.find(({ id }) => id === 'GNQ')?.capital).toBe('Ciudad de la Paz');
     expect(entities.find(({ id }) => id === 'NRU')).toMatchObject({ capital: null, capital_note: expect.stringContaining('Yaren') });
     await Promise.all(entities.map(async ({ flag }) => {
@@ -100,7 +105,8 @@ describe('buildData', () => {
     expect(entities).toContainEqual(expect.objectContaining({
       id: 'CHE',
       capital: 'Bern',
-      capital_lat: null,
+      capital_lat: expect.any(Number),
+      capital_lon: expect.any(Number),
       neighbors: ['AUT', 'DEU', 'FRA', 'ITA', 'LIE'],
       seas: null,
       un_member: true,
@@ -113,6 +119,14 @@ describe('buildData', () => {
     const topology: WorldTopology = await emitted('sets/world/map.topojson');
     expect(topology.objects.countries.geometries.map(({ id }) => id).sort())
       .toEqual(entities.map(({ id }) => id).sort());
+    const countryFeatures = new Map(feature(topology, topology.objects.countries).features.map((country) => [country.id, country]));
+    for (const { id, capital, capital_lat: latitude, capital_lon: longitude } of entities) {
+      if (!capital) {
+        expect([latitude, longitude]).toEqual([null, null]);
+      } else {
+        expect(geoContains(countryFeatures.get(id)!, [Number(longitude), Number(latitude)]), id).toBe(true);
+      }
+    }
     const background = topology.objects.land.geometries.map(({ id }) => id);
     expect(background).toHaveLength(42);
     expect(background).toEqual(expect.arrayContaining(['ESH', 'GRL']));
@@ -166,6 +180,20 @@ describe('buildData', () => {
     expect(bulgaria.match?.('EUR')).toEqual({ id: bulgaria.answer.id, kind: 'exact' });
     expect(bulgaria.match?.('BGN')).toBeUndefined();
     expect(currency.some(({ entity }) => entity.id === 'PSE')).toBe(false);
+    const panama = currency.find(({ entity }) => entity.id === 'PAN')!;
+    expect(panama.answer.name).toBe('Panamaischer Balboa');
+    for (const name of ['Balboa', 'US-Dollar', 'USD']) {
+      expect(panama.acceptedIds.has(panama.match!(name)!.id), name).toBe(true);
+    }
+    const reverseCurrency = engine.createRound({ ...allQuestions, categories: ['currency'], direction: 'reverse', format: 'map' });
+    expect(reverseCurrency.find(({ prompt }) => prompt.includes('„US-Dollar“'))?.acceptedIds).toContain('PAN');
+    const currencyChoices = engine.createRound({ ...allQuestions, categories: ['currency'], direction: 'forward', format: 'choice' });
+    expect(currencyChoices.find(({ entity }) => entity.id === 'PAN')?.options.map(({ name }) => name)).not.toContain('US-Dollar');
+
+    const continents = engine.createRound({ ...allQuestions, categories: ['continent'], direction: 'forward', format: 'typed' });
+    const france = continents.find(({ entity }) => entity.id === 'FRA')!;
+    expect(france.noteColumn).toBeUndefined();
+    expect(france.acceptedIds.has(france.match!('Afrika')!.id)).toBe(false);
 
     const banks = engine.createRound({ ...allQuestions, categories: ['central_bank'], direction: 'forward', format: 'typed' });
     const bank = banks.find(({ entity }) => entity.id === 'ATG')!;
@@ -176,14 +204,26 @@ describe('buildData', () => {
     const mapIndex = engine.createRound({ ...indexes, format: 'map' })
       .find(({ prompt }) => prompt.includes('BRVM Composite'))!;
     expect([...mapIndex.acceptedIds].sort()).toEqual(regionalMembers);
+    const caribbeanIndex = engine.createRound({ ...indexes, format: 'map' })
+      .find(({ prompt }) => prompt.includes('EC Share Index'))!;
+    expect([...caribbeanIndex.acceptedIds].sort()).toEqual(['ATG', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT']);
     const indexChoice = engine.createRound({ ...indexes, format: 'choice' })
       .find(({ prompt }) => prompt.includes('BRVM Composite'))!;
     expect(indexChoice.options.filter(({ id }) => regionalMembers.includes(id))).toEqual([indexChoice.answer]);
+    for (const { stock_index, stock_index_status } of entities) {
+      if (stock_index) expect(stock_index_status).toBeNull();
+      else expect(['Keine Börse', 'Nicht belegt']).toContain(stock_index_status);
+    }
+    const stockQuestions = engine.createRound({ ...allQuestions, categories: ['stock_index'], direction: 'forward', format: 'typed' });
+    expect(stockQuestions.length).toEqual(entities.filter(({ stock_index }) => stock_index).length);
+    expect(stockQuestions.some(({ prompt }) => /Keine Börse|Nicht belegt/.test(prompt))).toBe(false);
+    expect(stockQuestions.find(({ entity }) => entity.id === 'SRB')?.answer.name).toBe('BELEX15');
 
     const regimes = engine.createRound({ ...allQuestions, categories: ['regime_type'], direction: 'forward', format: 'choice' });
     const usa = regimes.find(({ entity }) => entity.id === 'USA')!;
     expect(usa.prompt).toContain('V-Dem');
     expect(usa.prompt).toContain('2025');
+    expect(usa.source).toBe('nach V-Dem 2025');
     expect(usa.answer.name).toBe('Wahldemokratie');
     expect(regimes.some(({ entity }) => entity.id === 'PSE' || entity.id === 'SOM')).toBe(false);
   });
@@ -296,5 +336,19 @@ describe('buildData', () => {
       expect.stringContaining('Entity "DEU" hat keine Geometrie'),
     ]));
     expect(await emitted('sets/world/entities.json')).toEqual(previous);
+  });
+
+  it('requires configured points for populated values and rejects points outside the entity', async () => {
+    const settings: Partial<SetDefinition> = {
+      attributes: [{ key: 'capital', label: 'Hauptstadt', type: 'text', point: { lat: 'lat', lon: 'lon', required: true } }],
+    };
+    const columns = 'id;name;capital;lat;lon\n';
+    await fixture('world', columns + 'AAA;Ort;Stadt;0.25;0.25\n', ['AAA'], settings);
+    expect((await buildData(sources, output)).errors).toEqual([]);
+    await fixture('world', columns + 'AAA;Ort;Stadt;4;4\nBBB;Ort;Stadt;;\n', ['AAA', 'BBB'], settings);
+    expect((await buildData(sources, output)).errors).toEqual([
+      expect.stringContaining('Breiten- und Längengrad'),
+      expect.stringContaining('Punkt für "capital" liegt außerhalb'),
+    ]);
   });
 });

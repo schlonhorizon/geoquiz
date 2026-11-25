@@ -129,7 +129,9 @@ Ein Unterteilungs-Set (z. B. `de`) hat `"parent": { "set": "world", "entity": "D
 
 Bei `text`, `enum` und `flag` kann `"modes": [...]` die verfügbaren Varianten eingrenzen. Ein Eintrag für die Richtung (`forward`, `reverse`), Antwortart (`typed`, `choice`, `map`) oder Kombination (z. B. `reverse-typed`) erlaubt die passenden Varianten. `"prompts"` kann Standardfragen über `forward`, `reverse` und `reverseMap` ersetzen. Die Platzhalter `{entity}` und `{value}` stehen für Ländernamen und Attributwert. Bei einer getippten rückwärtigen Frage oder einer Kartenfrage zählt jedes Land mit passendem Wert.
 
-Ein Enum-Attribut kann über `alternativeValuesColumn` eine mit `|` getrennte Liste weiterer richtiger Werte hinterlegen. Sie zählen bei getippten Antworten in beiden Richtungen. Auswahlfragen zeigen genau eine richtige Option und können bei wenigen verbleibenden Ablenkern kürzer ausfallen. Die Auswahl nach Region nutzt die Hauptzuordnung. `noteColumn` hinterlegt zusätzliche Erläuterungen für Atlas und Quizfeedback.
+`text` und `enum` können über `alternativeValuesColumn` weitere richtige Werte als Liste hinterlegen. Sie zählen beim Tippen in beiden Richtungen und bei passenden Kartenfragen. Auswahlfragen zeigen genau eine richtige Option und können bei wenigen verbleibenden Ablenkern kürzer ausfallen. Die Auswahl nach Region nutzt die Hauptzuordnung.
+
+`noteColumn` hinterlegt Erläuterungen für Atlas und Quizfeedback. Mit `atlasNoteOnly: true` erscheinen sie nur im Atlas. `source` kennzeichnet die Herkunft eines Werts in Atlas und Auflösung. `emptyValueColumn` liefert dem Atlas einen Ersatztext bei leerem Attributwert. Die Fragengenerierung verwendet weiterhin den Attributwert.
 
 `location` verwendet Länder-IDs und Geometrien direkt aus dem Set. Die Kategorie ist automatisch vorhanden. Eine CSV-Spalte oder ein Eintrag in `attributes` ist dafür entbehrlich. Die Fragetexte kommen aus `map.prompts.find` und `map.prompts.name`, falls das Set sie definiert.
 
@@ -137,9 +139,10 @@ Ein Enum-Attribut kann über `alternativeValuesColumn` eine mit `|` getrennte Li
 
 `scripts/seed-world.ts` erzeugt einmalig einen Entwurf der `entities.csv`:
 - Die Grunddaten kommen aus dem npm-Paket `world-countries`. Für Hauptstadtnamen kann Wikidata deutsche Labels liefern. Natural Earth `populated_places` ist die Quelle für Admin-0-Hauptstadtkoordinaten.
-- Die Währungszuordnung folgt `world-countries`, abgeglichen mit ISO 4217 und amtlichen Angaben bei Änderungen oder mehreren Währungen. Pro Land steht eine Währung in der CSV. ISO-Codes und geläufige Namen werden über `currency_aliases` als Antworten akzeptiert.
+- Die Währungszuordnung folgt `world-countries`, abgeglichen mit ISO 4217 und amtlichen Angaben bei Änderungen oder mehreren Währungen. Die CSV führt einen Hauptwert je Land und bei Bedarf weitere rechtlich belegte Werte in `currency_alt`. ISO-Codes und geläufige Namen werden über `currency_aliases` akzeptiert.
 - Amtliche Verzeichnisse und die zuständigen Institutionen belegen die Zentralbanken und Währungsbehörden. Börsen und Indexanbieter belegen den ausgewählten Leitindex. Mitglieder gemeinsamer Währungsräume oder Börsen erhalten denselben Wert. Wikidata kann deutschsprachige Bezeichnungen ergänzen.
 - Die Regierungsform folgt `v2x_regime` aus „Regimes of the World“ im V-Dem Country-Year Dataset v16 für 2025. Die vier Klassen werden ins Deutsche übersetzt. Wo sich ein Wert für das Quizland nicht belegen lässt, bleibt das Feld leer. [Quellen und Abdeckung](world-data-report.md#weitere-länderdaten)
+- Die Kategorie Staatsform beschreibt die Verfassungsordnung anhand vergleichender Daten und Verfassungstexte. Übergangsordnungen und Fälle ohne umgesetzte Verfassung sind im Validierungsreport dokumentiert. [Staatsformen](world-data-report.md#staatsformen)
 
 Danach ist die CSV die Wahrheit; das Seed-Script überschreibt sie nie ungefragt (schreibt in `entities.seed.csv`).
 
@@ -151,6 +154,7 @@ Der Build schlägt fehl oder warnt bei:
 - Nachbarschaften, die nicht symmetrisch sind (Warnung)
 - Entities ohne Geometrie in der Karte und umgekehrt
 - `enum`-Werten außerhalb der erlaubten Liste, doppelten Enum-Alternativen, Alternativen ohne Hauptwert und ungültigen Hex-Farben
+- ungültigen oder unvollständigen Koordinatenpaaren sowie Punkten außerhalb der jeweiligen Landesgeometrie. Mit `point.required: true` braucht jeder befüllte Wert einen Punkt.
 - Ausgabe: Report pro Attribut, wie viele Entities befüllt sind
 
 ### 3.8 Länderauswahl und Sonderfälle
@@ -200,7 +204,7 @@ Pflicht-Testfälle (Vitest):
 
 ## 6. Üben, Atlas und Fortschritt
 
-Die App startet im **Atlas**. Im weißen Vollbildmenü stehen neben „GEOQUIZ“ der Gebietshinweis „GEBIET: WELT“ und das Schließen-Feld. Die Liste führt zu **01 Üben**, **02 Atlas** und **03 Fortschritt**. Fortschritt ist als „Folgt“ markiert. Unter der Liste lassen sich Lösungszoom, Kleinstaaten-Ringe und das Zurücksetzen der Weltansicht aufklappen. [Menü in der Design-Spezifikation](DESIGN.md#menü)
+Die App startet im **Atlas**. Im weißen Vollbildmenü stehen neben „GEOQUIZ“ der Gebietshinweis „GEBIET: WELT“ und das Schließen-Feld. Die Liste führt zu **01 Üben**, **02 Atlas** und **03 Fortschritt**. Fortschritt ist als „Folgt“ markiert. Unter **Einstellungen** stehen Lösungszoom, Kleinstaaten-Ringe, das Zurücksetzen der Weltansicht sowie **Quellen und Lizenzen** mit Stand und Lizenzangaben. [Menü in der Design-Spezifikation](DESIGN.md#menü)
 
 ### 6.1 Üben
 
@@ -272,6 +276,7 @@ Alle Zugriffe auf den Fortschritt laufen über ein Interface `ProgressStore` (`l
 - **Meilenstein 5 – Grunddaten**. Das vollständige Weltset enthält 197 Spielentitäten mit passenden Natural-Earth-Geometrien. [Validierungsreport](world-data-report.md)
 - **Meilenstein 5 – Weitere Länderdaten**. Währung, Zentralbank, Leitindex und Regierungsform (V-Dem 2025) sind als Kategorien im Atlas und in Übungsrunden verfügbar. [Quellen und fehlende Werte](world-data-report.md#weitere-länderdaten)
 - **Datenkorrekturen**. Alternative Kontinente, Hauptstadt-Hinweise und editierbare Flaggen-Hauptfarben sind im Weltset erfasst. [Validierungsreport](world-data-report.md)
+- **Datenprüfung vor Meilenstein 6**. Hauptstadtpunkte sind gegen die Karte geprüft. Staatsformen, zusätzliche Leitindizes, Atlas-Hinweise und die Ansicht „Quellen und Lizenzen“ sind verfügbar. [Validierungsreport](world-data-report.md)
 - **Vollbild-Layout**. Rahmenlose Miller-Karte mit nahtlosem horizontalem Verschieben, Overlays für die Bedienung und Standalone-Manifest.
 - **Üben, Atlas und Vollbildmenü**. Vorlagen und Rundenaufbau, gespeicherte Einstellungen je Vorlage, Atlas-Steckbrief, beide Flaggenlayouts und gestaffelte Menü-Animationen sind umgesetzt. [Design-Spezifikation](DESIGN.md)
 

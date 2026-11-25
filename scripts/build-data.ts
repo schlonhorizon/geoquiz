@@ -47,7 +47,7 @@ async function readSet(setsDirectory: string, id: string, issues: DataIssues): P
     }
   }
   const mapJson = mergeLandAreas(await readUtf8(join(source, definition.map.file)), definition.map);
-  validateMap(mapJson, definition.map, entities, issues);
+  validateMap(mapJson, definition, entities, issues);
   return { definition, definitionJson, entities, mapJson, flagFiles };
 }
 
@@ -116,7 +116,8 @@ export async function buildData(setsDirectory: string, outputDirectory: string, 
 
     result.report.push(`[${id}] ${entities.size} ${definition.entityLabelPlural}`);
     const columns = new Set(definition.attributes.flatMap((attribute) => [
-      attribute.key, attribute.noteColumn, attribute.type === 'enum' ? attribute.alternativeValuesColumn : undefined,
+      attribute.key, attribute.noteColumn, attribute.emptyValueColumn, attribute.point?.lat, attribute.point?.lon,
+      'alternativeValuesColumn' in attribute ? attribute.alternativeValuesColumn : undefined,
     ]));
     for (const key of columns) {
       if (key === undefined) continue;

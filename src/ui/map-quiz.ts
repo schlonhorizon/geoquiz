@@ -340,14 +340,19 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     const selected = question.options.find(({ id }) => id === selectedId)?.name
       ?? question.alternativeAnswers?.find(({ id }) => id === selectedId)?.name
       ?? (selectedId ? byId.get(selectedId)?.name : undefined);
-    const solution = `Richtig ist „${question.answer.name}“.`;
+    const source = question.source ? ` (${question.source})` : '';
+    const solution = `Richtig ist „${question.answer.name}“${source}.`;
     const alternatives = question.alternativeAnswers?.map(({ name }) => `„${name}“`);
     const alsoCorrect = alternatives?.length ? ` Auch ${alternatives.join(', ')} ${alternatives.length === 1 ? 'gilt' : 'gelten'} als richtig.` : '';
     const note = question.noteColumn ? byId.get(rightCountry)?.[question.noteColumn] : undefined;
     const incorrect = selected ? `Du hast ${selected} gewählt. ${solution}` : solution;
-    verdictDetail.textContent = correct
-      ? typeof note === 'string' ? note : typo ? `Die richtige Schreibweise ist „${selected ?? question.answer.name}“.` : 'Weiter geht’s gleich.'
-      : `${incorrect}${alsoCorrect}${typeof note === 'string' ? ` ${note}` : ''}`;
+    const accepted = selected ?? question.answer.name;
+    let detail = `${incorrect}${alsoCorrect}`;
+    if (correct) {
+      detail = typo ? `Die richtige Schreibweise ist „${accepted}“${source}.`
+        : source || note ? `„${accepted}“${source}.` : 'Weiter geht’s gleich.';
+    }
+    verdictDetail.textContent = typeof note === 'string' ? `${detail} ${note}` : detail;
     feedback.textContent = `${verdictLabels[outcome]} ${verdictDetail.textContent}`;
     nextLabel.textContent = 'Weiter';
     nextHint.textContent = touch ? 'Tippen' : 'Leertaste';

@@ -1,6 +1,7 @@
 import type { PracticeQuestion, createPracticeEngine } from '../quiz/practice';
 import type { AnswerFormat, Preset, PresetLibrary, RoundSettings } from '../quiz/round-settings';
 import type { SettingsStore } from '../settings/store';
+import { renderSourceList } from './source-page';
 
 interface MenuActions {
   area: string;
@@ -15,7 +16,7 @@ interface MenuActions {
   resetMap(): void;
 }
 
-type Page = { name: 'home' } | { name: 'practice' }
+type Page = { name: 'home' } | { name: 'practice' } | { name: 'sources' }
   | { name: 'builder'; preset?: Preset; settings: RoundSettings; error?: string };
 
 const closeIcon = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1l14 14M15 1L1 15"/></svg>';
@@ -105,6 +106,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
             <label data-menu-block><input type="checkbox" id="animate-feedback" ${animationEnabled ? 'checked' : ''}> Lösungszoom animieren</label>
             <label data-menu-block><input type="checkbox" id="marker-rings" ${rings ? 'checked' : ''}> Kleinstaaten-Ringe anzeigen</label>
             <button type="button" data-action="reset" data-menu-block>Weltansicht zurücksetzen</button>
+            <button type="button" data-action="sources" data-menu-block>Quellen und Lizenzen</button>
           </div>
         </div>
       </div>
@@ -216,7 +218,10 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
     stage.dataset.level = page.name;
     if (page.name === 'home') renderHome(stage);
     else if (page.name === 'practice') renderPractice(stage);
-    else renderBuilder(stage, page);
+    else if (page.name === 'sources') {
+      addTitle(stage, 'Quellen und Lizenzen');
+      stage.append(renderSourceList());
+    } else renderBuilder(stage, page);
     dialog.replaceChildren(stage);
     dialog.scrollTop = preserveScroll ? scroll : 0;
     const controls = [...stage.querySelectorAll<HTMLButtonElement>('button[data-action]')];
@@ -266,6 +271,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
   function back() {
     if (page.name === 'home') void close();
     else if (page.name === 'practice') void move({ name: 'home' }, false, 'practice');
+    else if (page.name === 'sources') void move({ name: 'home' }, false, 'sources');
     else void move({ name: 'practice' }, false, returnToPractice);
   }
 
@@ -325,6 +331,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
       case 'close': void close(); break;
       case 'back': back(); break;
       case 'practice': void move({ name: 'practice' }, true); break;
+      case 'sources': void move({ name: 'sources' }, true); break;
       case 'atlas': void close(actions.showAtlas); break;
       case 'reset': void close(actions.resetMap); break;
       case 'settings': {

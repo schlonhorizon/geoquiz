@@ -35,7 +35,8 @@ export function renderProfile(
     const value = entity[key];
     const note = noteColumn ? entity[noteColumn] : undefined;
     const empty = value == null || value === '' || (Array.isArray(value) && !value.length);
-    if (empty && !note) continue;
+    const fallback = attribute.emptyValueColumn ? entity[attribute.emptyValueColumn] : undefined;
+    if (empty && !note && !fallback) continue;
     const row = document.createElement('div');
     const term = document.createElement('dt');
     term.textContent = label;
@@ -53,13 +54,16 @@ export function renderProfile(
       if (!description.childElementCount && !note) continue;
     } else if (!empty) {
       description.textContent = Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? value ? 'Ja' : 'Nein' : String(value);
+    } else if (typeof fallback === 'string') {
+      description.textContent = fallback;
     }
-    if (type === 'enum' && attribute.alternativeValuesColumn) {
+    if ('alternativeValuesColumn' in attribute && attribute.alternativeValuesColumn) {
       const alternatives = entity[attribute.alternativeValuesColumn];
       if (Array.isArray(alternatives) && alternatives.length) {
         description.append(` (${alternatives.join(', ')} ebenfalls möglich)`);
       }
     }
+    if (!empty && attribute.source) description.append(` (${attribute.source})`);
     if (typeof note === 'string') {
       const detail = document.createElement('p');
       detail.className = 'atlas-note';

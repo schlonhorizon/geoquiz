@@ -1,5 +1,6 @@
 import { parse } from 'csv-parse/sync';
 import type { AttributeDefinition, Entity, EntityValue, SetDefinition } from '../../src/data/schema';
+import { normalizeAnswer } from '../../src/match/answers';
 import type { DataIssues } from './issues';
 
 type ColumnRole = 'id' | 'name' | 'aliases' | 'attribute' | 'lat' | 'lon' | 'flag' | 'flag-similar' | 'note' | 'alternatives';
@@ -31,15 +32,16 @@ function getColumnRoles(definition: SetDefinition, issues: DataIssues): Map<stri
       register(attribute.aliasesColumn, 'aliases');
     }
     if (attribute.noteColumn) register(attribute.noteColumn, 'note');
+    if (attribute.emptyValueColumn) register(attribute.emptyValueColumn, 'note');
     if (attribute.point) {
       register(attribute.point.lat, 'lat');
       register(attribute.point.lon, 'lon');
     }
-    if (attribute.type === 'enum') {
-      if (attribute.alternativeValuesColumn) register(attribute.alternativeValuesColumn, 'alternatives');
-      if (new Set(attribute.values).size !== attribute.values.length) {
-        issues.errors.push(`Attribut "${attribute.key}" enthält doppelte Enum-Werte.`);
-      }
+    if ('alternativeValuesColumn' in attribute && attribute.alternativeValuesColumn) {
+      register(attribute.alternativeValuesColumn, 'alternatives');
+    }
+    if (attribute.type === 'enum' && new Set(attribute.values).size !== attribute.values.length) {
+      issues.errors.push(`Attribut "${attribute.key}" enthält doppelte Enum-Werte.`);
     }
   }
   if (definition.attributes.some(({ type }) => type === 'flag')) register('flag_similar', 'flag-similar');
@@ -186,22 +188,32 @@ export function readEntities(csv: string, definition: SetDefinition, issues: Dat
     }
 
     for (const attribute of definition.attributes) {
-      const { key, point } = attribute;
-      if (point && ((values.get(point.lat) == null) !== (values.get(point.lon) == null))) {
-        issues.errors.push(`${location}, Attribut "${key}": Breiten- und Längengrad müssen zusammen angegeben werden.`);
+      const { key, point, emptyValueColumn } = attribute;
+      const primary = values.get(key);
+      if (point) {
+        const latitude = values.get(point.lat);
+        const longitude = values.get(point.lon);
+        if ((latitude == null) !== (longitude == null) || (point.required && primary != null && latitude == null)) {
+          issues.errors.push(`${location}, Attribut "${key}": Breiten- und Längengrad müssen zusammen angegeben werden.`);
+        }
       }
-      if (attribute.type === 'enum' && attribute.alternativeValuesColumn) {
+      if (emptyValueColumn && values.get(emptyValueColumn) != null && primary != null) {
+        issues.errors.push(`${location}, Spalte "${emptyValueColumn}": Der Hinweis ist nur bei leerem Wert in "${key}" zulässig.`);
+      }
+      if ('alternativeValuesColumn' in attribute && attribute.alternativeValuesColumn) {
         const column = attribute.alternativeValuesColumn;
         const alternatives = values.get(column);
         if (!Array.isArray(alternatives)) continue;
         const context = `${location}, Spalte "${column}"`;
-        const primary = values.get(key);
         if (primary == null) issues.errors.push(`${context}: Der Hauptwert in "${key}" fehlt.`);
-        if (new Set(alternatives).size !== alternatives.length || alternatives.some((value) => value === primary)) {
+        const normalized = alternatives.map(normalizeAnswer);
+        if (new Set(normalized).size !== alternatives.length || (typeof primary === 'string' && normalized.includes(normalizeAnswer(primary)))) {
           issues.errors.push(`${context}: Hauptwert und Alternativen müssen verschieden sein.`);
         }
-        for (const value of alternatives) {
-          if (!attribute.values.includes(value)) issues.errors.push(`${context}: "${value}" ist kein erlaubter Enum-Wert.`);
+        if (attribute.type === 'enum') {
+          for (const value of alternatives) {
+            if (!attribute.values.includes(value)) issues.errors.push(`${context}: "${value}" ist kein erlaubter Enum-Wert.`);
+          }
         }
       }
     }
