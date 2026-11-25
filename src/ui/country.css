@@ -18,7 +18,9 @@
 }
 
 .point-stage .country-map { animation: local-zoom 650ms var(--ease-smooth) both; }
-.country-map[data-selecting] { cursor: crosshair; touch-action: none; }
+.country-map[data-explorable] { cursor: grab; touch-action: none; }
+.country-map[data-selecting] { cursor: crosshair; }
+.country-map[data-explorable]:active { cursor: grabbing; }
 .country-map[data-selecting]:focus-visible { outline: 3px solid var(--highlight); outline-offset: -4px; }
 .country-map path { stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .local-outline { fill: var(--paper); stroke: var(--ink); stroke-width: 1px; }
@@ -56,14 +58,11 @@
   animation: country-color-in 800ms var(--ease-inout) both;
 }
 
-.country-hero-bar, .country-identity {
+.country-hero-bar {
   position: relative;
   z-index: 1;
   width: min(100%, 560px);
   margin-inline: auto;
-}
-
-.country-hero-bar {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -72,6 +71,15 @@
 
 .round-hero .country-hero-bar { padding-top: var(--top); }
 .country-hero-bar > .meta-label { margin-inline-start: auto; }
+.country-hero[data-profile-overlay] .country-hero-bar > .meta-label { margin-inline-start: 0; }
+.country-hero[data-profile-overlay] .country-back {
+  width: 48px;
+  height: 48px;
+  margin-inline-start: auto;
+  padding: 0;
+  font-size: 27px;
+  line-height: 1;
+}
 .country-back, .country-hero .menu-button {
   min-height: 44px;
   border: var(--line) solid currentColor;
@@ -81,13 +89,29 @@
 .country-back { padding-inline: 10px; font-size: 14px; font-weight: 700; }
 .country-hero button:focus-visible { outline-color: currentColor; }
 
+.country-hero-art {
+  display: grid;
+  container-type: inline-size;
+  flex: 1 1 auto;
+  width: min(100%, 720px);
+  min-height: 0;
+  margin-inline: auto;
+  grid-template: minmax(0, 1fr) / minmax(0, 58fr) minmax(0, 42fr);
+}
+
+.country-hero[data-wide] .country-hero-art,
+.country-hero[data-point] .country-hero-art {
+  width: 100%;
+  grid-template: minmax(0, 1fr) auto / minmax(0, 1fr);
+}
+
 .country-silhouette {
-  position: absolute;
-  inset: 15% max(12px, calc((100% - 720px) / 2)) auto auto;
-  width: min(50%, 360px);
-  height: 60%;
+  grid-area: 1 / 2;
+  min-height: 0;
   pointer-events: none;
 }
+
+.country-hero[data-wide] .country-silhouette { grid-area: 1 / 1; }
 
 .country-silhouette .local-outline {
   fill: currentColor;
@@ -99,7 +123,20 @@
 }
 
 .country-silhouette .capital-answer { stroke-width: 9px; }
-.country-identity { padding: 4px 16px 16px; pointer-events: none; }
+.country-identity {
+  grid-area: 1 / 1;
+  align-self: end;
+  min-width: 0;
+  padding: 4px 0 16px max(16px, calc((min(100vw, 720px) - 528px) / 2));
+  pointer-events: none;
+}
+.country-hero[data-wide] .country-identity,
+.country-hero[data-point] .country-identity {
+  grid-area: 2 / 1;
+  width: min(100%, 560px);
+  margin-inline: auto;
+  padding-inline: 16px;
+}
 .country-hero-flag { margin-bottom: 8px; }
 .country-hero-flag:empty { display: none; }
 .country-hero-flag img {
@@ -112,7 +149,6 @@
 
 .country-name-mask { overflow: hidden; padding-block: 3px; }
 .country-title {
-  max-width: 84%;
   color: inherit;
   font-size: 60px;
   font-weight: 800;
@@ -121,21 +157,23 @@
   overflow-wrap: anywhere;
   hyphens: auto;
   outline: none;
-  text-shadow: 1px 1px var(--country-color), -1px -1px var(--country-color);
   animation: country-title-in 800ms 300ms var(--ease-out) both;
 }
 .country-title[data-long] { font-size: 48px; }
+.country-hero:not([data-point], [data-wide]) .country-title { font-size: clamp(26px, 10.7cqw, 60px); }
+.country-hero:not([data-point], [data-wide]) .country-title[data-long] { font-size: clamp(25px, 9.5cqw, 48px); }
+.country-hero:not([data-point], [data-wide]) .country-title[data-extra-long] { font-size: clamp(23px, 8cqw, 43px); }
 
 .country-hero-point {
-  position: absolute;
-  z-index: 1;
-  inset: calc(var(--top) + 56px) 16px 130px;
-  visibility: hidden;
+  display: none;
+  grid-area: 1 / 1;
+  min-height: 0;
+  margin: 8px 16px 0;
 }
-.country-hero[data-point] .country-hero-point { visibility: visible; }
-.country-hero[data-point] .country-silhouette { visibility: hidden; }
+.country-hero[data-point] .country-hero-point { display: block; }
+.country-hero[data-point] .country-silhouette { display: none; }
 .country-hero[data-point] .country-identity { padding-bottom: 10px; }
-.country-hero[data-point] .country-title { max-width: 100%; font-size: clamp(24px, 5vw, 38px); }
+.country-hero[data-point] .country-title { font-size: clamp(24px, 5vw, 38px); }
 .country-hero[data-point] .country-hero-flag img { width: 40px; height: 30px; }
 
 [data-country-round] .quiz-stage {
@@ -241,6 +279,36 @@
 }
 .country-builder-hint { margin-block: 10px; font-size: 14px; }
 
+.quiz-profile {
+  position: fixed;
+  inset: auto 0 0;
+  width: min(560px, 100%);
+  max-width: none;
+  max-height: calc(100dvh - var(--top));
+  margin: auto auto 0;
+  padding: 0 0 env(safe-area-inset-bottom);
+  border: var(--line) solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  overscroll-behavior: contain;
+}
+.quiz-profile[open] { animation: profile-enter 300ms var(--ease-smooth) both; }
+.quiz-profile::backdrop { background: rgb(17 17 17 / 38%); }
+
+.verdict-profiles { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.verdict-profiles button {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.verdict-profiles button:hover { text-decoration-thickness: 2px; }
+.category-toggle { text-decoration: underline; text-underline-offset: 2px; }
+
 @keyframes country-color-in { from { clip-path: inset(100% 0 0); } to { clip-path: inset(0); } }
 @keyframes country-title-in { from { transform: translateY(110%); } to { transform: none; } }
 @keyframes country-outline-in {
@@ -254,6 +322,7 @@
 }
 @keyframes country-cell-fill { from { transform: scaleX(0); } to { transform: none; } }
 @keyframes local-zoom { from { transform: scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes profile-enter { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 
 @media (max-width: 350px) {
   .country-title { font-size: 48px; }
@@ -261,7 +330,6 @@
 }
 
 @media (max-height: 520px) {
-  .country-hero-point { inset-block-end: 104px; }
   .country-hero[data-point] .country-hero-flag { margin-bottom: 3px; }
 }
 
@@ -270,7 +338,7 @@
   .country-silhouette .local-outline { stroke-dasharray: none; }
   .country-color, .country-title, .country-silhouette .local-outline, .country-hero-flag[data-drop] img,
   .country-progress-cell[data-outcome]::before, .country-result-fields > div,
-  [data-country-round] .answer-sheet:has(.verdict:not([hidden])), .point-stage .country-map {
+  [data-country-round] .answer-sheet:has(.verdict:not([hidden])), .point-stage .country-map, .quiz-profile[open] {
     animation: fade-in 150ms ease both;
   }
 }

@@ -139,8 +139,10 @@ export function renderWorldMap(
   let gestureActive = false;
   let radarCountry: CountryLayer | undefined;
   let flyOut = false;
+  let anchorY = 0;
   let flight = 0;
   let frame: MapFrame | undefined;
+  let atlas = true;
   const hitContext = document.createElement('canvas').getContext('2d');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const selection = select(svg);
@@ -167,8 +169,12 @@ export function renderWorldMap(
   }
 
   function constrainY(y: number, scale: number) {
-    const { top, bottom } = frame ? insetCountryFrame(frame) : { top: 0, bottom: viewport.height };
+    const { top, bottom } = !atlas && frame ? insetCountryFrame(frame) : { top: 0, bottom: viewport.height };
     return top + clampMapY(y - top, projected.height * scale, bottom - top);
+  }
+
+  function minAtlasScale() {
+    return viewport.height / projected.height;
   }
 
   function placeRadar(transform: ZoomTransform) {
@@ -214,7 +220,15 @@ export function renderWorldMap(
       const maxSpan = Math.max(viewport.width, viewport.height) * 2 * worldWidth / viewport.width;
       const widest = Math.max(from[2], to[2]);
       const peak = Math.min(Math.max(maxSpan, widest), widest * 1.18);
-      return interpolateFlight(from, to, flyOut ? peak : undefined);
+      const interpolate = interpolateFlight(from, to, flyOut ? peak : undefined);
+      if (!atlas) return interpolate;
+      const size = Math.max(viewport.width, viewport.height);
+      const anchor = anchorY;
+      return (time) => {
+        const [x, y, span] = interpolate(time);
+        const scale = Math.max(minAtlasScale(), size / span);
+        return [x, (anchor - constrainY(anchor - y * scale, scale)) / scale, size / scale];
+      };
     })
     .clickDistance(5)
     .on('zoom', ({ transform, sourceEvent }: D3ZoomEvent<SVGSVGElement, unknown>) => {
@@ -243,6 +257,7 @@ export function renderWorldMap(
     if (scale === currentScale) return;
     selection.interrupt();
     const anchor = pointer(event, svg);
+    anchorY = anchor[1];
     flyOut = false;
     if (motion.matches) {
       selection.call(zoomBehavior.scaleTo, scale, anchor);
@@ -264,15 +279,17 @@ export function renderWorldMap(
     frame = undefined;
     radarCountry = undefined;
     radar.clear();
-    const minimum = viewport.width / worldWidth;
-    zoomBehavior.scaleExtent([minimum, minimum * maxZoom]);
-    const scale = Math.max(minimum, Math.min(viewport.height / projected.height, minimum * 2));
+    const worldScale = viewport.width / worldWidth;
+    const minimum = atlas ? minAtlasScale() : worldScale;
+    zoomBehavior.scaleExtent([minimum, Math.max(worldScale, minimum) * maxZoom]);
+    const scale = atlas ? minimum : Math.max(minimum, Math.min(minAtlasScale(), minimum * 2));
     flyTo([worldWidth * 0.38, projected.height / 2], scale, animate);
   }
 
   function flyTo([x, y]: [number, number], scale: number, animate: boolean, panOnly = false) {
     const current = zoomTransform(svg);
     const center: [number, number] = [viewport.width / 2, frame ? (frame.top + frame.bottom) / 2 : viewport.height / 2];
+    anchorY = center[1];
     const [currentX, currentY] = current.invert(center);
     const targetX = nearestWorldX(x, currentX);
     const transform = transformAround([targetX, y], scale);
@@ -313,16 +330,17 @@ export function renderWorldMap(
     viewport = { width, height };
     frame = undefined;
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    const minimum = width / worldWidth;
+    const minimum = atlas ? minAtlasScale() : width / worldWidth;
     const previousMinimum = zoomBehavior.scaleExtent()[0];
-    zoomBehavior.scaleExtent([before.width ? Math.min(minimum, previousMinimum * width / before.width) : minimum,
-      minimum * maxZoom]);
+    const lowest = atlas || !before.width ? minimum : Math.min(minimum, previousMinimum * width / before.width);
+    const highest = Math.max(width / worldWidth, minimum) * maxZoom;
+    zoomBehavior.scaleExtent([lowest, highest]);
     if (!before.width) {
       resetView();
       return;
     }
     const center = transform.invert([before.width / 2, before.height / 2]);
-    const scale = transform.k * width / before.width;
+    const scale = Math.max(lowest, Math.min(highest, transform.k * width / before.width));
     selection.interrupt().call(zoomBehavior.transform, transformAround(center, scale));
   }
 
@@ -407,6 +425,7 @@ export function renderWorldMap(
 
   return {
     resetView,
+    setAtlas(active: boolean) { atlas = active; },
     clear() {
       flight++;
       radarCountry = undefined;
@@ -439,8 +458,8 @@ export function renderWorldMap(
       const solution = solutionId ? layers.get(solutionId) : undefined;
       radarCountry = solution?.geometry.marker ? solution : undefined;
       if (!radarCountry) radar.clear();
-      const scale = panOnly ? currentScale : view.scale;
-      zoomBehavior.scaleExtent([Math.min(viewport.width / worldWidth, scale), maximum]);
+      const scale = atlas ? Math.max(minAtlasScale(), view.scale) : panOnly ? currentScale : view.scale;
+      zoomBehavior.scaleExtent([atlas ? minAtlasScale() : Math.min(viewport.width / worldWidth, scale), maximum]);
       flyTo(view.center, scale, animate, panOnly);
     },
   };

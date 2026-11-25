@@ -112,6 +112,8 @@ CIV;Elfenbeinküste;Côte d'Ivoire|Cote d'Ivoire;Afrika;Yamoussoukro;;6.8276;-5.
 
 Ein Unterteilungs-Set (z. B. `de`) hat `"parent": { "set": "world", "entity": "DEU" }`. Der Atlas-Steckbrief von Deutschland erhält mit der Gebietsauswahl einen Link „Bundesländer-Quiz“.
 
+`outline.include` und `outline.exclude` sind optionale Zuordnungen von Entity-IDs zu Punkten `[Längengrad, Breitengrad]`. Jeder Punkt muss innerhalb genau einer Teilfläche liegen und wählt diese aus. Die Ausnahmen werden nach dem geometrischen Zusammenführen ausgewertet. Der Build legt abweichende Kerngebiete als TopoJSON-Objekt `core` an. Die Einträge verwenden die vorhandenen Bögen. Fehlt dort eine Entity, ist ihre gesamte Karte das Kerngebiet.
+
 ### 3.5 Attributtypen → automatisch erzeugte Fragetypen
 
 | Typ | Beispiel | Erzeugte Fragen |
@@ -155,6 +157,7 @@ Der Build schlägt fehl oder warnt bei:
 - Entities ohne Geometrie in der Karte und umgekehrt
 - `enum`-Werten außerhalb der erlaubten Liste, doppelten Enum-Alternativen, Alternativen ohne Hauptwert und ungültigen Hex-Farben
 - ungültigen oder unvollständigen Koordinatenpaaren sowie Punkten außerhalb der jeweiligen Landesgeometrie. Mit `point.required: true` braucht jeder befüllte Wert einen Punkt.
+- unbekannten, widersprüchlichen oder außerhalb einer eindeutigen Teilfläche liegenden Umriss-Ausnahmen sowie einem leeren Kerngebiet
 - Ausgabe: Report pro Attribut, wie viele Entities befüllt sind
 
 ### 3.8 Länderauswahl und Sonderfälle
@@ -166,11 +169,12 @@ Der Build schlägt fehl oder warnt bei:
 
 ## 4. Karten
 
-- **Weltkarte**: Natural Earth 50m (`Admin 0 – Countries`), Miller-Projektion (`d3-geo-projection`), Zoom und Verschieben (`d3-zoom`) per Maus und Touch. Drei Kartenkopien und ein horizontaler Versatz modulo Kartenbreite erlauben nahtloses, endloses Verschieben. Die Karte ist vertikal begrenzt und endet im Süden vor der Antarktis. Alle Kopien unterstützen Länder- und Markerklicks.
+- **Weltkarte**: Natural Earth 50m (`Admin 0 – Countries`), Miller-Projektion (`d3-geo-projection`), Zoom und Verschieben (`d3-zoom`) per Maus und Touch. Drei Kartenkopien und ein horizontaler Versatz modulo Kartenbreite erlauben nahtloses, endloses Verschieben. Alle Kopien unterstützen Länder- und Markerklicks. Die Karte ist vertikal begrenzt und endet im Süden vor der Antarktis. Im Atlas bezieht sich die Begrenzung auf die gesamte Bildschirmhöhe. Bei der kleinsten Zoomstufe füllt die Karte diese Höhe.
 - **Vollbild-Layout**: Die Karte füllt den Viewport (`100dvw × 100dvh`). Fragepanel und Antwort-Sheet sind oben und unten horizontal zentriert. Rechts in der Meta-Zeile sitzen die 48-px-Felder für Überspringen und Menü. Zoom und Verschieben laufen über die Kartengesten. Die Overlays berücksichtigen die Safe Area und lassen die übrige Karte bedienbar. Auf der Karte sind Browser-Scrollen, Pull-to-refresh und Doppeltipp-Zoom deaktiviert. Der Fokusrahmen wird bei Tastaturbedienung sichtbar.
 - **Homescreen**: Das Web-App-Manifest startet GeoQuiz im Standalone-Modus und enthält Theme-Farbe und App-Icons.
 - **Kleinstaaten**: Länder unter einer Flächenschwelle (z. B. < 2.000 km² oder Inselstaaten) bekommen einen klickbaren Kreis als Marker; zusätzlich zählt ein Klick als Treffer, wenn er innerhalb einer kleinen Toleranz (in Pixeln, zoomabhängig) zum richtigen Land liegt.
-- **Landeskarten** verwenden die vorhandenen Länderpolygone und eine um das Land gedrehte Miller-Projektion. Dadurch bleiben auch Länder über den Antimeridian zusammenhängend im Ausschnitt. Die vollständige Landesfläche füllt mit 10 % Rand den freien Bereich, mit weißem Zielland und grauem Umfeld. Nach einer Schätzung zeichnet die Karte die richtige Position, die Verbindung zum Tipp und die Entfernung in Kilometern.
+- **Kerngebiet**. Der Build entfernt eine Teilfläche aus dem Kerngebiet, wenn ihr kleinstmöglicher Großkreisabstand zur Außenkante der größten Teilfläche über 1500 km und ihre Fläche unter 20 % der größten Teilfläche liegt. Ausnahmen in `set.json` haben Vorrang. Farbblock, automatische Quiz-Ausschnitte und Landeskartendiagonale verwenden das Kerngebiet. Die Karte zeichnet alle Teilflächen. Überseegebiete zählen weiterhin als Treffer für ihr Land. [Ausgeschlossene Teilflächen](world-data-report.md#kerngebiete)
+- **Landeskarten** verwenden eine zum Kerngebiet gedrehte Miller-Projektion. Dadurch bleiben Länder über den Antimeridian zusammenhängend im Ausschnitt. Hauptstadtfragen starten mit 15 % Rand um das Kerngebiet und zeigen in der Breite mindestens 12 Längengrade (`MIN_CAPITAL_VIEW_SPAN_DEG`). Das Zielland ist weiß und die Umgebung grau. Mausrad und Zwei-Finger-Gesten zoomen, Ziehen verschiebt die Karte und ein unbewegter Tipp setzt einen Punkt. Die Auflösung zeigt die richtige Position, die Verbindung zum Tipp und die Entfernung in Kilometern.
 - Unterteilungen: aus Natural Earth 10m admin-1 pro Land extrahieren (`scripts/extract-subdivisions.ts`, z. B. mit mapshaper), IDs = `iso_3166_2`. Für die USA alternativ `us-atlas`.
 - Das Kartenfeedback folgt [DESIGN.md](DESIGN.md#4-karte). Kartenflüge verwenden den sichtbaren Bereich zwischen den Panels und bei Bedarf die nächstgelegenen Weltkopien. Bei einer falschen Länderantwort werden Lösung und Auswahl gemeinsam eingerahmt.
 
@@ -204,7 +208,7 @@ Pflicht-Testfälle (Vitest):
 
 ### 5.3 Punkte auf der Landeskarte
 
-Die Bewertung verwendet die Großkreisentfernung vom gewählten Punkt zur hinterlegten Hauptstadt. Die Toleranz beträgt 10 % der Diagonale der geografischen Landesgrenzen, mit mindestens 25 und höchstens 150 km. Ein Punkt genau auf der Toleranzgrenze zählt als richtig. Die Werte stehen zentral in `src/map/country-map.ts`. Maus und Touch wählen direkt einen Punkt. Auf der fokussierten Karte bewegen die Pfeiltasten die Markierung. Enter oder Leertaste bestätigen sie.
+Die Bewertung verwendet die Großkreisentfernung vom gewählten Punkt zur hinterlegten Hauptstadt. Die Toleranz beträgt 10 % der Diagonale des geografischen Rahmens um das Kerngebiet, mit mindestens 25 und höchstens 150 km. Ein Punkt genau auf der Toleranzgrenze zählt als richtig. Die Werte stehen zentral in `src/map/country-map.ts`. Auf der fokussierten Karte bewegen die Pfeiltasten die Markierung. Enter oder Leertaste bestätigen sie.
 
 ## 6. Üben, Atlas und Fortschritt
 
@@ -218,7 +222,7 @@ Der Rundenaufbau hat sechs Stellschrauben:
 
 | Stellschraube | Werte |
 |---|---|
-| Kategorie | Eine oder mehrere verfügbare Kategorien des Sets, einschließlich Lage |
+| Kategorie | Eine oder mehrere verfügbare Kategorien des Sets, einschließlich Lage. „Alle / Keine“ schaltet die gesamte Auswahl um. Ohne ausgewählte Kategorie bleibt „Runde starten“ deaktiviert. |
 | Richtung | Land → Kategorie, Kategorie → Land, Gemischt |
 | Antwortart | Karte, 4 Optionen, Tippen. Bei mehreren Kategorien werden die Varianten verwendet, die Richtung und Antwortart unterstützen. |
 | Reihenfolge | Gemischt oder Land für Land. Bei Land für Land stehen alle ausgewählten Fragen zu einem Land zusammen. |
@@ -241,6 +245,8 @@ Der Rundenaufbau hat sechs Stellschrauben:
 ### 6.2 Atlas
 
 Im Atlas steht oben „ATLAS“ und „Land antippen“. Die Karte lässt sich frei erkunden. Ein Klick auf ein Land öffnet unten seinen Steckbrief und rückt das Land in den sichtbaren Kartenausschnitt. Der Steckbrief verwendet den Farbblock des Länderdesigns mit Umriss, Flagge, Name und gegebenenfalls Hauptstadtpunkt. Unterhalb stehen befüllte Kategorien, zugehörige Hinweise und der Leitindex-Status. Bei verknüpften Ländern, etwa Nachbarn, springt ein Tipp direkt zum verknüpften Steckbrief und Kartenort.
+
+Die Quizauflösung verlinkt auf die Steckbriefe des gesuchten Landes und des gegebenenfalls gewählten Landes. Ein Attributwert führt ebenfalls zu einem Steckbrief, wenn er genau einem Land zugeordnet ist. Das Overlay pausiert den bestehenden Countdown und hält die Frage an derselben Stelle. Es schließt per Schließen-Feld, Escape oder Wischen nach unten am oberen Ende des Steckbriefs.
 
 ### 6.3 Ein Land komplett
 

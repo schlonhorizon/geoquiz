@@ -85,6 +85,8 @@ Das Vollbild-Overlay ist weiß. Die Menüspalte ist zentriert und maximal 560 px
 
 Bei „Ein Land komplett“ bietet der Rundenaufbau Zufall, Region und ein bestimmtes Startland mit Suche nach Namen oder Alias. Die Anzahl ist 1, 3, 5 oder 10 Länder. Bei einem gewählten Startland folgen die weiteren Länder per Zufall.
 
+Vor den Kategorie-Segmenten steht „Alle / Keine“. Ein Tipp schaltet zwischen vollständiger und leerer Auswahl um. Eine teilweise Auswahl wird vervollständigt. Bei leerer Auswahl steht „Mindestens eine Kategorie wählen“ über dem deaktivierten Startbutton.
+
 ## 4. Karte
 
 - Projektion Miller, horizontal endlos (wie umgesetzt), Antarktis entfernt.
@@ -93,18 +95,20 @@ Bei „Ein Land komplett“ bietet der Rundenaufbau Zufall, Region und ein besti
 - Hover bei freier Auswahl und in Kartenfragen verwendet `--land-hover`. Gebiete ohne Quiz bleiben grau (`--land-off`).
 - **Land → Kategorie**. Die Karte fliegt zum Land und markiert es blau (`--highlight`). Beim Urteil wird das Land grün (`--ok`) oder rot (`--accent`). Beim Überspringen bleibt es blau. Die Lage-Frage per Kartenklick hält das gesuchte Land bis zur Antwort verdeckt.
 - **Kategorie → Land**. Bei Lage → Land beginnt die Frage mit dem hervorgehobenen Land. Bei den übrigen Kategorien erscheint die Lösung erst beim Urteil. Dann fliegt die Karte zur grünen Lösung. Eine falsch gewählte Entität erscheint rot und wird gemeinsam mit der Lösung eingerahmt. Welche Antwort bei mehreren passenden Ländern richtig ist, bestimmt die Übungs-Engine.
-- Der automatische Quizzoom zeigt die Weltregion zwischen Fragepanel und Antwortbereich. Die Breite umfasst mindestens 50 Längengrade (`MIN_VIEW_SPAN_DEG`). Braucht die vollständige Geometrie mehr Raum, etwa bei Russland, Kanada oder Brasilien, zoomt die Karte weiter heraus. Der Ausschnitt reserviert pro Seite 15 % Rand für die Geometrie. Er nutzt nahe horizontale Weltkopien. Das Sheet kann bei wenig Platz scrollen. Mausrad, Ziehen und Touch-Gesten bleiben auf der freien Karte aktiv.
+- Der automatische Quizzoom zeigt die Weltregion zwischen Fragepanel und Antwortbereich. Die Breite umfasst mindestens 50 Längengrade (`MIN_VIEW_SPAN_DEG`). Braucht das Kerngebiet mehr Raum, etwa bei Russland, Kanada oder Brasilien, zoomt die Karte weiter heraus. Der Ausschnitt reserviert pro Seite 15 % Rand für das Kerngebiet und nutzt nahe horizontale Weltkopien. Alle Teilflächen bleiben sichtbar und als Treffer nutzbar. Im Atlas füllt die Karte bei der kleinsten Zoomstufe die Bildschirmhöhe. Vertikal hält sie an Nord- und Südrand, horizontal läuft sie endlos weiter.
 - Beim Fragenwechsel fliegt die Kamera von ihrer aktuellen Position zur nächsten Ansicht. Liegt das neue Land bereits im freien Ausschnitt und passt die Zoomstufe, schwenkt sie bei gleicher Vergrößerung. Fragen mit verdecktem Land wechseln sanft zur Weltansicht.
 - Beim Zeigen der Lösung für einen Kleinstaat laufen drei blaue Radar-Ringe mit 2 px Strichstärke zum Marker zusammen. Der letzte Ring bleibt stehen. Eine kurze Linie verbindet ihn mit einem weißen Namensschild mit 2 px Rahmen und 13 px/700. Das Schild sitzt im freien Kartenbereich oberhalb des Weiter-Overlays und unterhalb des Fragepanels. Es folgt dem Marker beim Verschieben und Zoomen.
 - In den Menü-Einstellungen lassen sich blaue Kleinstaaten-Ringe einschalten. Sie sind standardmäßig ausgeblendet. Die klickbaren Marker bleiben sichtbar. Der Ring hat 2 px Strichstärke mit `vector-effect: non-scaling-stroke`.
 - Blau markierte Länder pulsieren bei ihrer ersten Hervorhebung kurz, unabhängig von ihrer Größe und der Ring-Einstellung. Bei Kleinstaaten pulsiert auch der Marker.
-- **Hauptstadt auf der Landeskarte**. Das Zielland in `--paper` nimmt mit 10 % Rand den freien Kartenbereich ein. Der 50°-Mindestbereich gilt für den Weltzoom. Auf der Landeskarte sind die Nachbarflächen grau (`--land-off`). Bei der Auflösung erscheint der Hauptstadtpunkt in `--ok`, der eigene Tipp in `--highlight` und eine Linie dazwischen. Das Urteil zeigt die Distanz in Kilometern. Die Toleranz beträgt 10 % der Landesdiagonale, mindestens 25 und höchstens 150 km.
+- **Hauptstadt auf der Landeskarte**. Der Startausschnitt zeigt das Kerngebiet mit 15 % Rand und mindestens 12 Längengraden Breite. Das Zielland ist weiß (`--paper`), die Nachbarflächen sind grau (`--land-off`). Ziehen verschiebt die Karte, Mausrad und Zwei-Finger-Gesten zoomen. Ein Tipp ohne Ziehbewegung setzt den Punkt. Bei der Auflösung erscheint der Hauptstadtpunkt in `--ok`, der eigene Tipp in `--highlight` und eine Linie dazwischen. Das Urteil zeigt die Distanz in Kilometern. Die Toleranz beträgt 10 % der Kerngebietsdiagonale, mindestens 25 und höchstens 150 km.
 
 ## 5. Bildschirme
 
 ### Üben
 
 Die Karte liegt im Vollbild. Über ihr stehen die kompakte Frage und unten, je nach Antwortart, das Antwort-Sheet oder das Eingabefeld. Bei Land → Lage stehen „Wo liegt“ (14 px) und der große Ländername im Fragepanel. Nach der Antwort zeigt das Sheet Fragenummer, Urteils-Punkt, Urteil und Erklärung. Oberhalb erscheint das Weiter-Overlay. Am Ende gibt es „RUNDE BEENDET“, Ergebnis, Zusammenfassung und „Neue Runde“.
+
+Die Auflösung zeigt Textbuttons im Format „Ländername · Steckbrief“. Sie führen zum gesuchten und gegebenenfalls zum gewählten Land oder zu dessen eindeutig zuordenbarem Antwortwert. Der Atlas-Steckbrief öffnet als modales Bottom-Sheet über derselben Frage. Das Schließen-Feld, Escape und Wischen nach unten am oberen Ende des Sheets schließen es.
 
 ### Flaggen
 
@@ -117,7 +121,7 @@ Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick d
 
 ### Ein Land komplett und Atlas-Landesdesign
 
-- Oben ein **Farbblock** in der Hauptfarbe des Landes, Höhe `clamp(250px, 36dvh, 380px)`, unten 2 px Linie. „← Karte“ ist in der Textfarbe umrandet. Die Kopfzeile zeigt „LAND 02 / 05“ und das Menüfeld. Rechts sitzt der Landesumriss, zu 90 % in der Textfarbe gefüllt. Unten links stehen „LAND“ und der Ländername. Der Atlas-Steckbrief verwendet denselben Farbblock mit „ATLAS“ und eingezeichnetem Hauptstadtpunkt.
+- Oben ein **Farbblock** in der Hauptfarbe des Landes, Höhe `clamp(250px, 36dvh, 380px)`, unten 2 px Linie. „← Karte“ ist in der Textfarbe umrandet. Die Kopfzeile zeigt „LAND 02 / 05“ und das Menüfeld. Der Umriss zeigt das Kerngebiet, zu 90 % in der Textfarbe gefüllt. Seine Größe wird pro Land mit 8 % Rand in die verfügbare Fläche eingepasst. Bei einem Seitenverhältnis über 1,6 nutzt er die Breite oberhalb von Flagge und Name, sonst steht er rechts neben beiden. Die Kopfzeile hat einen eigenen Bereich. Der Atlas-Steckbrief verwendet denselben Farbblock mit „ATLAS“ und eingezeichnetem Hauptstadtpunkt.
 - Textfarbe im Farbblock automatisch: Weiß oder `--ink`, je nachdem, was nach WCAG den höheren Kontrast zur Landesfarbe hat.
 - Darunter Spalte (max. 560 px): Fortschrittszellen, Fragenummer + Kategorie (Label-Stil), Frage, Optionen, Primärbutton.
 - In Reihenfolge werden Flagge, Name der Hauptstadt, Hauptstadtpunkt, Kontinent, Währung, Zentralbank, Leitindex, Staatsform und Regierungsform nach V-Dem 2025 gefragt. Kategorien und Koordinaten ohne hinterlegten Wert werden übersprungen.
@@ -168,7 +172,7 @@ Die Menüblöcke sind die Kopfzeilen, Listenzeilen, Abschnittslabels und Aktions
 - **Richtig**. Grüner Urteils-Punkt. Nach **5000 ms** (`AUTO_ADVANCE_MS`) beginnt automatisch die nächste Frage. Ein Klick oder Tipp auf den freien Kartenbereich geht sofort weiter.
 - **Falsch oder übersprungen**. Roter bzw. grauer Urteils-Punkt. Die Lösung bleibt zur Erkundung auf der Karte. Weiter geht es durch eine Aktion des Spielers.
 - Nach jedem Urteil führen ein Tipp auf das Antwort-Sheet oder das Weiter-Overlay sowie Leertaste oder Enter weiter.
-- Während einer Kartenbewegung oder solange die Maus über dem Antwort-Sheet steht, pausiert der Countdown einer richtigen Antwort. Das Feld zeigt „PAUSIERT“ und der Balken bleibt stehen. Sobald beide Interaktionen beendet sind, läuft die Restzeit weiter.
+- Während einer Kartenbewegung, bei offenem Steckbrief-Overlay oder solange die Maus über dem Antwort-Sheet steht, pausiert der Countdown einer richtigen Antwort. Das Feld zeigt „PAUSIERT“ und der Balken bleibt stehen. Danach läuft die verbleibende Zeit weiter.
 - **Tastatur**. `1`–`4` wählen eine Option. `S` überspringt außerhalb von Textfeldern. Enter im Tippfeld prüft die Antwort, bei leerem Feld überspringt es. Leertaste und Enter gehen nach dem Urteil weiter oder starten eine neue Runde. Enter startet im Rundenaufbau. Escape geht im Menü eine Ebene zurück und schließt es auf der ersten Ebene.
 - **Landeskarten per Tastatur**. Die Pfeiltasten bewegen den Zeiger. Umschalt + Pfeiltaste bewegt ihn in größeren Schritten. Enter oder Leertaste bestätigen den Punkt.
 - Fokus für Tastaturnutzer ist als 3 px Kontur in `--ink` mit 2 px Abstand sichtbar (`:focus-visible`).

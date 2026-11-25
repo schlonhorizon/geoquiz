@@ -8,7 +8,8 @@ import type { GeometryCollection, Topology } from 'topojson-specification';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Entity, SetDefinition } from '../src/data/schema';
 import { projectWorldMap } from '../src/map/geometry';
-import { createCountryMaps } from '../src/map/country-map';
+import { createCountryMaps, MIN_CAPITAL_VIEW_SPAN_DEG } from '../src/map/country-map';
+import { addCoreOutlines } from './data/core-outline';
 import { createPracticeEngine } from '../src/quiz/practice';
 import type { PresetLibrary } from '../src/quiz/round-settings';
 import { buildData } from './build-data';
@@ -115,17 +116,27 @@ describe('buildData', () => {
     expect(entities).toContainEqual(expect.objectContaining({
       id: 'BEL', capital: 'Brüssel', capital_aliases: ['Brussels'],
     }));
-    type WorldTopology = Topology<{ countries: GeometryCollection; land: GeometryCollection }>;
+    type WorldTopology = Topology<{ countries: GeometryCollection; land: GeometryCollection; core: GeometryCollection }>;
     const source: WorldTopology = JSON.parse(await readFile(join(sample, 'world/map.topojson'), 'utf8'));
     const topology: WorldTopology = await emitted('sets/world/map.topojson');
     expect(topology.objects.countries.geometries.map(({ id }) => id).sort())
       .toEqual(entities.map(({ id }) => id).sort());
     const countryFeatures = new Map(feature(topology, topology.objects.countries).features.map((country) => [country.id, country]));
+    const coreFeatures = new Map(feature(topology, topology.objects.core).features.map((country) => [country.id, country]));
+    for (const [id, point] of [
+      ['FRA', [-53, 4]], ['FRA', [55.55, -21.1]], ['USA', [-155.5, 19.6]],
+      ['ECU', [-90.35, -.63]], ['CHL', [-109.35, -27.12]], ['NLD', [-68.27, 12.2]],
+    ] as const) {
+      expect(geoContains(countryFeatures.get(id)!, [...point]), id).toBe(true);
+      expect(geoContains(coreFeatures.get(id)!, [...point]), id).toBe(false);
+    }
     for (const { id, capital, capital_lat: latitude, capital_lon: longitude } of entities) {
       if (!capital) {
         expect([latitude, longitude]).toEqual([null, null]);
       } else {
-        expect(geoContains(countryFeatures.get(id)!, [Number(longitude), Number(latitude)]), id).toBe(true);
+        const point: [number, number] = [Number(longitude), Number(latitude)];
+        expect(geoContains(countryFeatures.get(id)!, point), id).toBe(true);
+        expect(geoContains(coreFeatures.get(id) ?? countryFeatures.get(id)!, point), id).toBe(true);
       }
     }
     const background = topology.objects.land.geometries.map(({ id }) => id);
@@ -186,6 +197,10 @@ describe('buildData', () => {
     const capitalQuestions = engine.createRound(capitalMap);
     expect(capitalQuestions).toHaveLength(194);
     const countryMaps = createCountryMaps(topology, definition.map);
+    const luxembourg = countryMaps.get('LUX', 'capital')!;
+    const [left, top, width] = luxembourg.view;
+    expect(luxembourg.invert([left + width, top])[0] - luxembourg.invert([left, top])[0])
+      .toBeCloseTo(MIN_CAPITAL_VIEW_SPAN_DEG);
     for (const { entity, point } of capitalQuestions) {
       const map = countryMaps.get(entity.id)!;
       const [left, top, width, height] = map.view;
@@ -383,4 +398,26 @@ describe('buildData', () => {
       expect.stringContaining('Punkt für "capital" liegt außerhalb'),
     ]);
   });
+});
+
+it('uses the nearest coastline for automatic outlines and applies per-part overrides', () => {
+  const block = (left: number, right: number, high: number) =>
+    [[left, 0], [left, high], [right, high], [right, 0], [left, 0]];
+  const topology = {
+    type: 'Topology',
+    objects: { areas: { type: 'MultiPolygon', id: 'AAA', arcs: [[[0]], [[1]], [[2]], [[3]]] } },
+    arcs: [block(-30, 0, 10), block(10, 11, 1), block(28, 29, 1), block(70, 80, 10)],
+  };
+  const definition: SetDefinition = {
+    id: 'test', label: 'Test', attributes: [], entityLabel: 'Land', entityLabelPlural: 'Länder', parent: null,
+    map: { file: 'map.topojson', object: 'areas', idProperty: 'id', projection: 'miller' },
+  };
+  const issues = { errors: [], warnings: [] };
+  const automatic = addCoreOutlines(JSON.stringify(topology), definition, issues);
+  expect(automatic.excluded.get('AAA')).toEqual([3]);
+  const manual = addCoreOutlines(JSON.stringify(topology), {
+    ...definition, outline: { include: { AAA: [[28.5, .5]] }, exclude: { AAA: [[10.5, .5]] } },
+  }, issues);
+  expect(manual.excluded.get('AAA')).toEqual([2]);
+  expect(issues.errors).toEqual([]);
 });

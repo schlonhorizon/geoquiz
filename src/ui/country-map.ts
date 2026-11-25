@@ -1,7 +1,11 @@
+import { select } from 'd3-selection';
+import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
+import type { D3ZoomEvent } from 'd3-zoom';
 import type { Coordinate } from '../data/map';
 import type { CountryMap } from '../map/country-map';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
+const dragThreshold = 5;
 
 function element<K extends keyof SVGElementTagNameMap>(tag: K, className: string) {
   const node = document.createElementNS(svgNamespace, tag);
@@ -30,19 +34,23 @@ function placePin(pin: SVGCircleElement, [x, y]: Coordinate) {
 export function renderCountryMap(
   model: CountryMap,
   label: string,
-  options: { onPick?: (point: Coordinate) => void; answer?: Coordinate; nearby?: boolean } = {},
+  options: {
+    onPick?: (point: Coordinate) => void;
+    onResolvedClick?: () => void;
+    onInteraction?: (active: boolean) => void;
+    answer?: Coordinate;
+  } = {},
 ) {
   const svg = element('svg', 'country-map');
   const [left, top, width, height] = model.view;
   svg.setAttribute('viewBox', model.view.join(' '));
   svg.setAttribute('aria-label', label);
   svg.setAttribute('role', options.onPick ? 'application' : 'img');
-  if (options.nearby) {
-    for (const outline of model.context) {
-      const background = element('path', 'local-neighbor');
-      background.setAttribute('d', outline);
-      svg.append(background);
-    }
+  const scene = element('g', 'country-map-scene');
+  for (const outline of model.context) {
+    const background = element('path', 'local-neighbor');
+    background.setAttribute('d', outline);
+    scene.append(background);
   }
   const land = element('path', 'local-outline');
   land.setAttribute('d', model.outline);
@@ -51,9 +59,50 @@ export function renderCountryMap(
   const guessPin = pin('capital-guess');
   const answerPin = pin('capital-answer');
   const cursorPin = pin('capital-cursor');
-  svg.append(land, line, guessPin, answerPin, cursorPin);
+  scene.append(land, line, guessPin, answerPin);
+  svg.append(scene, cursorPin);
   let cursor: Coordinate = [left + width / 2, top + height / 2];
   let selecting = Boolean(options.onPick);
+  let active = false;
+  const selection = select(svg);
+
+  function extent(): [Coordinate, Coordinate] {
+    const matrix = svg.getScreenCTM();
+    if (!matrix) return [[left, top], [left + width, top + height]];
+    const inverse = matrix.inverse();
+    const bounds = svg.getBoundingClientRect();
+    const min = new DOMPoint(bounds.left, bounds.top).matrixTransform(inverse);
+    const max = new DOMPoint(bounds.right, bounds.bottom).matrixTransform(inverse);
+    return [[min.x, min.y], [max.x, max.y]];
+  }
+
+  const behavior = zoom<SVGSVGElement, unknown>().extent(extent).translateExtent(model.world)
+    .scaleExtent([.35, 24]).clickDistance(dragThreshold)
+    .on('zoom', ({ sourceEvent, transform }: D3ZoomEvent<SVGSVGElement, unknown>) => {
+      if (sourceEvent && !active) options.onInteraction?.(active = true);
+      scene.setAttribute('transform', transform.toString());
+    })
+    .on('end', () => {
+      if (active) options.onInteraction?.(active = false);
+    });
+
+  function showMarkers(points: Coordinate[]) {
+    if (!options.onPick || !svg.isConnected) return;
+    const [[minX, minY], [maxX, maxY]] = extent();
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const transform = zoomTransform(svg);
+    if (points.every(([x, y]) => transform.applyX(x) >= minX + width * .08 && transform.applyX(x) <= maxX - width * .08
+      && transform.applyY(y) >= minY + height * .08 && transform.applyY(y) <= maxY - height * .08)) return;
+    const left = Math.min(...points.map(([x]) => x));
+    const right = Math.max(...points.map(([x]) => x));
+    const top = Math.min(...points.map(([, y]) => y));
+    const bottom = Math.max(...points.map(([, y]) => y));
+    const scale = Math.min(transform.k, width * .84 / (right - left), height * .84 / (bottom - top));
+    const fit = zoomIdentity.translate((minX + maxX - (left + right) * scale) / 2,
+      (minY + maxY - (top + bottom) * scale) / 2).scale(scale);
+    selection.call(behavior.transform, behavior.constrain()(fit, extent(), model.world));
+  }
 
   function reveal(answer: Coordinate, guess?: Coordinate) {
     selecting = false;
@@ -70,18 +119,43 @@ export function renderCountryMap(
       placePin(guessPin, chosen);
       endpoints(line, chosen, solution);
       svg.setAttribute('data-guess', '');
-    }
+      showMarkers([solution, chosen]);
+    } else showMarkers([solution]);
   }
 
   if (options.answer) reveal(options.answer);
   if (options.onPick) {
     const pick = options.onPick;
+    selection.call(behavior).on('dblclick.zoom', null);
+    svg.setAttribute('data-explorable', '');
     svg.setAttribute('data-selecting', '');
     svg.setAttribute('tabindex', '0');
-    svg.setAttribute('aria-label', `${label}. Pfeiltasten bewegen den Zeiger. Enter markiert den Punkt.`);
+    svg.setAttribute('aria-label', `${label}. Ziehen verschiebt die Karte. Mausrad und zwei Finger zoomen. Pfeiltasten bewegen den Zeiger. Enter markiert den Punkt.`);
+    let touchStart: Touch | undefined;
+    let dragged = false;
+    const touchCapture = { passive: true, capture: true };
+    svg.addEventListener('touchstart', (event) => {
+      if (event.touches.length > 1) dragged = true;
+      else {
+        touchStart = event.touches[0];
+        dragged = false;
+      }
+    }, touchCapture);
+    svg.addEventListener('touchmove', (event) => {
+      const touch = event.touches[0];
+      if (touchStart && Math.hypot(touch.clientX - touchStart.clientX, touch.clientY - touchStart.clientY) > dragThreshold) {
+        dragged = true;
+      }
+    }, touchCapture);
+    svg.addEventListener('touchcancel', () => { dragged = true; }, touchCapture);
+    svg.addEventListener('pointerdown', (event) => { if (event.pointerType === 'mouse') dragged = false; });
     svg.addEventListener('click', (event) => {
-      if (!selecting) return;
-      const matrix = svg.getScreenCTM();
+      if (dragged) return;
+      if (!selecting) {
+        options.onResolvedClick?.();
+        return;
+      }
+      const matrix = scene.getScreenCTM();
       if (!matrix) return;
       const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
       const coordinate = model.invert([point.x, point.y]);
@@ -97,15 +171,16 @@ export function renderCountryMap(
       event.preventDefault();
       event.stopPropagation();
       if (step) {
-        const speed = Math.max(width, height) / (event.shiftKey ? 16 : 70);
+        const [[left, top], [right, bottom]] = extent();
+        const speed = Math.max(right - left, bottom - top) / (event.shiftKey ? 16 : 70);
         cursor = [
-          Math.min(left + width, Math.max(left, cursor[0] + step[0] * speed)),
-          Math.min(top + height, Math.max(top, cursor[1] + step[1] * speed)),
+          Math.min(right, Math.max(left, cursor[0] + step[0] * speed)),
+          Math.min(bottom, Math.max(top, cursor[1] + step[1] * speed)),
         ];
         placePin(cursorPin, cursor);
         svg.setAttribute('data-cursor', '');
       } else {
-        pick(model.invert(cursor));
+        pick(model.invert(zoomTransform(svg).invert(cursor)));
       }
     });
   }

@@ -4,6 +4,8 @@ import type { CountryMap } from '../map/country-map';
 import { renderCountryMap } from './country-map';
 import { flagImage } from './flag-image';
 
+const wideOutlineRatio = 1.6;
+
 function luminance(color: string) {
   const weights = [.2126, .7152, .0722];
   return weights.reduce((sum, weight, index) => {
@@ -19,8 +21,9 @@ export function renderCountryHero(options: {
   onBack: () => void;
   position?: string;
   previousColor?: string;
+  overlay?: boolean;
 }) {
-  const { entity, definition, map, onBack, position, previousColor } = options;
+  const { entity, definition, map, onBack, position, previousColor, overlay } = options;
   const profile = position === undefined;
   const colorKey = definition.attributes.find(({ type }) => type === 'color')?.key;
   const candidate = colorKey ? entity[colorKey] : null;
@@ -30,6 +33,8 @@ export function renderCountryHero(options: {
   const inkContrast = (lightness + .05) / (luminance('#111111') + .05);
   const header = document.createElement('header');
   header.className = 'country-hero';
+  header.toggleAttribute('data-wide', Boolean(map && map.aspect > wideOutlineRatio));
+  header.toggleAttribute('data-profile-overlay', Boolean(overlay));
   header.style.setProperty('--country-color', color);
   header.style.setProperty('--previous-color', previousColor ?? 'var(--paper)');
   header.style.setProperty('--country-ink', paperContrast > inkContrast ? 'var(--paper)' : 'var(--ink)');
@@ -41,13 +46,14 @@ export function renderCountryHero(options: {
   const back = document.createElement('button');
   back.type = 'button';
   back.className = 'country-back';
-  back.textContent = '← Karte';
+  back.textContent = overlay ? '×' : '← Karte';
   if (profile) back.setAttribute('aria-label', 'Steckbrief schließen');
   back.addEventListener('click', onBack);
   const counter = document.createElement('span');
   counter.className = 'meta-label';
   counter.textContent = position ?? 'Atlas';
-  bar.append(back, counter);
+  if (overlay) bar.append(counter, back);
+  else bar.append(back, counter);
 
   const identity = document.createElement('div');
   identity.className = 'country-identity';
@@ -60,8 +66,10 @@ export function renderCountryHero(options: {
   mask.className = 'country-name-mask';
   const title = document.createElement('h2');
   title.className = 'country-title';
-  title.id = profile ? 'profile-title' : 'country-round-title';
-  title.toggleAttribute('data-long', Array.from(entity.name).length > 10);
+  title.id = overlay ? 'quiz-profile-title' : profile ? 'profile-title' : 'country-round-title';
+  const length = Array.from(entity.name).length;
+  title.toggleAttribute('data-long', length > 10);
+  title.toggleAttribute('data-extra-long', length > 21);
   title.tabIndex = -1;
   title.textContent = entity.name;
   mask.append(title);
@@ -69,15 +77,17 @@ export function renderCountryHero(options: {
 
   const mapSlot = document.createElement('div');
   mapSlot.className = 'country-hero-point';
-  header.append(background);
+  const art = document.createElement('div');
+  art.className = 'country-hero-art';
   if (map) {
     const pointAttribute = definition.attributes.find(({ point }) => point);
     const point = profile && pointAttribute ? attributePoint(entity, pointAttribute) : undefined;
     const outline = renderCountryMap(map, point ? `Umriss von ${entity.name} mit Hauptstadtpunkt` : `Umriss von ${entity.name}`, { answer: point });
     outline.svg.classList.add('country-silhouette');
-    header.append(outline.svg);
+    art.append(outline.svg);
   }
-  header.append(mapSlot, bar, identity);
+  art.append(mapSlot, identity);
+  header.append(background, bar, art);
 
   function revealFlag(animate = true) {
     const flagKey = definition.attributes.find(({ type }) => type === 'flag')?.key;

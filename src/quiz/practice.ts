@@ -26,6 +26,7 @@ export interface PracticeQuestion {
   source?: string;
   flag?: string;
   acceptedIds: ReadonlySet<string>;
+  countryForAnswer?: ReadonlyMap<string, string>;
   point?: Coordinate;
   match?: ReturnType<typeof createAnswerLookup>;
 }
@@ -120,7 +121,12 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
     const valueMatch = createAnswerLookup(attribute.type === 'enum'
       ? [...candidates, ...values.filter(({ id }) => !groups.has(id)).map((option) => ({ ...option, name_aliases: [] }))]
       : candidates);
-    return [{ attribute, groups, values, valueMatch, populated, alternativeAnswers }];
+    const countryForAnswer = new Map<string, string>();
+    for (const [id, { primary, alternatives }] of groups) {
+      const owners = [...primary, ...alternatives];
+      if (owners.length === 1) countryForAnswer.set(id, owners[0].id);
+    }
+    return [{ attribute, groups, values, valueMatch, populated, alternativeAnswers, countryForAnswer }];
   });
 
   const categories = [locationCategory, ...attributes.map(({ attribute }) => attribute)];
@@ -178,7 +184,7 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
         }
       }
     }
-    for (const { attribute, groups, values, valueMatch, populated, alternativeAnswers } of attributes) {
+    for (const { attribute, groups, values, valueMatch, populated, alternativeAnswers, countryForAnswer } of attributes) {
       if (!selected(attribute.key, settings)) continue;
       for (const direction of directions) {
         if (!inDirection(direction, settings) || !categoryFormats(attribute, direction).includes(settings.format)) continue;
@@ -225,6 +231,7 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
               answerLabel: reverse ? definition.entityLabel : attribute.label,
               flag: reverse && flag ? value : undefined,
               acceptedIds: reverse && format !== 'choice' ? countriesWithValue : acceptedValues,
+              countryForAnswer: !reverse && !flag ? countryForAnswer : undefined,
               match: format === 'typed' ? reverse ? nameMatch : valueMatch : undefined,
             });
           }

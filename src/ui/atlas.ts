@@ -10,9 +10,10 @@ export function renderProfile(
   map: CountryMap | undefined,
   onSelect: (id: string) => void,
   onClose: () => void,
+  overlay = false,
 ) {
   const previousColor = sheet.querySelector<HTMLElement>('.country-hero')?.style.getPropertyValue('--country-color');
-  const { header } = renderCountryHero({ entity, definition, map, onBack: onClose, previousColor });
+  const { header } = renderCountryHero({ entity, definition, map, onBack: onClose, previousColor, overlay });
 
   const names = new Map(entities.map(({ id, name }) => [id, name]));
   const fields = document.createElement('dl');
@@ -63,4 +64,54 @@ export function renderProfile(
   }
   sheet.replaceChildren(header, fields);
   sheet.hidden = false;
+}
+
+export function createQuizProfile(
+  dialog: HTMLDialogElement,
+  render: (id: string, onSelect: (id: string) => void, onClose: () => void) => void,
+  onChange: (open: boolean) => void,
+) {
+  let source: HTMLButtonElement | undefined;
+  let swipe: Touch | undefined;
+  const close = () => dialog.close();
+
+  function show(id: string) {
+    render(id, show, close);
+    if (!dialog.open) {
+      onChange(true);
+      dialog.showModal();
+    }
+    dialog.scrollTop = 0;
+    dialog.querySelector<HTMLElement>('.country-back')?.focus({ preventScroll: true });
+  }
+
+  dialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    close();
+  });
+  dialog.addEventListener('close', () => {
+    onChange(false);
+    source?.focus({ preventScroll: true });
+    source = undefined;
+    swipe = undefined;
+  });
+  dialog.addEventListener('touchstart', (event) => {
+    swipe = event.touches.length === 1 && dialog.scrollTop <= 0 ? event.touches[0] : undefined;
+  }, { passive: true });
+  dialog.addEventListener('touchend', (event) => {
+    if (!swipe) return;
+    const start = swipe;
+    swipe = undefined;
+    const end = Array.from(event.changedTouches).find(({ identifier }) => identifier === start.identifier);
+    if (end && dialog.scrollTop <= 0 && end.clientY - start.clientY > 72
+      && end.clientY - start.clientY > Math.abs(end.clientX - start.clientX)) close();
+  }, { passive: true });
+  dialog.addEventListener('touchcancel', () => { swipe = undefined; });
+
+  return {
+    open(id: string, trigger: HTMLButtonElement) {
+      source = trigger;
+      show(id);
+    },
+  };
 }

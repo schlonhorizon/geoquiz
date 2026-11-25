@@ -32,6 +32,27 @@
 
 Die aus `world-countries` abgeleiteten Länderdaten in `entities.csv` stehen unter ODbL 1.0. [Lizenz von world-countries](https://github.com/mledoze/countries/blob/master/LICENSE) · [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/)
 
+## Kerngebiete
+
+Der Build schließt **119 Teilflächen in 12 Ländern** aus dem Kerngebiet aus. Automatisch entfallen Teilflächen, deren kürzester geografischer Abstand zum äußeren Rand der größten Teilfläche über 1.500 km liegt und deren Fläche unter 20 % der größten Teilfläche beträgt. Die vollständigen Landesflächen bleiben auf der Karte sichtbar und anklickbar.
+
+| Land | ID | Ausgeschlossene Teilflächen |
+|---|---|---:|
+| Australien | AUS | 1 |
+| Chile | CHL | 1 |
+| Ecuador | ECU | 6 |
+| Frankreich | FRA | 7 |
+| Indien | IND | 4 |
+| Indonesien | IDN | 19 |
+| Kiribati | KIR | 10 |
+| Neuseeland | NZL | 2 |
+| Niederlande | NLD | 3 |
+| Portugal | PRT | 5 |
+| Südafrika | ZAF | 1 |
+| Vereinigte Staaten | USA | 60 |
+
+Zwei Länder verwenden manuelle Ausnahmen in `set.json`. Bei Ecuador sind die Galápagosinseln über `outline.exclude` eingetragen, da sie innerhalb der 1.500-km-Grenze liegen. Bei Kiribati behält `outline.include` die Gilbertinseln um Süd-Tarawa im Kerngebiet. `outline.exclude` entfernt zusätzlich Teilflächen im zentralen Pazifik, die die automatische Auswahl um Kiritimati behalten hätte. Alle 194 Hauptstadtpunkte liegen im jeweiligen Kerngebiet.
+
 ## Hauptstadt-Korrekturen
 
 Stand der Korrekturen ist der 25. November 2026. In sechs zuvor offenen Fällen steht ein verifizierter Hauptwert in `capital`. Drei weitere Fälle sind im Atlas über `capital_note` erläutert.
