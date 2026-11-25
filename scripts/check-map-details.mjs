@@ -137,18 +137,22 @@ async function verify(mobile) {
     await photograph('quiz-capital-water');
 
     if (!mobile) {
+      // This checks hit detection after the switch. The atlas checks the animated transition above.
+      await page.emulateMedia({ reducedMotion: 'reduce' });
       await input(page.getByRole('button', { name: 'Menü öffnen' }));
       await settledMenu();
       await choose('Üben');
       await settledMenu();
       await choose('Länder finden');
       await menu.waitFor({ state: 'hidden' });
-      await page.waitForTimeout(1450);
-      const target = await mapCoordinate([10.4, 51.2]);
+      await page.getByRole('heading', { name: /Wo liegt Deutschland/ }).waitFor();
+      const germany = [10.4, 51.2];
+      const anchor = await mapCoordinate(germany);
+      assert.ok(anchor);
+      await zoomAt(anchor, -1250);
+      await page.locator('.world-map[data-map-detail="detail"]').waitFor();
+      const target = await mapCoordinate(germany);
       assert.ok(target);
-      await zoomAt(target, -1250);
-      await page.waitForTimeout(270);
-      assert.equal(await svg.getAttribute('data-map-detail'), 'detail');
       assert.equal(await svg.locator('.atlas-capitals text').count(), 0);
       const hit = await page.evaluate(({ x, y }) => {
         const country = document.elementFromPoint(x, y);
