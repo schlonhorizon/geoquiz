@@ -7,6 +7,7 @@ import { readEntities } from './data/entities';
 import { flagCode, flagDirectory, flagPackage } from './data/flags';
 import { mergeLandAreas, validateMap } from './data/map';
 import type { DataIssues } from './data/issues';
+import { addCoreOutlines } from './data/core-outline';
 import { presetsSchema } from '../src/quiz/round-settings';
 
 interface BuiltSet {
@@ -15,6 +16,7 @@ interface BuiltSet {
   entities: Map<string, Entity>;
   mapJson: string;
   flagFiles: Set<string>;
+  excluded: Map<string, number[]>;
 }
 
 interface BuildResult extends DataIssues {
@@ -48,7 +50,9 @@ async function readSet(setsDirectory: string, id: string, issues: DataIssues): P
   }
   const mapJson = mergeLandAreas(await readUtf8(join(source, definition.map.file)), definition.map);
   validateMap(mapJson, definition, entities, issues);
-  return { definition, definitionJson, entities, mapJson, flagFiles };
+  const core = issues.errors.length ? { mapJson, excluded: new Map<string, number[]>() }
+    : addCoreOutlines(mapJson, definition, issues);
+  return { definition, definitionJson, entities, flagFiles, ...core };
 }
 
 async function writeData(outputDirectory: string, sets: Map<string, BuiltSet>, presetsJson?: string) {
@@ -108,13 +112,19 @@ export async function buildData(setsDirectory: string, outputDirectory: string, 
     result.warnings.push(...issues.warnings.map((issue) => `[${id}] ${issue}`));
   }
 
-  for (const [id, { definition, entities }] of sets) {
+  for (const [id, { definition, entities, excluded }] of sets) {
     const parent = definition.parent;
     if (parent && (parent.set === id || !sets.get(parent.set)?.entities.has(parent.entity))) {
       result.errors.push(`[${id}] Ungültige Eltern-Entity "${parent.set}:${parent.entity}".`);
     }
 
     result.report.push(`[${id}] ${entities.size} ${definition.entityLabelPlural}`);
+    if (excluded.size) {
+      result.report.push(`  Kerngebiet mit ausgeschlossenen Teilflächen bei ${excluded.size} Einträgen:`);
+      for (const [country, parts] of excluded) {
+        result.report.push(`    ${entities.get(country)?.name ?? country} (${country}): ${parts.length} · ${parts.join(', ')}`);
+      }
+    }
     const columns = new Set(definition.attributes.flatMap((attribute) => [
       attribute.key, attribute.noteColumn, attribute.emptyValueColumn, attribute.point?.lat, attribute.point?.lon,
       'alternativeValuesColumn' in attribute ? attribute.alternativeValuesColumn : undefined,

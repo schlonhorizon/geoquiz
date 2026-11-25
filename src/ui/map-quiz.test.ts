@@ -34,7 +34,7 @@ const library: PresetLibrary = {
     { id: 'capital', label: 'Hauptstädte', settings: { categories: ['capital'], direction: 'forward', format: 'typed' } },
   ],
 };
-const map = { resetView: vi.fn(), clear: vi.fn(), setPicking: vi.fn(), mark: vi.fn(), focusCountries: vi.fn() };
+const map = { resetView: vi.fn(), setAtlas: vi.fn(), clear: vi.fn(), setPicking: vi.fn(), mark: vi.fn(), focusCountries: vi.fn() };
 let chooseCountry: (id: string) => void;
 let moveMap: (source: MapInteraction, active: boolean) => void;
 let container: HTMLElement;
@@ -95,6 +95,53 @@ it('shows a capital note in feedback after a correct typed answer', async () => 
   find<HTMLFormElement>('.typed-answer').requestSubmit();
   expect(find('.verdict-title').textContent).toBe('Richtig.');
   expect(find('.verdict-detail').textContent).toBe('„Abuja“. Abuja löste Lagos als Hauptstadt ab.');
+});
+
+it('links a uniquely attributable wrong answer to its country', async () => {
+  await start('capital');
+  find<HTMLInputElement>('#country-answer').value = 'Niamey';
+  find<HTMLFormElement>('.typed-answer').requestSubmit();
+  const links = [...container.querySelectorAll('.verdict-profiles button')];
+  expect(links.map(({ textContent }) => textContent)).toEqual(['Nigeria · Steckbrief', 'Niger · Steckbrief']);
+});
+
+it('holds the quiz and the remaining countdown while a profile overlay is open', async () => {
+  await start('find');
+  chooseCountry('NGA');
+  vi.advanceTimersByTime(1700);
+  find('.verdict-profiles button').click();
+  const profile = find<HTMLDialogElement>('.quiz-profile');
+  expect(profile.open).toBe(true);
+  expect(find('#quiz-profile-title').textContent).toBe('Nigeria');
+  expect(find('.continue-label').textContent).toBe('Pausiert');
+  find('.quiz-profile .atlas-fields button').click();
+  expect(find('#quiz-profile-title').textContent).toBe('Niger');
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS + 500);
+  expect(find('#question-number').textContent).toBe('01 / 4');
+  profile.dispatchEvent(new Event('cancel', { cancelable: true }));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(profile.open).toBe(false);
+  expect(find('.continue-label').textContent).toBe('Weiter');
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS - 1701);
+  expect(find('#question-number').textContent).toBe('01 / 4');
+  vi.advanceTimersByTime(1);
+  expect(find('#question-number').textContent).toBe('02 / 4');
+});
+
+it('can deselect and reselect all categories in the builder', async () => {
+  find('.menu-button').click();
+  find('[data-action="practice"]').click();
+  await vi.advanceTimersByTimeAsync(0);
+  find('[data-action="custom"]').click();
+  await vi.advanceTimersByTimeAsync(0);
+  find('.category-toggle').click();
+  expect(find('.builder-status').textContent).toBe('Mindestens eine Kategorie wählen');
+  expect(find<HTMLButtonElement>('.round-builder button[type="submit"]').disabled).toBe(true);
+  find('[data-action="segment:categories:capital"]').click();
+  expect(find<HTMLButtonElement>('.round-builder button[type="submit"]').disabled).toBe(false);
+  find('.category-toggle').click();
+  expect(find('.category-toggle').getAttribute('aria-pressed')).toBe('true');
 });
 
 it('advances only correct answers after five seconds and frames the solution and wrong country together', async () => {

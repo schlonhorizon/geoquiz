@@ -49,6 +49,10 @@ export const setDefinitionSchema = z.object({
   entityLabel: text,
   entityLabelPlural: text,
   parent: z.object({ set: setId, entity: text }).nullable(),
+  outline: z.object({
+    include: z.record(text, z.array(z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]))).optional(),
+    exclude: z.record(text, z.array(z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]))).optional(),
+  }).optional(),
   map: z.object({
     file: z.string().regex(/^[\w.-]+\.topojson$/),
     object: text,

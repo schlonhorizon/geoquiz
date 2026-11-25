@@ -1,7 +1,7 @@
 import * as z from 'zod/mini';
 
 export const roundSettingsSchema = z.object({
-  categories: z.union([z.literal('all'), z.array(z.string()).check(z.minLength(1))]),
+  categories: z.union([z.literal('all'), z.array(z.string())]),
   direction: z.enum(['forward', 'reverse', 'mixed']),
   format: z.enum(['map', 'choice', 'typed']),
   order: z.enum(['mixed', 'country']),

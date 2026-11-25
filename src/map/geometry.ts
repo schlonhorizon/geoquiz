@@ -3,7 +3,7 @@ import { geoMiller } from 'd3-geo-projection';
 import type { Polygon, MultiPolygon } from 'geojson';
 import { feature } from 'topojson-client';
 import type { Topology } from 'topojson-specification';
-import { getMapEntityId } from '../data/map';
+import { CORE_OUTLINE_OBJECT, getMapEntityId, polygonFeatures } from '../data/map';
 import type { SetDefinition } from '../data/schema';
 import { worldWidth, wrapWorldX } from './viewport';
 
@@ -50,17 +50,18 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
   const height = south - north;
   projection.translate([worldWidth / 2, -north]).clipExtent([[0, 0], [worldWidth, height]]);
   const path = geoPath(projection);
-  const converted = feature(topology, source);
-  const features = converted.type === 'FeatureCollection' ? converted.features : [converted];
+  const core = new Map(polygonFeatures(topology, CORE_OUTLINE_OBJECT)
+    .map((item) => [getMapEntityId(item, config.idProperty), item.geometry]));
   const countries: ProjectedCountry[] = [];
 
-  for (const country of features) {
+  for (const country of polygonFeatures(topology, config.object)) {
     const { geometry } = country;
-    if (geometry?.type !== 'Polygon' && geometry?.type !== 'MultiPolygon') continue;
     const outline = path(geometry);
     if (!outline) continue;
 
-    const main = largestPolygon(geometry);
+    const id = getMapEntityId(country, config.idProperty);
+    const footprint = core.get(id) ?? geometry;
+    const main = largestPolygon(footprint);
     const areaKm2 = geoArea(geometry) * earthRadiusKm ** 2;
     // Measure around the country itself so a polygon split at 180° still has local bounds.
     const [longitude] = geoCentroid(main);
@@ -68,7 +69,7 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
     const localPath = geoPath(geoMiller().scale(projection.scale())
       .rotate([-longitude, 0]).translate([referenceX, -north])
       .clipExtent([[referenceX - worldWidth / 2, 0], [referenceX + worldWidth / 2, height]]));
-    const [[left, top], [right, bottom]] = localPath.bounds(geometry);
+    const [[left, top], [right, bottom]] = localPath.bounds(footprint);
     const midpoint = (left + right) / 2;
     const offset = wrapWorldX(midpoint) - midpoint;
     let marker: Point | null = null;
@@ -77,7 +78,7 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
       marker = [wrapWorldX(x), y];
     }
     countries.push({
-      id: getMapEntityId(country, config.idProperty),
+      id,
       path: outline,
       bounds: [[left + offset, top], [right + offset, bottom]],
       marker,

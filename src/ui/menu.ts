@@ -53,7 +53,8 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
     const keys = new Set(engine.categories.map(({ key }) => key));
     const categories = Array.isArray(settings.categories) ? [...new Set(settings.categories.filter((key) => keys.has(key)))] : 'all';
     const region = engine.regions.includes(settings.region) ? settings.region : '';
-    const fitted = { ...settings, categories: categories.length ? categories : 'all' as const, region };
+    const outdated = Array.isArray(settings.categories) && settings.categories.length > 0 && categories.length === 0;
+    const fitted = { ...settings, categories: outdated ? 'all' as const : categories, region };
     const formats = engine.formatsFor(fitted);
     const format = formats.has(fitted.format) ? fitted.format : [...formats][0] ?? fitted.format;
     return { ...fitted, format };
@@ -206,8 +207,11 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
         form.append(hint);
       }
     } else {
-      row('Kategorie', 'categories', engine.categories.map(({ key, label }) => [key, label]), (key) => selected.includes(key),
-        (key) => selected.length === 1 && selected.includes(key));
+      const categories = row('Kategorie', 'categories', engine.categories.map(({ key, label }) => [key, label]), (key) => selected.includes(key));
+      const toggleAll = button('Alle / Keine', 'segment:categoryToggle', 'segment category-toggle');
+      toggleAll.setAttribute('aria-pressed', String(selected.length === all.length));
+      toggleAll.title = selected.length === all.length ? 'Alle Kategorien abwählen' : 'Alle Kategorien auswählen';
+      categories.lastElementChild!.prepend(toggleAll);
       row('Richtung', 'direction', directions, (value) => settings.direction === value);
       row('Antwortart', 'format', answers, (value) => settings.format === value, (value) => !available.has(value));
       row('Reihenfolge', 'order', orders, (value) => settings.order === value);
@@ -223,8 +227,10 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
     const status = document.createElement('p');
     status.className = 'builder-status';
     status.setAttribute('role', 'status');
-    status.hidden = !builder.error;
-    status.textContent = builder.error ?? '';
+    const hint = !countryRound && !selected.length ? 'Mindestens eine Kategorie wählen' : builder.error;
+    status.id = 'builder-status';
+    status.hidden = !hint;
+    status.textContent = hint ?? '';
     form.append(status);
 
     const footer = document.createElement('div');
@@ -234,6 +240,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
     footer.querySelector('button')!.disabled = countryRound
       ? (countryRound.selection === 'region' && !settings.region) || (countryRound.selection === 'specific' && !countryRound.countryId)
       : !available.size;
+    if (hint) footer.querySelector('button')!.setAttribute('aria-describedby', status.id);
     form.append(footer);
     stage.append(form);
   }
@@ -358,6 +365,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
         next.categories = categories.length === all.length ? 'all' : categories;
         break;
       }
+      case 'categoryToggle': next.categories = next.categories === 'all' || next.categories.length === engine.categories.length ? [] : 'all'; break;
       case 'direction': next.direction = value as RoundSettings['direction']; break;
       case 'order': next.order = value as RoundSettings['order']; break;
       case 'format': next.format = value as AnswerFormat; break;
