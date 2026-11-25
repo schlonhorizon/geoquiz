@@ -85,6 +85,7 @@ describe('buildData', () => {
     expect(result.report).toContain('  flag: 197/197');
     expect(result.report).toEqual(expect.arrayContaining([
       '  capital: 194/197', '  capital_note: 16/197', '  continent_alt: 19/197', '  color: 197/197',
+      '  currency: 196/197', '  central_bank: 185/197', '  stock_index: 95/197', '  regime_type: 173/197',
     ]));
     expect(entities.every(({ color }) => typeof color === 'string' && /^#[0-9A-F]{6}$/i.test(color))).toBe(true);
     expect(entities.find(({ id }) => id === 'XKX')?.flag).toBe('xk');
@@ -157,6 +158,34 @@ describe('buildData', () => {
       expect(new Set(options.map(({ name }) => name)).size).toBe(4);
       expect(options.filter(({ id }) => id === entity.id)).toHaveLength(1);
     }
+
+    const allQuestions = { ...library.defaults, length: 'all' as const };
+    const currency = engine.createRound({ ...allQuestions, categories: ['currency'], direction: 'forward', format: 'typed' });
+    const bulgaria = currency.find(({ entity }) => entity.id === 'BGR')!;
+    expect(bulgaria.answer.name).toBe('Euro');
+    expect(bulgaria.match?.('EUR')).toEqual({ id: bulgaria.answer.id, kind: 'exact' });
+    expect(bulgaria.match?.('BGN')).toBeUndefined();
+    expect(currency.some(({ entity }) => entity.id === 'PSE')).toBe(false);
+
+    const banks = engine.createRound({ ...allQuestions, categories: ['central_bank'], direction: 'forward', format: 'typed' });
+    const bank = banks.find(({ entity }) => entity.id === 'ATG')!;
+    expect(bank.match?.('ECCB')).toEqual({ id: bank.answer.id, kind: 'exact' });
+
+    const indexes = { ...allQuestions, categories: ['stock_index'], direction: 'reverse' as const };
+    const regionalMembers = ['BEN', 'BFA', 'CIV', 'GNB', 'MLI', 'NER', 'SEN', 'TGO'];
+    const mapIndex = engine.createRound({ ...indexes, format: 'map' })
+      .find(({ prompt }) => prompt.includes('BRVM Composite'))!;
+    expect([...mapIndex.acceptedIds].sort()).toEqual(regionalMembers);
+    const indexChoice = engine.createRound({ ...indexes, format: 'choice' })
+      .find(({ prompt }) => prompt.includes('BRVM Composite'))!;
+    expect(indexChoice.options.filter(({ id }) => regionalMembers.includes(id))).toEqual([indexChoice.answer]);
+
+    const regimes = engine.createRound({ ...allQuestions, categories: ['regime_type'], direction: 'forward', format: 'choice' });
+    const usa = regimes.find(({ entity }) => entity.id === 'USA')!;
+    expect(usa.prompt).toContain('V-Dem');
+    expect(usa.prompt).toContain('2025');
+    expect(usa.answer.name).toBe('Wahldemokratie');
+    expect(regimes.some(({ entity }) => entity.id === 'PSE' || entity.id === 'SOM')).toBe(false);
   });
 
   it('discovers a new set and attributes from data alone', async () => {
