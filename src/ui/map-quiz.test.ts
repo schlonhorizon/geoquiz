@@ -4,6 +4,8 @@ import type { QuizSet } from '../data/load';
 import type { PresetLibrary } from '../quiz/round-settings';
 import { renderWorldMap } from '../map/world-map';
 import { renderMapQuiz } from './map-quiz';
+import { AUTO_ADVANCE_MS } from './advance-timer';
+import type { MapInteraction } from '../map/world-map';
 
 vi.mock('../map/world-map');
 
@@ -31,14 +33,16 @@ const library: PresetLibrary = {
 };
 const map = { resetView: vi.fn(), clear: vi.fn(), setPicking: vi.fn(), mark: vi.fn(), focusCountries: vi.fn() };
 let chooseCountry: (id: string) => void;
+let moveMap: (source: MapInteraction, active: boolean) => void;
 let container: HTMLElement;
 const find = <T extends HTMLElement = HTMLElement>(selector: string) => container.querySelector<T>(selector)!;
 
 beforeEach(() => {
-  vi.useFakeTimers();
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
   vi.spyOn(Math, 'random').mockReturnValue(.99);
-  vi.mocked(renderWorldMap).mockImplementation((_svg, _topology, _config, _entities, select) => {
+  vi.mocked(renderWorldMap).mockImplementation((_svg, _topology, _config, _entities, select, interact) => {
     chooseCountry = select;
+    moveMap = interact;
     return map;
   });
   container = document.createElement('div');
@@ -72,20 +76,20 @@ it('starts in Atlas, shows populated fields and opens a neighbor profile', () =>
   expect(find('#profile-title').textContent).toBe('Niger');
   expect(find('.atlas-fields').textContent).toContain('Niamey');
   expect(find('.atlas-fields').textContent).not.toContain('Nachbarländer');
-  expect(map.focusCountries).toHaveBeenLastCalledWith(['NER'], expect.anything(), true);
+  expect(map.focusCountries).toHaveBeenLastCalledWith(['NER'], expect.anything(), true, undefined);
 });
 
-it('advances only correct answers after 1100 ms and frames the solution and wrong country together', async () => {
+it('advances only correct answers after five seconds and frames the solution and wrong country together', async () => {
   await start('find');
   const counter = find('#question-number');
   const title = find('.verdict-title');
-  const timer = find('.timer-bar');
+  const timer = find('.continue-timer');
 
   chooseCountry('NGA');
   expect(title.textContent).toBe('Richtig.');
   expect(timer.hidden).toBe(false);
   expect(map.mark).toHaveBeenLastCalledWith('NGA', 'correct');
-  vi.advanceTimersByTime(1099);
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS - 1);
   expect(counter.textContent).toBe('01 / 4');
   vi.advanceTimersByTime(1);
   expect(counter.textContent).toBe('02 / 4');
@@ -93,20 +97,20 @@ it('advances only correct answers after 1100 ms and frames the solution and wron
   chooseCountry('NGA');
   expect(title.textContent).toBe('Falsch.');
   expect(timer.hidden).toBe(true);
-  expect(map.focusCountries).toHaveBeenLastCalledWith(['NER', 'NGA'], expect.anything(), true);
-  vi.advanceTimersByTime(1500);
+  expect(map.focusCountries).toHaveBeenLastCalledWith(['NER', 'NGA'], expect.anything(), true, 'NER');
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS + 1);
   expect(counter.textContent).toBe('02 / 4');
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
 
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 's' }));
   expect(title.textContent).toBe('Übersprungen.');
-  vi.advanceTimersByTime(1500);
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS + 1);
   expect(counter.textContent).toBe('03 / 4');
   window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
 
   chooseCountry('FRA');
   window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
-  vi.advanceTimersByTime(1500);
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS + 1);
   expect(find('.summary-score').textContent).toBe('2/4');
   expect(find('.menu-button').closest('[hidden]')).toBeNull();
 });
@@ -131,11 +135,11 @@ it('uses the shared matcher for typed location answers and skips empty submissio
 
   submit('republique du niger');
   expect(title.textContent).toBe('Richtig.');
-  vi.advanceTimersByTime(1100);
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS);
   submit('Deutshcland');
   expect(title.textContent).toBe('Richtig.');
   expect(find('.verdict-detail').textContent).toContain('Deutschland');
-  vi.advanceTimersByTime(1100);
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS);
   submit('  ');
   expect(title.textContent).toBe('Übersprungen.');
   expect(find('#correct-count').textContent).toBe('02');
@@ -153,4 +157,47 @@ it('remembers a customized preset per set and uses it when reopening the app', a
   await start('typed');
   expect(find('.typed-answer').hidden).toBe(true);
   expect(find('.answers').hidden).toBe(false);
+});
+
+it('holds the remaining time until both the hover and map interaction end', async () => {
+  await start('find');
+  chooseCountry('NGA');
+  const sheet = find('.answer-sheet');
+  const label = find('.continue-label');
+  const counter = find('#question-number');
+
+  vi.advanceTimersByTime(1800);
+  moveMap('gesture', true);
+  sheet.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+  expect(label.textContent).toBe('Pausiert');
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS);
+  expect(counter.textContent).toBe('01 / 4');
+  moveMap('gesture', false);
+  expect(label.textContent).toBe('Pausiert');
+  sheet.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+  expect(label.textContent).toBe('Weiter');
+  vi.advanceTimersByTime(AUTO_ADVANCE_MS - 1801);
+  expect(counter.textContent).toBe('01 / 4');
+  vi.advanceTimersByTime(1);
+  expect(counter.textContent).toBe('02 / 4');
+});
+
+it('allows map clicks after a correct answer and the panel or overlay after any answer', async () => {
+  await start('find');
+  const counter = find('#question-number');
+  const map = container.querySelector('svg.world-map')!;
+  const clickMap = () => map.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  chooseCountry('NGA');
+  clickMap();
+  expect(counter.textContent).toBe('02 / 4');
+
+  chooseCountry('NGA');
+  clickMap();
+  expect(counter.textContent).toBe('02 / 4');
+  find('.verdict-title').click();
+  expect(counter.textContent).toBe('03 / 4');
+
+  find('.skip-question').click();
+  find('.continue-overlay').click();
+  expect(counter.textContent).toBe('04 / 4');
 });

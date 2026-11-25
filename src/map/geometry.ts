@@ -66,8 +66,9 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
     const [longitude] = geoCentroid(main);
     const [referenceX] = projection([longitude, 0])!;
     const localPath = geoPath(geoMiller().scale(projection.scale())
-      .rotate([-longitude, 0]).translate([referenceX, -north]));
-    const [[left, top], [right, bottom]] = localPath.bounds(main);
+      .rotate([-longitude, 0]).translate([referenceX, -north])
+      .clipExtent([[referenceX - worldWidth / 2, 0], [referenceX + worldWidth / 2, height]]));
+    const [[left, top], [right, bottom]] = localPath.bounds(geometry);
     const midpoint = (left + right) / 2;
     const offset = wrapWorldX(midpoint) - midpoint;
     let marker: Point | null = null;
