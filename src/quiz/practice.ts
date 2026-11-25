@@ -1,4 +1,6 @@
 import type { QuizSet } from '../data/load';
+import { attributePoint } from '../data/map';
+import type { Coordinate } from '../data/map';
 import type { AttributeDefinition, Entity } from '../data/schema';
 import { createAnswerLookup, normalizeAnswer } from '../match/answers';
 import { shuffle } from './shuffle';
@@ -24,6 +26,7 @@ export interface PracticeQuestion {
   source?: string;
   flag?: string;
   acceptedIds: ReadonlySet<string>;
+  point?: Coordinate;
   match?: ReturnType<typeof createAnswerLookup>;
 }
 
@@ -36,7 +39,7 @@ function categoryFormats(attribute: Category, direction: Direction): AnswerForma
   if (attribute.type === 'location') return direction === 'forward' ? ['map'] : ['choice', 'typed'];
   const formats: AnswerFormat[] = ['choice'];
   if (attribute.type !== 'flag' || direction === 'reverse') formats.push('typed');
-  if (attribute.type === 'text' && direction === 'reverse') formats.push('map');
+  if (attribute.type === 'text' && (direction === 'reverse' || attribute.point)) formats.push('map');
   return formats.filter((format) => !attribute.modes || attribute.modes.some((mode) =>
     mode === direction || mode === format || mode === `${direction}-${format}`));
 }
@@ -62,7 +65,9 @@ function questionPrompt(attribute: AttributeDefinition, entity: Entity, value: s
     template = direction === 'forward' ? 'Welche Flagge gehört zu {entity}?' : 'Welches Land ist das?';
   } else if (format === 'map') {
     const reverse = attribute.prompts?.reverse ?? `Welches Land hat „{value}“ als ${attribute.label}?`;
-    template = attribute.prompts?.reverseMap ?? `${reverse} Markiere es auf der Karte.`;
+    template = direction === 'forward'
+      ? attribute.prompts?.mapPoint ?? `Markiere {value} auf der Karte von {entity}.`
+      : attribute.prompts?.reverseMap ?? `${reverse} Markiere es auf der Karte.`;
   } else if (direction === 'forward') {
     template = `Was ist der Wert für „${attribute.label}“ bei {entity}?`;
   } else {
@@ -126,9 +131,20 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
     settings.direction === 'mixed' || settings.direction === direction;
 
   function formatsFor(settings: RoundSettings) {
-    return new Set(categories.filter(({ key }) => selected(key, settings))
-      .flatMap((category) => directions.filter((direction) => inDirection(direction, settings))
-        .flatMap((direction) => categoryFormats(category, direction))));
+    const formats = new Set<AnswerFormat>();
+    for (const category of categories) {
+      if (!selected(category.key, settings)) continue;
+      for (const direction of directions) {
+        if (!inDirection(direction, settings)) continue;
+        for (const format of categoryFormats(category, direction)) {
+          if (format === 'map' && direction === 'forward' && category.type !== 'location'
+            && !entities.some((entity) => inRegion(entity, settings)
+              && typeof entity[category.key] === 'string' && attributePoint(entity, category))) continue;
+          formats.add(format);
+        }
+      }
+    }
+    return formats;
   }
 
   function locationQuestion(entity: Entity, direction: Direction, format: AnswerFormat, random: () => number): PracticeQuestion | undefined {
@@ -150,9 +166,9 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
     };
   }
 
-  function createRound(settings: RoundSettings, random = Math.random): PracticeQuestion[] {
+  function buildQuestions(settings: RoundSettings, random: () => number, eligible: Entity[]): PracticeQuestion[] {
     const questions: PracticeQuestion[] = [];
-    const eligible = entities.filter((entity) => inRegion(entity, settings));
+    const eligibleIds = new Set(eligible.map(({ id }) => id));
     if (selected('location', settings)) {
       for (const direction of directions) {
         if (!inDirection(direction, settings) || !categoryFormats(locationCategory, direction).includes(settings.format)) continue;
@@ -171,10 +187,12 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
         const { format } = settings;
         for (const [valueId, { value, primary, alternatives }] of groups) {
           const matchingCountries = [...primary, ...alternatives];
-          const local = (reverse ? matchingCountries : primary).filter((entity) => inRegion(entity, settings));
+          const local = (reverse ? matchingCountries : primary).filter(({ id }) => eligibleIds.has(id));
           const targets = reverse && settings.order === 'mixed' ? shuffle(local, random).slice(0, 1) : local;
           const countriesWithValue = new Set(matchingCountries.map(({ id }) => id));
           for (const entity of targets) {
+            const point = !reverse && format === 'map' ? attributePoint(entity, attribute) : undefined;
+            if (!reverse && format === 'map' && !point) continue;
             const answer = reverse ? { id: entity.id, name: entity.name }
               : flag ? { id: entity.id, name: entity.name, flag: value }
                 : { id: valueId, name: String(entity[attribute.key]) };
@@ -199,7 +217,7 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
             }
 
             questions.push({
-              entity, category: attribute.key, direction, format, answer, options,
+              entity, category: attribute.key, direction, format, answer, options, point,
               alternativeAnswers: otherAnswers,
               noteColumn: attribute.atlasNoteOnly ? undefined : attribute.noteColumn,
               source: attribute.source,
@@ -213,7 +231,31 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
         }
       }
     }
+    return questions;
+  }
 
+  function createRound(settings: RoundSettings, random = Math.random): PracticeQuestion[] {
+    const countryRound = settings.countryRound;
+    if (countryRound) {
+      const { selection, steps, countryId, count } = countryRound;
+      const specific = selection === 'specific' ? entities.find(({ id }) => id === countryId) : undefined;
+      if ((selection === 'specific' && !specific) || (selection === 'region' && !settings.region)) return [];
+      const eligible = entities.filter((entity) => entity !== specific && (selection !== 'region' || inRegion(entity, settings)));
+      const shuffled = shuffle(eligible, random);
+      const ordered = specific ? [specific, ...shuffled] : shuffled;
+      const groups: PracticeQuestion[][] = [];
+      for (const entity of ordered) {
+        const questions = steps.flatMap(({ category, format }) => buildQuestions({
+          ...settings, categories: [category], direction: 'forward', format, order: 'country',
+        }, random, [entity]));
+        if (questions.length) groups.push(questions);
+        else if (entity === specific) return [];
+        if (groups.length === count) break;
+      }
+      return groups.flat();
+    }
+
+    const questions = buildQuestions(settings, random, entities.filter((entity) => inRegion(entity, settings)));
     let ordered = shuffle(questions, random);
     if (settings.order === 'country') {
       const byCountry = new Map<string, PracticeQuestion[]>();
@@ -227,7 +269,7 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
     return settings.length === 'all' ? ordered : ordered.slice(0, settings.length);
   }
 
-  return { categories, regions, formatsFor, createRound };
+  return { categories, regions, countries: entities, formatsFor, createRound };
 }
 
 function countryChoices(

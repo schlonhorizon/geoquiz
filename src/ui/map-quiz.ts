@@ -1,5 +1,7 @@
 import type { Topology } from 'topojson-specification';
 import type { QuizSet } from '../data/load';
+import type { Coordinate } from '../data/map';
+import { assessCapital, createCountryMaps } from '../map/country-map';
 import { renderWorldMap } from '../map/world-map';
 import { createPracticeEngine, locationCategory } from '../quiz/practice';
 import type { PracticeQuestion } from '../quiz/practice';
@@ -9,10 +11,14 @@ import { renderProfile } from './atlas';
 import { AUTO_ADVANCE_MS, createAdvanceTimer } from './advance-timer';
 import { flagImage } from './flag-image';
 import { renderMenu } from './menu';
+import { renderCountryMap } from './country-map';
+import { renderCountryHero } from './country-hero';
+import { renderCountryResult } from './country-result';
+import type { QuestionOutcome } from './country-result';
 
 const continueGap = 8;
 const verdictLabels = { correct: 'Richtig.', incorrect: 'Falsch.', skipped: 'Übersprungen.' };
-type Verdict = keyof typeof verdictLabels;
+const distanceFormat = new Intl.NumberFormat('de', { maximumFractionDigits: 1 });
 
 export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: Topology, library: PresetLibrary) {
   const { definition, entities } = set;
@@ -21,6 +27,9 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   container.style.setProperty('--auto-advance-ms', `${AUTO_ADVANCE_MS}ms`);
   container.style.setProperty('--continue-gap', `${continueGap}px`);
   container.innerHTML = `
+    <div class="quiz-stage">
+    <div class="round-hero" hidden></div>
+    <div class="country-progress" role="group" aria-label="Fragenfortschritt" hidden></div>
     <header class="quiz-bar">
       <div class="question-bar">
         <div class="question-meta">
@@ -59,6 +68,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
         </form>
       </section>
       <section class="answer-sheet atlas-sheet" aria-labelledby="profile-title" hidden></section>
+      <section class="country-result" aria-labelledby="country-result-title" hidden></section>
       <section class="answer-sheet round-summary" aria-labelledby="summary-title" hidden>
         <div class="summary-content">
           <h2 class="meta-label" id="summary-title">Runde beendet</h2>
@@ -76,7 +86,9 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
       <span class="continue-hint" aria-hidden="true"></span>
       <span class="continue-timer" aria-hidden="true" hidden></span>
     </button>
+    </div>
     <svg class="world-map" role="group" aria-label="Weltkarte" aria-describedby="map-instructions"></svg>
+    <div class="point-stage" hidden></div>
     <p class="sr-only" id="map-instructions">Ziehen zum Verschieben. Mit Mausrad oder zwei Fingern zoomen.</p>
     <p class="sr-only feedback" role="status" aria-atomic="true"></p>
     <dialog class="menu-overlay" id="quiz-menu" aria-label="GeoQuiz"></dialog>
@@ -84,6 +96,8 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
 
   const menu = container.querySelector<HTMLDialogElement>('#quiz-menu')!;
   const menuButton = container.querySelector<HTMLButtonElement>('.menu-button')!;
+  const quizBar = container.querySelector<HTMLElement>('.quiz-bar')!;
+  const questionMeta = container.querySelector<HTMLElement>('.question-meta')!;
   const questionBar = container.querySelector<HTMLElement>('.question-bar')!;
   const questionBody = container.querySelector<HTMLElement>('.question-body')!;
   const questionFlag = container.querySelector<HTMLElement>('.question-flag')!;
@@ -114,29 +128,43 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   const summaryDetail = container.querySelector<HTMLElement>('.summary-detail')!;
   const newRound = container.querySelector<HTMLButtonElement>('.new-round')!;
   const svg = container.querySelector<SVGSVGElement>('.world-map')!;
+  const stage = container.querySelector<HTMLElement>('.quiz-stage')!;
+  const heroSlot = container.querySelector<HTMLElement>('.round-hero')!;
+  const countryProgress = container.querySelector<HTMLElement>('.country-progress')!;
+  const countryResult = container.querySelector<HTMLElement>('.country-result')!;
+  const pointStage = container.querySelector<HTMLElement>('.point-stage')!;
 
   const byId = new Map(entities.map((entity) => [entity.id, entity]));
   const engine = createPracticeEngine(set);
+  const countryMaps = createCountryMaps(topology, definition.map);
   const countdown = createAdvanceTimer((paused) => {
     next.toggleAttribute('data-paused', paused);
     nextLabel.textContent = paused ? 'Pausiert' : 'Weiter';
   }, () => advance(true));
   const map = renderWorldMap(svg, topology, definition.map, entities, (id) => {
     if (!round) showProfile(id);
-    else if (round.questions[index]?.format === 'map') submitAnswer(id);
+    else if (round.questions[index]?.format === 'map' && !round.questions[index].point) submitAnswer(id);
   }, (source, active) => countdown.setPaused(source, active));
   const optionButtons = new Map<string, HTMLButtonElement>();
-  let round: { questions: PracticeQuestion[]; settings: RoundSettings; label: string } | undefined;
+  let round: { questions: PracticeQuestion[]; settings: RoundSettings; label: string; countryCount: number } | undefined;
   let focusIds: string[] = [];
   let radarId: string | undefined;
   let animateZoom = true;
   let index = 0;
   let score = 0;
-  let verdict: Verdict | undefined;
+  let verdict: QuestionOutcome | undefined;
   let touch = window.matchMedia('(pointer: coarse)').matches;
+  let hero: ReturnType<typeof renderCountryHero> | undefined;
+  let stopResult: (() => void) | undefined;
+  let activePointMap: ReturnType<typeof renderCountryMap> | undefined;
+  let countryNumber = 1;
+  let countryStart = 0;
+  let countryEnd = 0;
+  let countryOutcomes: QuestionOutcome[] = [];
   const pad = (number: number) => String(number).padStart(2, '0');
 
   function measureFrame() {
+    if (round?.settings.countryRound) return { top: 0, bottom: svg.clientHeight };
     const top = (questionBar.parentElement?.offsetTop ?? 0) + questionBar.offsetHeight;
     dock.style.setProperty('--quiz-top', `${top}px`);
     let bottom = dock.offsetHeight ? dock.offsetTop : svg.clientHeight;
@@ -145,6 +173,8 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
       next.style.top = `${bottom - continueGap}px`;
       bottom -= next.offsetHeight + continueGap;
     }
+    pointStage.style.top = `${top}px`;
+    pointStage.style.bottom = `${Math.max(0, svg.clientHeight - bottom)}px`;
     return { top, bottom };
   }
 
@@ -167,6 +197,72 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     if (pop) value.className = 'score-pop';
     value.textContent = pad(score);
     scoreDisplay.replaceChildren(value);
+  }
+
+  function labelFor(question: PracticeQuestion) {
+    const label = engine.categories.find(({ key }) => key === question.category)?.label ?? '';
+    return question.point ? `${label} auf der Karte` : label;
+  }
+
+  function toggleCountryLayout(active: boolean) {
+    container.toggleAttribute('data-country-round', active);
+    heroSlot.hidden = countryProgress.hidden = !active;
+    svg.setAttribute('aria-hidden', String(active));
+    if (active) dock.prepend(next);
+    else {
+      stage.append(next);
+      questionMeta.append(menuButton);
+      heroSlot.replaceChildren();
+      hero = undefined;
+    }
+    next.style.removeProperty('top');
+    next.style.removeProperty('left');
+    stage.scrollTop = 0;
+  }
+
+  function resetPointMap() {
+    activePointMap = undefined;
+    pointStage.hidden = true;
+    pointStage.replaceChildren();
+    hero?.setPointMap();
+  }
+
+  function openPointMap(question: PracticeQuestion) {
+    const solution = question.point!;
+    const { id, name, neighbors } = question.entity;
+    const model = countryMaps.get(id, Array.isArray(neighbors) ? neighbors : []);
+    if (!model) return;
+    const view = renderCountryMap(model, `Landeskarte von ${name}`, {
+      nearby: true,
+      onPick: (guess) => submitAnswer(undefined, false, false, { guess, ...assessCapital(guess, solution, model.bounds) }),
+    });
+    activePointMap = view;
+    if (hero) hero.setPointMap(view.svg);
+    else {
+      pointStage.replaceChildren(view.svg);
+      pointStage.hidden = false;
+    }
+  }
+
+  function showCountryIntro() {
+    const question = round?.questions[index];
+    if (!round || !question) return;
+    countryEnd = index + 1;
+    while (round.questions[countryEnd]?.entity.id === question.entity.id) countryEnd++;
+    countryOutcomes = [];
+    hero = renderCountryHero({
+      entity: question.entity, definition, map: countryMaps.get(question.entity.id), onBack: showAtlas,
+      position: `Land ${pad(countryNumber)} / ${pad(round.countryCount)}`, previousColor: hero?.color,
+    });
+    heroSlot.replaceChildren(hero.header);
+    hero.bar.append(menuButton);
+    countryProgress.replaceChildren(...round.questions.slice(index, countryEnd).map((item, offset) => {
+      const cell = document.createElement('span');
+      cell.className = 'country-progress-cell';
+      cell.setAttribute('role', 'img');
+      cell.setAttribute('aria-label', `Frage ${offset + 1} · ${labelFor(item)}`);
+      return cell;
+    }));
   }
 
   function showPrompt(question: PracticeQuestion) {
@@ -227,17 +323,23 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   function showQuestion(focus: boolean) {
     if (!round) return;
     const question = round.questions[index];
+    const countryRound = Boolean(round.settings.countryRound);
+    resetPointMap();
     verdict = undefined;
     feedback.textContent = '';
-    questionBody.hidden = false;
-    modeName.textContent = engine.categories.find(({ key }) => key === question.category)?.label ?? round.label;
-    questionNumber.textContent = `${pad(index + 1)} / ${round.questions.length}`;
-    questionNumber.setAttribute('aria-label', `Frage ${index + 1} von ${round.questions.length}`);
-    questionNumber.hidden = scoreLine.hidden = false;
+    questionBody.hidden = quizBar.hidden = false;
+    modeName.textContent = labelFor(question) || round.label;
+    const position = countryRound ? index - countryStart + 1 : index + 1;
+    const count = countryRound ? countryEnd - countryStart : round.questions.length;
+    questionNumber.textContent = `${pad(position)} / ${count}`;
+    questionNumber.setAttribute('aria-label', `Frage ${position} von ${count}`);
+    questionNumber.hidden = false;
+    scoreLine.hidden = countryRound;
+    if (countryRound) countryProgress.children[position - 1]?.setAttribute('aria-current', 'step');
     showPrompt(question);
 
     clearContinue();
-    summary.hidden = verdictPanel.hidden = atlas.hidden = true;
+    summary.hidden = verdictPanel.hidden = atlas.hidden = countryResult.hidden = true;
     skip.hidden = false;
     typedInput.value = '';
     typedLabel.textContent = question.answerLabel;
@@ -248,36 +350,50 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     dock.scrollTop = 0;
     showOptions(question);
 
-    const clickable = question.format === 'map';
+    const clickable = question.format === 'map' && !question.point && !countryRound;
     const visibleCountry = !clickable && (question.category === locationCategory.key || question.direction === 'forward');
     map.clear();
     map.setPicking(clickable, clickable && question.acceptedIds.size === 1 ? question.entity.id : undefined);
-    if (visibleCountry) {
+    if (question.point) {
+      openPointMap(question);
+      focusMap([]);
+    } else if (countryRound) {
+      focusMap([]);
+    } else if (visibleCountry) {
       map.mark(question.entity.id, 'highlighted', true);
       focusMap([question.entity.id]);
     } else {
       focusMap([]);
       map.resetView(animateZoom);
     }
-    if (focus && !menu.open) (typedAnswer.hidden ? prompt : typedInput).focus({ preventScroll: true });
+    if (countryRound) stage.scrollTop = 0;
+    if (focus && !menu.open) (activePointMap?.svg ?? (typedAnswer.hidden ? prompt : typedInput)).focus({ preventScroll: true });
   }
 
   function startRound(settings: RoundSettings, label: string, questions: PracticeQuestion[]) {
     if (!questions.length) return;
-    round = { settings, label, questions };
+    stopResult?.();
+    round = { settings, label, questions, countryCount: new Set(questions.map(({ entity }) => entity.id)).size };
     index = score = 0;
+    countryNumber = 1;
+    countryStart = 0;
+    toggleCountryLayout(Boolean(settings.countryRound));
+    if (settings.countryRound) showCountryIntro();
     updateScore(false);
     showQuestion(true);
   }
 
   function showAtlas() {
     clearContinue();
+    stopResult?.();
+    resetPointMap();
+    toggleCountryLayout(false);
     round = undefined;
     verdict = undefined;
-    questionBody.hidden = false;
+    questionBody.hidden = quizBar.hidden = false;
     questionFlag.hidden = questionNumber.hidden = scoreLine.hidden = skip.hidden = true;
     questionFlag.replaceChildren();
-    sheet.hidden = summary.hidden = atlas.hidden = true;
+    sheet.hidden = summary.hidden = atlas.hidden = countryResult.hidden = true;
     modeName.textContent = 'Atlas';
     prompt.textContent = 'Land antippen';
     feedback.textContent = '';
@@ -291,7 +407,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   function showProfile(id: string) {
     const entity = byId.get(id);
     if (!entity) return;
-    renderProfile(atlas, set, entity, (neighbor) => {
+    renderProfile(atlas, set, entity, countryMaps.get(id), (neighbor) => {
       showProfile(neighbor);
       const title = atlas.querySelector<HTMLElement>('#profile-title')!;
       title.tabIndex = -1;
@@ -309,25 +425,40 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     feedback.textContent = `Steckbrief: ${entity.name}`;
   }
 
-  function submitAnswer(selectedId?: string, typo = false, unmatched = false) {
+  function submitAnswer(
+    selectedId?: string, typo = false, unmatched = false,
+    pointAttempt?: { guess: Coordinate; correct: boolean; distanceKm: number },
+  ) {
     const question = round?.questions[index];
     if (!round || !question || verdict) return;
+    const countryRound = Boolean(round.settings.countryRound);
     const mouseOverPanel = !touch && sheet.matches(':hover');
-    const outcome = selectedId && question.acceptedIds.has(selectedId) ? 'correct'
-      : selectedId || unmatched ? 'incorrect' : 'skipped';
+    const outcome = (pointAttempt?.correct || selectedId && question.acceptedIds.has(selectedId)) ? 'correct'
+      : pointAttempt || selectedId || unmatched ? 'incorrect' : 'skipped';
     const correct = outcome === 'correct';
     verdict = outcome;
     if (correct) {
       score++;
       updateScore(true);
     }
+    if (countryRound) {
+      countryOutcomes.push(outcome);
+      const cell = countryProgress.children[index - countryStart] as HTMLElement;
+      cell.removeAttribute('aria-current');
+      cell.dataset.outcome = outcome;
+      cell.setAttribute('aria-label', `${cell.getAttribute('aria-label')} · ${verdictLabels[outcome]}`);
+      if (question.answer.flag) hero?.revealFlag();
+    }
+    if (question.point) activePointMap?.reveal(question.point, pointAttempt?.guess);
 
     const countryAnswer = question.category === locationCategory.key || question.direction === 'reverse';
     const rightCountry = countryAnswer && correct && selectedId ? selectedId : question.entity.id;
     const wrongCountry = countryAnswer && !correct && selectedId && byId.has(selectedId) ? selectedId : undefined;
     map.setPicking(false);
-    map.mark(rightCountry, countryAnswer || correct ? 'correct' : outcome === 'incorrect' ? 'incorrect' : 'highlighted');
-    if (wrongCountry) map.mark(wrongCountry, 'incorrect');
+    if (!countryRound && !question.point) {
+      map.mark(rightCountry, countryAnswer || correct ? 'correct' : outcome === 'incorrect' ? 'incorrect' : 'highlighted');
+      if (wrongCountry) map.mark(wrongCountry, 'incorrect');
+    }
 
     for (const [id, button] of optionButtons) {
       button.disabled = true;
@@ -335,7 +466,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
       if (button.classList.contains('flag-option')) button.setAttribute('aria-label', button.querySelector('.answer-label')!.textContent!);
     }
     verdictPanel.dataset.state = outcome;
-    verdictNumber.textContent = `Frage ${pad(index + 1)}`;
+    verdictNumber.textContent = `Frage ${pad(index - (countryRound ? countryStart : 0) + 1)}`;
     verdictTitle.textContent = verdictLabels[outcome];
     const selected = question.options.find(({ id }) => id === selectedId)?.name
       ?? question.alternativeAnswers?.find(({ id }) => id === selectedId)?.name
@@ -350,8 +481,9 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     let detail = `${incorrect}${alsoCorrect}`;
     if (correct) {
       detail = typo ? `Die richtige Schreibweise ist „${accepted}“${source}.`
-        : source || note ? `„${accepted}“${source}.` : 'Weiter geht’s gleich.';
+        : source || note || question.point ? `„${accepted}“${source}.` : 'Weiter geht’s gleich.';
     }
+    if (pointAttempt) detail += ` Entfernung: ${distanceFormat.format(pointAttempt.distanceKm)} km.`;
     verdictDetail.textContent = typeof note === 'string' ? `${detail} ${note}` : detail;
     feedback.textContent = `${verdictLabels[outcome]} ${verdictDetail.textContent}`;
     nextLabel.textContent = 'Weiter';
@@ -361,8 +493,9 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     timer.hidden = !correct;
     dock.setAttribute('data-verdict', '');
     dock.scrollTop = 0;
-    focusMap(wrongCountry ? [rightCountry, wrongCountry] : [rightCountry], animateZoom, rightCountry);
+    focusMap(countryRound || question.point ? [] : wrongCountry ? [rightCountry, wrongCountry] : [rightCountry], animateZoom, rightCountry);
     if (!menu.open) next.focus({ preventScroll: true });
+    if (countryRound) next.scrollIntoView?.({ block: 'nearest' });
     if (correct) {
       countdown.setPaused('sheet', mouseOverPanel);
       countdown.start();
@@ -373,11 +506,46 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     if (round) startRound(round.settings, round.label, engine.createRound(round.settings));
   }
 
+  function startNextCountry() {
+    if (!round) return;
+    stopResult?.();
+    if (index === round.questions.length) {
+      repeatRound();
+      return;
+    }
+    countryNumber++;
+    countryStart = index;
+    showCountryIntro();
+    showQuestion(true);
+  }
+
+  function showCountryResult(focus: boolean) {
+    if (!round) return;
+    resetPointMap();
+    quizBar.hidden = sheet.hidden = true;
+    const items = round.questions.slice(countryStart, index);
+    const country = items[0].entity.id;
+    const result = renderCountryResult(countryResult, items.map((question, offset) => ({
+      question, label: labelFor(question), outcome: countryOutcomes[offset],
+    })), () => {
+      showAtlas();
+      showProfile(country);
+      atlas.querySelector<HTMLElement>('#profile-title')?.focus({ preventScroll: true });
+    }, startNextCountry, index < round.questions.length);
+    stopResult = result.stop;
+    stage.scrollTop = 0;
+    if (focus && !menu.open) result.heading.focus({ preventScroll: true });
+  }
+
   function advance(automatic = false) {
     if (!round || !verdict || index >= round.questions.length) return;
     const focus = !automatic || document.activeElement === next;
     clearContinue();
     index++;
+    if (round.settings.countryRound && index === countryEnd) {
+      showCountryResult(focus);
+      return;
+    }
     if (index < round.questions.length) {
       showQuestion(focus);
       return;
@@ -437,6 +605,10 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   // Capture the click before the answer handler can publish a new verdict.
   sheet.addEventListener('click', () => { if (verdict) advance(); }, true);
   svg.addEventListener('click', () => { if (verdict === 'correct') advance(); }, true);
+  pointStage.addEventListener('click', () => { if (verdict === 'correct') advance(); }, true);
+  heroSlot.addEventListener('click', (event) => {
+    if (verdict === 'correct' && (event.target as Element).closest('.country-hero-point')) advance();
+  }, true);
   next.addEventListener('click', () => advance());
   newRound.addEventListener('click', repeatRound);
 
@@ -445,6 +617,13 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     const target = event.target;
     if (target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'))) return;
     if ((event.key === ' ' || event.key === 'Enter') && verdict) {
+      if (!countryResult.hidden) {
+        if (!(target instanceof Element && target.closest('button, a'))) {
+          event.preventDefault();
+          startNextCountry();
+        }
+        return;
+      }
       event.preventDefault();
       if (index === round.questions.length) repeatRound();
       else advance();

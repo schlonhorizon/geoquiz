@@ -1,30 +1,18 @@
 import type { QuizSet } from '../data/load';
 import type { Entity } from '../data/schema';
-import { flagImage } from './flag-image';
+import type { CountryMap } from '../map/country-map';
+import { renderCountryHero } from './country-hero';
 
 export function renderProfile(
   sheet: HTMLElement,
   { definition, entities }: QuizSet,
   entity: Entity,
+  map: CountryMap | undefined,
   onSelect: (id: string) => void,
   onClose: () => void,
 ) {
-  const flagKey = definition.attributes.find(({ type }) => type === 'flag')?.key;
-  const header = document.createElement('header');
-  header.className = 'atlas-header';
-  const title = document.createElement('h2');
-  title.id = 'profile-title';
-  title.textContent = entity.name;
-  const close = document.createElement('button');
-  close.type = 'button';
-  close.className = 'square-button';
-  close.setAttribute('aria-label', 'Steckbrief schließen');
-  close.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1l14 14M15 1L1 15"/></svg>';
-  close.addEventListener('click', onClose);
-
-  header.append(title);
-  if (flagKey && typeof entity[flagKey] === 'string') header.append(flagImage(entity[flagKey]));
-  header.append(close);
+  const previousColor = sheet.querySelector<HTMLElement>('.country-hero')?.style.getPropertyValue('--country-color');
+  const { header } = renderCountryHero({ entity, definition, map, onBack: onClose, previousColor });
 
   const names = new Map(entities.map(({ id, name }) => [id, name]));
   const fields = document.createElement('dl');

@@ -1,5 +1,6 @@
 import type { PracticeQuestion, createPracticeEngine } from '../quiz/practice';
-import type { AnswerFormat, Preset, PresetLibrary, RoundSettings } from '../quiz/round-settings';
+import { normalizeAnswer } from '../match/answers';
+import type { AnswerFormat, CountryRoundSettings, Preset, PresetLibrary, RoundSettings } from '../quiz/round-settings';
 import type { SettingsStore } from '../settings/store';
 import { renderSourceList } from './source-page';
 
@@ -25,6 +26,8 @@ const answers = [['map', 'Karte'], ['choice', '4 Optionen'], ['typed', 'Tippen']
 const directions = [['forward', 'Land → Kategorie'], ['reverse', 'Kategorie → Land'], ['mixed', 'Gemischt']] as const;
 const orders = [['mixed', 'Gemischt'], ['country', 'Land für Land']] as const;
 const lengths = [[10, '10'], [20, '20'], ['all', 'Alle']] as const;
+const countrySelections = [['random', 'Zufällig'], ['region', 'Region'], ['specific', 'Bestimmtes Land']] as const;
+const countryCounts = [[1, '1'], [3, '3'], [5, '5'], [10, '10']] as const;
 
 function button(label: string, action: string, className: string) {
   const element = document.createElement('button');
@@ -37,6 +40,7 @@ function button(label: string, action: string, className: string) {
 
 export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement, actions: MenuActions) {
   const { engine, library, store, setId } = actions;
+  const countries = [...engine.countries].sort((a, b) => a.name.localeCompare(b.name, 'de'));
   let page: Page = { name: 'home' };
   let transitioning = false;
   let animationRun = 0;
@@ -56,10 +60,15 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
   }
 
   function initial(preset?: Preset) {
+    const saved = preset ? store.load(setId, preset.id) : undefined;
+    const presetRound = preset?.settings.countryRound;
+    const countryRound = presetRound ? { ...presetRound, ...saved?.countryRound, steps: presetRound.steps } : undefined;
+    if (countryRound && !countries.some(({ id }) => id === countryRound.countryId)) countryRound.countryId = '';
     return fitSettings({
       ...library.defaults,
       ...preset?.settings,
-      ...(preset ? store.load(setId, preset.id) : undefined),
+      ...saved,
+      countryRound,
     });
   }
 
@@ -146,6 +155,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
 
   function renderBuilder(stage: HTMLElement, builder: Extract<Page, { name: 'builder' }>) {
     const { settings, preset } = builder;
+    const countryRound = settings.countryRound;
     addTitle(stage, 'Rundenaufbau');
     if (preset) sectionLabel(stage, preset.label);
     const form = document.createElement('form');
@@ -156,7 +166,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
 
     function row<T extends string | number>(
       label: string,
-      key: keyof RoundSettings,
+      key: keyof RoundSettings | 'countrySelection' | 'countryCount',
       values: readonly (readonly [T, string])[],
       pressed: (value: T) => boolean,
       disabled: (value: T) => boolean = () => false,
@@ -182,18 +192,33 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
       return field;
     }
 
-    row('Kategorie', 'categories', engine.categories.map(({ key, label }) => [key, label]), (key) => selected.includes(key),
-      (key) => selected.length === 1 && selected.includes(key));
-    row('Richtung', 'direction', directions, (value) => settings.direction === value);
-    row('Antwortart', 'format', answers, (value) => settings.format === value, (value) => !available.has(value));
-    row('Reihenfolge', 'order', orders, (value) => settings.order === value);
-    const selection = row('Auswahl', 'region', [['', 'Alle Regionen'], ...engine.regions.map((region) => [region, region] as const)],
-      (value) => settings.region === value);
-    const difficulty = document.createElement('span');
-    difficulty.className = 'builder-difficulty meta-label';
-    difficulty.textContent = 'Schwierigkeit · Folgt';
-    selection.lastElementChild!.append(difficulty);
-    row<RoundSettings['length']>('Länge', 'length', lengths, (value) => settings.length === value);
+    if (countryRound) {
+      row('Auswahl', 'countrySelection', countrySelections, (value) => countryRound.selection === value);
+      if (countryRound.selection === 'region') {
+        row('Region', 'region', engine.regions.map((region) => [region, region] as const), (value) => settings.region === value);
+      }
+      if (countryRound.selection === 'specific') form.append(renderCountrySearch(countryRound.countryId));
+      row('Länder', 'countryCount', countryCounts, (value) => countryRound.count === value);
+      if (countryRound.selection === 'specific' && countryRound.count > 1) {
+        const hint = document.createElement('p');
+        hint.className = 'country-builder-hint';
+        hint.textContent = 'Die Runde beginnt mit deinem gewählten Land. Die weiteren Länder werden zufällig ausgewählt.';
+        form.append(hint);
+      }
+    } else {
+      row('Kategorie', 'categories', engine.categories.map(({ key, label }) => [key, label]), (key) => selected.includes(key),
+        (key) => selected.length === 1 && selected.includes(key));
+      row('Richtung', 'direction', directions, (value) => settings.direction === value);
+      row('Antwortart', 'format', answers, (value) => settings.format === value, (value) => !available.has(value));
+      row('Reihenfolge', 'order', orders, (value) => settings.order === value);
+      const selection = row('Auswahl', 'region', [['', 'Alle Regionen'], ...engine.regions.map((region) => [region, region] as const)],
+        (value) => settings.region === value);
+      const difficulty = document.createElement('span');
+      difficulty.className = 'builder-difficulty meta-label';
+      difficulty.textContent = 'Schwierigkeit · Folgt';
+      selection.lastElementChild!.append(difficulty);
+      row<RoundSettings['length']>('Länge', 'length', lengths, (value) => settings.length === value);
+    }
 
     const status = document.createElement('p');
     status.className = 'builder-status';
@@ -206,9 +231,38 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
     footer.className = 'builder-footer';
     footer.setAttribute('data-menu-block', '');
     footer.innerHTML = '<button type="submit" class="primary-button">Runde starten <span aria-hidden="true">→</span></button>';
-    footer.querySelector('button')!.disabled = !available.size;
+    footer.querySelector('button')!.disabled = countryRound
+      ? (countryRound.selection === 'region' && !settings.region) || (countryRound.selection === 'specific' && !countryRound.countryId)
+      : !available.size;
     form.append(footer);
     stage.append(form);
+  }
+
+  function renderCountrySearch(selected: string) {
+    const section = document.createElement('div');
+    section.className = 'country-search';
+    section.setAttribute('data-menu-block', '');
+    section.innerHTML = `
+      <label for="country-search" class="meta-label">Land suchen</label>
+      <input type="search" id="country-search" autocomplete="off">
+      <label for="country-start" class="meta-label">Startland</label>
+      <select id="country-start"></select>
+    `;
+    const search = section.querySelector('input')!;
+    const select = section.querySelector('select')!;
+    function update() {
+      const key = normalizeAnswer(search.value);
+      const current = select.value || selected;
+      const matches = countries.filter(({ name, name_aliases }) => [name, ...name_aliases].some((text) => normalizeAnswer(text).includes(key)));
+      select.replaceChildren(new Option(matches.length ? 'Land auswählen' : 'Keine passenden Länder', ''));
+      for (const { name, id } of matches) select.add(new Option(name, id));
+      select.value = matches.some(({ id }) => id === current) ? current : '';
+      if (key && matches.length === 1) select.value = matches[0].id;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    search.addEventListener('input', update);
+    update();
+    return section;
   }
 
   function render(focusAction?: string, preserveScroll = false) {
@@ -277,6 +331,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
 
   function start(builder: Extract<Page, { name: 'builder' }>) {
     const { settings, preset } = builder;
+    if (page.name === 'builder' && dialog.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled) return;
     const questions = engine.createRound(settings);
     if (!questions.length) {
       const next = { ...builder, error: 'Für diese Auswahl gibt es keine Fragen.' };
@@ -308,6 +363,12 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
       case 'format': next.format = value as AnswerFormat; break;
       case 'region': next.region = value; break;
       case 'length': next.length = value === 'all' ? value : value === '10' ? 10 : 20; break;
+      case 'countrySelection':
+        if (next.countryRound) next.countryRound = { ...next.countryRound, selection: value as CountryRoundSettings['selection'] };
+        break;
+      case 'countryCount':
+        if (next.countryRound) next.countryRound = { ...next.countryRound, count: Number(value) as CountryRoundSettings['count'] };
+        break;
     }
     page = { ...page, settings: fitSettings(next), error: undefined };
     if (page.preset) store.save(setId, page.preset.id, page.settings);
@@ -362,6 +423,12 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
 
   dialog.addEventListener('change', (event) => {
     const input = event.target;
+    if (input instanceof HTMLSelectElement && input.id === 'country-start' && page.name === 'builder' && page.settings.countryRound) {
+      page.settings = { ...page.settings, countryRound: { ...page.settings.countryRound, countryId: input.value } };
+      dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled = !input.value;
+      if (page.preset && input.value) store.save(setId, page.preset.id, page.settings);
+      return;
+    }
     if (!(input instanceof HTMLInputElement)) return;
     if (input.id === 'animate-feedback') actions.setAnimation(animationEnabled = input.checked);
     if (input.id === 'marker-rings') actions.setMarkerRings(rings = input.checked);

@@ -131,8 +131,8 @@ export async function buildData(setsDirectory: string, outputDirectory: string, 
     const library = presetsSchema.parse(JSON.parse(presetsJson));
     const known = new Set(['location', ...[...sets.values()].flatMap(({ definition }) => definition.attributes.map(({ key }) => key))]);
     for (const { label, settings } of [{ label: 'Standardwerte', settings: library.defaults }, ...library.presets]) {
-      if (!Array.isArray(settings.categories)) continue;
-      for (const key of settings.categories) {
+      const keys = Array.isArray(settings.categories) ? settings.categories : [];
+      for (const key of [...keys, ...settings.countryRound?.steps.map(({ category }) => category) ?? []]) {
         if (!known.has(key)) result.errors.push(`[${label}] Unbekannte Kategorie "${key}".`);
       }
     }

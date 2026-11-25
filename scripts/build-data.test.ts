@@ -8,6 +8,7 @@ import type { GeometryCollection, Topology } from 'topojson-specification';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Entity, SetDefinition } from '../src/data/schema';
 import { projectWorldMap } from '../src/map/geometry';
+import { createCountryMaps } from '../src/map/country-map';
 import { createPracticeEngine } from '../src/quiz/practice';
 import type { PresetLibrary } from '../src/quiz/round-settings';
 import { buildData } from './build-data';
@@ -160,8 +161,39 @@ describe('buildData', () => {
 
     const library: PresetLibrary = await emitted('presets.json');
     const engine = createPracticeEngine({ definition, entities });
-    for (const preset of library.presets.filter(({ upcoming }) => !upcoming)) {
+    for (const preset of library.presets.filter(({ upcoming, settings }) => !upcoming && !settings.countryRound)) {
       expect(engine.createRound({ ...library.defaults, ...preset.settings })).toHaveLength(20);
+    }
+    const countrySettings = library.presets.find(({ id }) => id === 'complete')!.settings.countryRound!;
+    const fullCountry = { ...library.defaults, countryRound: { ...countrySettings, selection: 'specific' as const, countryId: 'DEU' } };
+    const germany = engine.createRound(fullCountry, () => .99);
+    expect(germany.map(({ category, format }) => [category, format])).toEqual([
+      ['flag', 'choice'], ['capital', 'choice'], ['capital', 'map'], ['continent', 'choice'],
+      ['currency', 'choice'], ['central_bank', 'choice'], ['stock_index', 'choice'],
+      ['government_form', 'choice'], ['regime_type', 'choice'],
+    ]);
+    expect(germany.every(({ entity }) => entity.id === 'DEU')).toBe(true);
+    expect(germany[2].prompt).toBe('Markiere Berlin auf der Karte von Deutschland.');
+    const regionalTour = engine.createRound({
+      ...library.defaults, region: 'Ozeanien', countryRound: { ...countrySettings, selection: 'region', count: 3 },
+    });
+    expect(new Set(regionalTour.map(({ entity }) => entity.id)).size).toBe(3);
+    expect(regionalTour.every(({ entity }) => entity.continent === 'Ozeanien')).toBe(true);
+    const nauru = engine.createRound({ ...fullCountry, countryRound: { ...fullCountry.countryRound, countryId: 'NRU' } });
+    expect(nauru.map(({ category }) => category)).toEqual(['flag', 'continent', 'currency', 'government_form']);
+    const capitalMap = { ...library.defaults, categories: ['capital'], direction: 'forward' as const, format: 'map' as const, length: 'all' as const };
+    expect(engine.formatsFor(capitalMap)).toContain('map');
+    const capitalQuestions = engine.createRound(capitalMap);
+    expect(capitalQuestions).toHaveLength(194);
+    const countryMaps = createCountryMaps(topology, definition.map);
+    for (const { entity, point } of capitalQuestions) {
+      const map = countryMaps.get(entity.id)!;
+      const [left, top, width, height] = map.view;
+      const [x, y] = map.project(point!);
+      expect(x, entity.id).toBeGreaterThan(left);
+      expect(x, entity.id).toBeLessThan(left + width);
+      expect(y, entity.id).toBeGreaterThan(top);
+      expect(y, entity.id).toBeLessThan(top + height);
     }
     const location = { ...library.defaults, categories: ['location'], length: 'all' as const };
     const find = engine.createRound({ ...location, direction: 'forward', format: 'map' });
