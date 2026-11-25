@@ -84,6 +84,30 @@ describe('attribute questions', () => {
     expect(map.acceptedIds).toEqual(new Set(['AUT', 'DEU']));
   });
 
+  it('accepts alternative continents in both directions and keeps them out of distractors', () => {
+    const flexible = createPracticeEngine({
+      definition: {
+        ...definition,
+        attributes: [{
+          key: 'continent', label: 'Kontinent', type: 'enum',
+          values: ['Europa', 'Asien', 'Afrika'], alternativeValuesColumn: 'continent_alt',
+        }],
+      },
+      entities: set.entities.map((entity) => entity.id === 'EGY' ? { ...entity, continent_alt: ['Asien'] } : entity),
+    });
+    const settings = { categories: ['continent'] };
+    const forward = round({ ...settings, direction: 'forward', format: 'typed', region: 'Afrika' }, flexible)
+      .find(({ entity }) => entity.id === 'EGY')!;
+    expect(forward.acceptedIds.has(forward.match!('Asien')!.id)).toBe(true);
+    const choices = round({ ...settings, direction: 'forward', format: 'choice' }, flexible)
+      .find(({ entity }) => entity.id === 'EGY')!;
+    expect(new Set(choices.options.map(({ name }) => name))).toEqual(new Set(['Afrika', 'Europa']));
+    const reverse = round({ ...settings, direction: 'reverse', format: 'typed', region: 'Asien' }, flexible)[0];
+    expect(reverse.acceptedIds.has(reverse.match!('Ägypten')!.id)).toBe(true);
+    const reverseChoices = round({ ...settings, direction: 'reverse', format: 'choice', region: 'Asien' }, flexible)[0];
+    expect(reverseChoices.options.map(({ id }) => id)).not.toContain('EGY');
+  });
+
   it('prefers configured flag distractors and neighbors and supports both flag directions', () => {
     const forward = round({ categories: ['flag'], direction: 'forward', format: 'choice' }).find(({ answer }) => answer.id === 'AUT')!;
     expect(forward.prompt).toBe('Welche Flagge gehört zu Österreich?');

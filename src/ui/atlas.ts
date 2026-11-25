@@ -29,9 +29,13 @@ export function renderProfile(
   const names = new Map(entities.map(({ id, name }) => [id, name]));
   const fields = document.createElement('dl');
   fields.className = 'atlas-fields';
-  for (const { key, label, type } of definition.attributes) {
+  for (const attribute of definition.attributes) {
+    const { key, label, type, noteColumn } = attribute;
+    if (type === 'flag' || type === 'color') continue;
     const value = entity[key];
-    if (type === 'flag' || value == null || value === '' || (Array.isArray(value) && !value.length)) continue;
+    const note = noteColumn ? entity[noteColumn] : undefined;
+    const empty = value == null || value === '' || (Array.isArray(value) && !value.length);
+    if (empty && !note) continue;
     const row = document.createElement('div');
     const term = document.createElement('dt');
     term.textContent = label;
@@ -46,9 +50,21 @@ export function renderProfile(
         button.addEventListener('click', () => onSelect(id));
         description.append(button);
       }
-      if (!description.childElementCount) continue;
-    } else {
+      if (!description.childElementCount && !note) continue;
+    } else if (!empty) {
       description.textContent = Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? value ? 'Ja' : 'Nein' : String(value);
+    }
+    if (type === 'enum' && attribute.alternativeValuesColumn) {
+      const alternatives = entity[attribute.alternativeValuesColumn];
+      if (Array.isArray(alternatives) && alternatives.length) {
+        description.append(` (${alternatives.join(', ')} ebenfalls möglich)`);
+      }
+    }
+    if (typeof note === 'string') {
+      const detail = document.createElement('p');
+      detail.className = 'atlas-note';
+      detail.textContent = note;
+      description.append(detail);
     }
     row.append(term, description);
     fields.append(row);

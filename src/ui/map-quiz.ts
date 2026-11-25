@@ -337,11 +337,17 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     verdictPanel.dataset.state = outcome;
     verdictNumber.textContent = `Frage ${pad(index + 1)}`;
     verdictTitle.textContent = verdictLabels[outcome];
-    const selected = question.options.find(({ id }) => id === selectedId)?.name ?? (selectedId ? byId.get(selectedId)?.name : undefined);
+    const selected = question.options.find(({ id }) => id === selectedId)?.name
+      ?? question.alternativeAnswers?.find(({ id }) => id === selectedId)?.name
+      ?? (selectedId ? byId.get(selectedId)?.name : undefined);
     const solution = `Richtig ist „${question.answer.name}“.`;
+    const alternatives = question.alternativeAnswers?.map(({ name }) => `„${name}“`);
+    const alsoCorrect = alternatives?.length ? ` Auch ${alternatives.join(', ')} ${alternatives.length === 1 ? 'gilt' : 'gelten'} als richtig.` : '';
+    const note = question.noteColumn ? byId.get(rightCountry)?.[question.noteColumn] : undefined;
+    const incorrect = selected ? `Du hast ${selected} gewählt. ${solution}` : solution;
     verdictDetail.textContent = correct
-      ? typo ? `Die richtige Schreibweise ist „${selected ?? question.answer.name}“.` : 'Weiter geht’s gleich.'
-      : selected ? `Du hast ${selected} gewählt. ${solution}` : solution;
+      ? typeof note === 'string' ? note : typo ? `Die richtige Schreibweise ist „${selected ?? question.answer.name}“.` : 'Weiter geht’s gleich.'
+      : `${incorrect}${alsoCorrect}${typeof note === 'string' ? ` ${note}` : ''}`;
     feedback.textContent = `${verdictLabels[outcome]} ${verdictDetail.textContent}`;
     nextLabel.textContent = 'Weiter';
     nextHint.textContent = touch ? 'Tippen' : 'Leertaste';

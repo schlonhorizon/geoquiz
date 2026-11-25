@@ -168,6 +168,7 @@ Die Menüblöcke sind die Kopfzeilen, Listenzeilen, Abschnittslabels und Aktions
 
 ## 8. Daten für das Design
 
-- **Hauptfarbe**: neue Spalte `color` (Hex) in `data/sets/world/entities.csv`. Startwert automatisch aus der Flagge berechnen (größte Fläche, die nicht weiß oder fast weiß ist), dann von Hand korrigierbar. Weiße oder sehr helle Ergebnisse vermeiden.
+- **Hauptfarbe**. `color` in `data/sets/world/entities.csv` speichert einen von Hand editierbaren Wert im Format `#RRGGBB`. `npm run data:seed-colors` leitet Startwerte aus der größten geeigneten Fläche der lokalen 4:3-Flagge ab. Weiß und annähernd weiße Flächen werden übersprungen. Das Skript ergänzt fehlende Werte in `entities.seed.csv`. Der Daten-Build übernimmt die geprüften Farben aus `entities.csv`.
+- **Hauptstadt-Hinweise und Kontinente**. Der Steckbrief zeigt den Hauptwert und gegebenenfalls zusätzliche Kontinente. Hauptstadt-Hinweise stehen im Steckbrief und nach der Auflösung von Hauptstadtfragen.
 - **Flaggen**. Der Daten-Build legt die 4:3-SVGs aus `flag-icons` (MIT) anhand der ISO-Codes unter `public/data/flags/` ab. Kosovo `XKX` erhält `xk`.
 - **Flagge als Kategorie**. Der Typ `flag` erzeugt vorwärts die Frage „Welche Flagge gehört zu X?“ mit vier Flaggen-Kacheln. Rückwärts zeigt das Fragepanel die Flagge oberhalb von „Welches Land ist das?“ und erlaubt Tippen oder vier Ländernamen zur Auswahl. Die optionale Spalte `flag_similar` enthält eine mit `|` getrennte Liste ähnlicher Länder-IDs. Für Ablenker haben diese IDs Vorrang, gefolgt von Nachbarländern und Ländern desselben Kontinents.

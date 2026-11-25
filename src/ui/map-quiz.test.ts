@@ -14,21 +14,24 @@ const definition: QuizSet['definition'] = {
   map: { file: 'map.topojson', object: 'countries', idProperty: 'id', projection: 'miller',
     prompts: { find: 'Wo liegt {entity}?', name: 'Wie heißt das Land?' } },
   attributes: [
-    { key: 'capital', label: 'Hauptstadt', type: 'text' },
+    { key: 'capital', label: 'Hauptstadt', type: 'text', noteColumn: 'capital_note' },
+    { key: 'continent', label: 'Kontinent', type: 'enum', values: ['Europa', 'Afrika'], alternativeValuesColumn: 'continent_alt' },
+    { key: 'color', label: 'Hauptfarbe', type: 'color', quiz: false },
     { key: 'neighbors', label: 'Nachbarländer', type: 'entityRefList' },
   ],
 };
 const countries: QuizSet['entities'] = [
-  { id: 'NGA', name: 'Nigeria', name_aliases: [], capital: 'Abuja', neighbors: ['NER'] },
+  { id: 'NGA', name: 'Nigeria', name_aliases: [], capital: 'Abuja', capital_note: 'Abuja löste Lagos als Hauptstadt ab.', neighbors: ['NER'] },
   { id: 'NER', name: 'Niger', name_aliases: ['République du Niger'], capital: 'Niamey' },
   { id: 'DEU', name: 'Deutschland', name_aliases: [] },
-  { id: 'FRA', name: 'Frankreich', name_aliases: [] },
+  { id: 'FRA', name: 'Frankreich', name_aliases: [], continent: 'Europa', continent_alt: ['Afrika'], capital_note: 'Ergänzung im Atlas.', color: '#123456' },
 ];
 const library: PresetLibrary = {
   defaults: { categories: 'all', direction: 'mixed', format: 'choice', order: 'mixed', region: '', difficulty: 'all', length: 20 },
   presets: [
     { id: 'find', label: 'Länder finden', settings: { categories: ['location'], direction: 'forward', format: 'map' } },
     { id: 'typed', label: 'Tipprunde', settings: { categories: ['location'], direction: 'reverse', format: 'typed' } },
+    { id: 'capital', label: 'Hauptstädte', settings: { categories: ['capital'], direction: 'forward', format: 'typed' } },
   ],
 };
 const map = { resetView: vi.fn(), clear: vi.fn(), setPicking: vi.fn(), mark: vi.fn(), focusCountries: vi.fn() };
@@ -77,6 +80,21 @@ it('starts in Atlas, shows populated fields and opens a neighbor profile', () =>
   expect(find('.atlas-fields').textContent).toContain('Niamey');
   expect(find('.atlas-fields').textContent).not.toContain('Nachbarländer');
   expect(map.focusCountries).toHaveBeenLastCalledWith(['NER'], expect.anything(), true, undefined);
+});
+
+it('shows atlas notes even without a quiz capital and displays alternative continents', () => {
+  chooseCountry('FRA');
+  expect(find('.atlas-note').textContent).toBe('Ergänzung im Atlas.');
+  expect(find('.atlas-fields').textContent).toContain('Europa (Afrika ebenfalls möglich)');
+  expect(find('.atlas-fields').textContent).not.toContain('#123456');
+});
+
+it('shows a capital note in feedback after a correct typed answer', async () => {
+  await start('capital');
+  find<HTMLInputElement>('#country-answer').value = 'Abuja';
+  find<HTMLFormElement>('.typed-answer').requestSubmit();
+  expect(find('.verdict-title').textContent).toBe('Richtig.');
+  expect(find('.verdict-detail').textContent).toBe('Abuja löste Lagos als Hauptstadt ab.');
 });
 
 it('advances only correct answers after five seconds and frames the solution and wrong country together', async () => {

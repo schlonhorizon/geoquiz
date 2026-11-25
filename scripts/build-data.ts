@@ -1,11 +1,10 @@
 import { copyFile, mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import isoCountries from 'i18n-iso-countries';
 import { setDefinitionSchema } from '../src/data/schema';
 import type { Entity, SetDefinition, SetIndex } from '../src/data/schema';
 import { readEntities } from './data/entities';
+import { flagCode, flagDirectory, flagPackage } from './data/flags';
 import { mergeLandAreas, validateMap } from './data/map';
 import type { DataIssues } from './data/issues';
 import { presetsSchema } from '../src/quiz/round-settings';
@@ -26,9 +25,6 @@ async function readUtf8(file: string): Promise<string> {
   return new TextDecoder('utf-8', { fatal: true }).decode(await readFile(file));
 }
 
-const flagPackage = dirname(createRequire(import.meta.url).resolve('flag-icons/package.json'));
-const flagDirectory = join(flagPackage, 'flags', '4x3');
-
 async function readSet(setsDirectory: string, id: string, issues: DataIssues): Promise<BuiltSet> {
   const source = join(setsDirectory, id);
   const definitionJson = await readUtf8(join(source, 'set.json'));
@@ -43,7 +39,7 @@ async function readSet(setsDirectory: string, id: string, issues: DataIssues): P
   if (flags.length) {
     const available = new Set(await readdir(flagDirectory));
     for (const entity of entities.values()) {
-      const code = entity.id === 'XKX' ? 'xk' : isoCountries.alpha3ToAlpha2(entity.id)?.toLowerCase();
+      const code = flagCode(entity.id);
       const flag = code && available.has(`${code}.svg`) ? code : null;
       if (flag) flagFiles.add(`${flag}.svg`);
       else issues.warnings.push(`${entity.id}: Keine 4:3-Flagge verfügbar.`);
@@ -119,7 +115,11 @@ export async function buildData(setsDirectory: string, outputDirectory: string, 
     }
 
     result.report.push(`[${id}] ${entities.size} ${definition.entityLabelPlural}`);
-    for (const { key } of definition.attributes) {
+    const columns = new Set(definition.attributes.flatMap((attribute) => [
+      attribute.key, attribute.noteColumn, attribute.type === 'enum' ? attribute.alternativeValuesColumn : undefined,
+    ]));
+    for (const key of columns) {
+      if (key === undefined) continue;
       const populated = [...entities.values()].filter((entity) => entity[key] != null).length;
       result.report.push(`  ${key}: ${populated}/${entities.size}`);
     }

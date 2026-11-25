@@ -25,6 +25,7 @@
       "label": "Hauptstadt",
       "type": "text",
       "aliasesColumn": "capital_aliases",
+      "noteColumn": "capital_note",
       "point": { "lat": "capital_lat", "lon": "capital_lon" },
       "prompts": {
         "forward": "Was ist die Hauptstadt von {entity}?",
@@ -37,12 +38,14 @@
       "label": "Kontinent",
       "type": "enum",
       "values": ["Europa", "Asien", "Afrika", "Nordamerika", "Südamerika", "Ozeanien"],
+      "alternativeValuesColumn": "continent_alt",
       "prompts": {
         "forward": "Auf welchem Kontinent liegt {entity}?",
         "reverse": "Welches Land liegt auf dem Kontinent {value}?"
       }
     },
     { "key": "flag", "label": "Flagge", "type": "flag" },
+    { "key": "color", "label": "Hauptfarbe", "type": "color", "quiz": false },
     { "key": "neighbors", "label": "Nachbarländer", "type": "entityRefList" },
     { "key": "seas", "label": "Meereszugang", "type": "list" },
     { "key": "memberships", "label": "Mitgliedschaften", "type": "list", "groupQuiz": true },

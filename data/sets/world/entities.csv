@@ -1,198 +1,198 @@
-id;name;name_aliases;continent;capital;capital_aliases;capital_lat;capital_lon;neighbors;seas;memberships;currency;central_bank;stock_index;regime_type;un_member
-AFG;Afghanistan;Islamische Republik Afghanistan|Islamic Republic of Afghanistan|Afġānistān;Asien;Kabul;;;;CHN|IRN|PAK|TJK|TKM|UZB;;;;;;;true
-AGO;Angola;Republik Angola|Republic of Angola|República de Angola|ʁɛpublika de an'ɡɔla;Afrika;Luanda;;;;COD|COG|NAM|ZMB;;;;;;;true
-ALB;Albanien;Republik Albanien|Albania|Republic of Albania|Shqipëri|Shqipëria|Shqipnia;Europa;Tirana;;;;GRC|MKD|MNE|XKX;;;;;;;true
-AND;Andorra;Fürstentum Andorra|Principality of Andorra|Principat d'Andorra;Europa;Andorra la Vella;;;;ESP|FRA;;;;;;;true
-ARE;Vereinigte Arabische Emirate;United Arab Emirates|UAE|Emirates;Asien;Abu Dhabi;;;;OMN|SAU;;;;;;;true
-ARG;Argentinien;Argentinische Republik|Argentina|Argentine Republic|República Argentina;Südamerika;Buenos Aires;;;;BOL|BRA|CHL|PRY|URY;;;;;;;true
-ARM;Armenien;Republik Armenien|Armenia|Republic of Armenia|Hayastan|Հայաստանի Հանրապետություն;Asien;Jerewan;Yerevan;;;AZE|GEO|IRN|TUR;;;;;;;true
-ATG;Antigua und Barbuda;Antigua and Barbuda;Nordamerika;Saint John's;;;;;;;;;;;true
-AUS;Australien;Commonwealth Australien|Australia|Commonwealth of Australia;Ozeanien;Canberra;;;;;;;;;;;true
-AUT;Österreich;Republik Österreich|Austria|Republic of Austria|Osterreich;Europa;Wien;Vienna;;;CHE|CZE|DEU|HUN|ITA|LIE|SVK|SVN;;;;;;;true
-AZE;Aserbaidschan;Republik Aserbaidschan|Azerbaijan|Republic of Azerbaijan|Azərbaycan Respublikası;Asien;Baku;;;;ARM|GEO|IRN|RUS|TUR;;;;;;;true
-BDI;Burundi;Republik Burundi|Republic of Burundi|Republika y'Uburundi|République du Burundi;Afrika;Gitega;;;;COD|RWA|TZA;;;;;;;true
-BEL;Belgien;Königreich Belgien|Belgium|Kingdom of Belgium|België|Belgie|Belgique|Koninkrijk België|Royaume de Belgique;Europa;Brüssel;Brussels;;;DEU|FRA|LUX|NLD;;;;;;;true
-BEN;Benin;Republik Benin|Republic of Benin|République du Bénin;Afrika;Porto-Novo;;;;BFA|NER|NGA|TGO;;;;;;;true
-BFA;Burkina Faso;;Afrika;Ouagadougou;;;;BEN|CIV|GHA|MLI|NER|TGO;;;;;;;true
-BGD;Bangladesch;Volksrepublik Bangladesch|Bangladesh|People's Republic of Bangladesh|Gônôprôjatôntri Bangladesh;Asien;Dhaka;;;;IND|MMR;;;;;;;true
-BGR;Bulgarien;Republik Bulgarien|Bulgaria|Republic of Bulgaria|Република България;Europa;Sofia;;;;GRC|MKD|ROU|SRB|TUR;;;;;;;true
-BHR;Bahrain;Königreich Bahrain|Kingdom of Bahrain|Mamlakat al-Baḥrayn;Asien;Manama;;;;;;;;;;;true
-BHS;Bahamas;Commonwealth der Bahamas|Commonwealth of the Bahamas;Nordamerika;Nassau;;;;;;;;;;;true
-BIH;Bosnien und Herzegowina;Bosnia and Herzegovina|Bosnia-Herzegovina|Босна и Херцеговина;Europa;Sarajevo;;;;HRV|MNE|SRB;;;;;;;true
-BLR;Belarus;Republik Belarus|Republic of Belarus|Bielaruś|Белоруссия|Республика Белоруссия;Europa;Minsk;;;;LTU|LVA|POL|RUS|UKR;;;;;;;true
-BLZ;Belize;;Nordamerika;Belmopan;;;;GTM|MEX;;;;;;;true
-BOL;Bolivien;Plurinationaler Staat Bolivien|Bolivia|Plurinational State of Bolivia|Buliwya|Wuliwya|Bolivia, Plurinational State of|Estado Plurinacional de Bolivia|Buliwya Mamallaqta|Wuliwya Suyu|Tetã Volívia;Südamerika;Sucre;;;;ARG|BRA|CHL|PER|PRY;;;;;;;true
-BRA;Brasilien;Föderative Republik Brasilien|Brazil|Federative Republic of Brazil|Brasil|República Federativa do Brasil;Südamerika;Brasília;;;;ARG|BOL|COL|GUY|PER|PRY|SUR|URY|VEN;;;;;;;true
-BRB;Barbados;;Nordamerika;Bridgetown;;;;;;;;;;;true
-BRN;Brunei;Sultanat Brunei Darussalam|Nation of Brunei, Abode of Peace|Brunei Darussalam|Nation of Brunei|the Abode of Peace;Asien;Bandar Seri Begawan;;;;MYS;;;;;;;true
-BTN;Bhutan;Königreich Bhutan|Kingdom of Bhutan;Asien;Thimphu;;;;CHN|IND;;;;;;;true
-BWA;Botswana;Republik Botsuana|Republic of Botswana|Lefatshe la Botswana;Afrika;Gaborone;;;;NAM|ZAF|ZMB|ZWE;;;;;;;true
-CAF;Zentralafrikanische Republik;Central African Republic|République centrafricaine;Afrika;Bangui;;;;CMR|COD|COG|SDN|SSD|TCD;;;;;;;true
-CAN;Kanada;Canada;Nordamerika;Ottawa;;;;USA;;;;;;;true
-CHE;Schweiz;Schweizerische Eidgenossenschaft|Switzerland|Swiss Confederation|Suisse|Svizzera|Svizra;Europa;Bern;;;;AUT|DEU|FRA|ITA|LIE;;;;;;;true
-CHL;Chile;Republik Chile|Republic of Chile|República de Chile;Südamerika;Santiago;;;;ARG|BOL|PER;;;;;;;true
-CHN;China;Volksrepublik China|People's Republic of China|Zhōngguó|Zhongguo|Zhonghua|中华人民共和国|Zhōnghuá Rénmín Gònghéguó;Asien;Peking;Beijing;;;AFG|BTN|IND|KAZ|KGZ|LAO|MMR|MNG|NPL|PAK|PRK|RUS|TJK|VNM;;;;;;;true
-CIV;Elfenbeinküste;Côte d'Ivoire|Côte d’Ivoire|Republik Côte d'Ivoire|Ivory Coast|Republic of Côte d'Ivoire|Cote d'Ivoire|République de Côte d'Ivoire;Afrika;Yamoussoukro;;;;BFA|GHA|GIN|LBR|MLI;;;;;;;true
-CMR;Kamerun;Republik Kamerun|Cameroon|Republic of Cameroon|République du Cameroun;Afrika;Yaoundé;;;;CAF|COG|GAB|GNQ|NGA|TCD;;;;;;;true
-COD;Demokratische Republik Kongo;DR Kongo|Kongo-Kinshasa|Kongo (Dem. Rep.)|DR Congo|Democratic Republic of the Congo|Congo-Kinshasa|Congo, the Democratic Republic of the|Democratic Republic of Congo|DRC;Afrika;Kinshasa;;;;AGO|BDI|CAF|COG|RWA|SSD|TZA|UGA|ZMB;;;;;;;true
-COG;Republik Kongo;Kongo-Brazzaville|Republic of the Congo|Congo-Brazzaville;Afrika;Brazzaville;;;;AGO|CAF|CMR|COD|GAB;;;;;;;true
-COL;Kolumbien;Republik Kolumbien|Colombia|Republic of Colombia|República de Colombia;Südamerika;Bogotá;;;;BRA|ECU|PAN|PER|VEN;;;;;;;true
-COM;Komoren;Union der Komoren|Comoros|Union of the Comoros|Union des Comores|Udzima wa Komori|al-Ittiḥād al-Qumurī;Afrika;Moroni;;;;;;;;;;;true
-CPV;Cabo Verde;Republik Cabo Verde|Kap Verde|Cape Verde|Republic of Cabo Verde|República de Cabo Verde;Afrika;Praia;;;;;;;;;;;true
-CRI;Costa Rica;Republik Costa Rica|Republic of Costa Rica|República de Costa Rica;Nordamerika;San José;;;;NIC|PAN;;;;;;;true
-CUB;Kuba;Republik Kuba|Cuba|Republic of Cuba|República de Cuba;Nordamerika;Havanna;Havana;;;;;;;;;;true
-CYP;Zypern;Republik Zypern|Cyprus|Republic of Cyprus|Kýpros|Kıbrıs|Κυπριακή Δημοκρατία|Kıbrıs Cumhuriyeti;Europa;Nikosia;Nicosia;;;;;;;;;;true
-CZE;Tschechien;Tschechische Republik|Czechia|Czech Republic|Česká republika|Česko;Europa;Prag;Prague;;;AUT|DEU|POL|SVK;;;;;;;true
-DEU;Deutschland;Bundesrepublik Deutschland|Germany|Federal Republic of Germany;Europa;Berlin;;;;AUT|BEL|CHE|CZE|DNK|FRA|LUX|NLD|POL;;;;;;;true
-DJI;Dschibuti;Republik Dschibuti|Djibouti|Republic of Djibouti|Jabuuti|Gabuuti|République de Djibouti|Gabuutih Ummuuno|Jamhuuriyadda Jabuuti;Afrika;Dschibuti;Djibouti;;;ERI|ETH|SOM;;;;;;;true
-DMA;Dominica;Commonwealth von Dominica|Commonwealth of Dominica|Dominique|Wai‘tu kubuli;Nordamerika;Roseau;;;;;;;;;;;true
-DNK;Dänemark;Königreich Dänemark|Denmark|Kingdom of Denmark|Danmark|Kongeriget Danmark;Europa;Kopenhagen;Copenhagen;;;DEU;;;;;;;true
-DOM;Dominikanische Republik;Dominican Republic;Nordamerika;Santo Domingo;;;;HTI;;;;;;;true
-DZA;Algerien;Demokratische Volksrepublik Algerien|Algeria|People's Democratic Republic of Algeria|Dzayer|Algérie;Afrika;Algier;Algiers;;;LBY|MAR|MLI|MRT|NER|TUN;;;;;;;true
-ECU;Ecuador;Republik Ecuador|Republic of Ecuador|República del Ecuador;Südamerika;Quito;;;;COL|PER;;;;;;;true
-EGY;Ägypten;Arabische Republik Ägypten|Egypt|Arab Republic of Egypt;Afrika;Kairo;Cairo;;;ISR|LBY|PSE|SDN;;;;;;;true
-ERI;Eritrea;Staat Eritrea|State of Eritrea|ሃገረ ኤርትራ|Dawlat Iritriyá|ʾErtrā|Iritriyā;Afrika;Asmara;;;;DJI|ETH|SDN;;;;;;;true
-ESP;Spanien;Königreich Spanien|Spain|Kingdom of Spain|Reino de España;Europa;Madrid;;;;AND|FRA|MAR|PRT;;;;;;;true
-EST;Estland;Republik Estland|Estonia|Republic of Estonia|Eesti|Eesti Vabariik;Europa;Tallinn;;;;LVA|RUS;;;;;;;true
-ETH;Äthiopien;Demokratische Bundesrepublik Äthiopien|Ethiopia|Federal Democratic Republic of Ethiopia|ʾĪtyōṗṗyā|የኢትዮጵያ ፌዴራላዊ ዲሞክራሲያዊ ሪፐብሊክ;Afrika;Addis Abeba;Addis Ababa;;;DJI|ERI|KEN|SDN|SOM|SSD;;;;;;;true
-FIN;Finnland;Republik Finnland|Finland|Republic of Finland|Suomi|Suomen tasavalta|Republiken Finland;Europa;Helsinki;;;;NOR|RUS|SWE;;;;;;;true
-FJI;Fidschi;Republik Fidschi|Fiji|Republic of Fiji|Viti|Matanitu ko Viti|Fijī Gaṇarājya;Ozeanien;Suva;;;;;;;;;;;true
-FRA;Frankreich;Französische Republik|France|French Republic|République française;Europa;Paris;;;;AND|BEL|CHE|DEU|ESP|ITA|LUX|MCO;;;;;;;true
-FSM;Föderierte Staaten von Mikronesien;Mikronesien|Micronesia|Federated States of Micronesia|Micronesia, Federated States of;Ozeanien;Palikir;;;;;;;;;;;true
-GAB;Gabun;Gabunische Republik|Gabon|Gabonese Republic|République Gabonaise;Afrika;Libreville;;;;CMR|COG|GNQ;;;;;;;true
-GBR;Vereinigtes Königreich;Vereinigtes Königreich Großbritannien und Nordirland|United Kingdom|United Kingdom of Great Britain and Northern Ireland|UK|Great Britain;Europa;London;;;;IRL;;;;;;;true
-GEO;Georgien;Georgia|Sakartvelo;Asien;Tiflis;Tbilisi;;;ARM|AZE|RUS|TUR;;;;;;;true
-GHA;Ghana;Republik Ghana|Republic of Ghana;Afrika;Accra;;;;BFA|CIV|TGO;;;;;;;true
-GIN;Guinea;Republik Guinea|Republic of Guinea|République de Guinée;Afrika;Conakry;;;;CIV|GNB|LBR|MLI|SEN|SLE;;;;;;;true
-GMB;Gambia;Republik Gambia|Republic of the Gambia;Afrika;Banjul;;;;SEN;;;;;;;true
-GNB;Guinea-Bissau;Republik Guinea-Bissau|Republic of Guinea-Bissau|República da Guiné-Bissau;Afrika;Bissau;;;;GIN|SEN;;;;;;;true
-GNQ;Äquatorialguinea;Republik Äquatorialguinea|Equatorial Guinea|Republic of Equatorial Guinea|República de Guinea Ecuatorial|République de Guinée équatoriale|República da Guiné Equatorial;Afrika;;;;;CMR|GAB;;;;;;;true
-GRC;Griechenland;Hellenische Republik|Greece|Hellenic Republic|Elláda|Ελληνική Δημοκρατία;Europa;Athen;Athens;;;ALB|BGR|MKD|TUR;;;;;;;true
-GRD;Grenada;;Nordamerika;St. George's;;;;;;;;;;;true
-GTM;Guatemala;Republik Guatemala|Republic of Guatemala;Nordamerika;Guatemala-Stadt;Guatemala City;;;BLZ|HND|MEX|SLV;;;;;;;true
-GUY;Guyana;Kooperative Republik Guyana|Co-operative Republic of Guyana;Südamerika;Georgetown;;;;BRA|SUR|VEN;;;;;;;true
-HND;Honduras;Republik Honduras|Republic of Honduras|República de Honduras;Nordamerika;Tegucigalpa;;;;GTM|NIC|SLV;;;;;;;true
-HRV;Kroatien;Republik Kroatien|Croatia|Republic of Croatia|Hrvatska|Republika Hrvatska;Europa;Zagreb;;;;BIH|HUN|MNE|SRB|SVN;;;;;;;true
-HTI;Haiti;Republik Haiti|Republic of Haiti|République d'Haïti|Repiblik Ayiti;Nordamerika;Port-au-Prince;;;;DOM;;;;;;;true
-HUN;Ungarn;Hungary;Europa;Budapest;;;;AUT|HRV|ROU|SRB|SVK|SVN|UKR;;;;;;;true
-IDN;Indonesien;Republik Indonesien|Indonesia|Republic of Indonesia|Republik Indonesia;Asien;;;;;MYS|PNG|TLS;;;;;;;true
-IND;Indien;Republik Indien|India|Republic of India|Bhārat|Bharat Ganrajya|இந்தியா;Asien;Neu-Delhi;New Delhi;;;BGD|BTN|CHN|MMR|NPL|PAK;;;;;;;true
-IRL;Irland;Republik Irland|Ireland|Republic of Ireland|Éire|Poblacht na hÉireann;Europa;Dublin;;;;GBR;;;;;;;true
-IRN;Iran;Islamische Republik Iran|Islamic Republic of Iran|Iran, Islamic Republic of|Jomhuri-ye Eslāmi-ye Irān;Asien;Teheran;Tehran;;;AFG|ARM|AZE|IRQ|PAK|TKM|TUR;;;;;;;true
-IRQ;Irak;Republik Irak|Iraq|Republic of Iraq|Jumhūriyyat al-‘Irāq;Asien;Bagdad;Baghdad;;;IRN|JOR|KWT|SAU|SYR|TUR;;;;;;;true
-ISL;Island;Iceland|Republic of Iceland|Lýðveldið Ísland;Europa;Reykjavík;;;;;;;;;;;true
-ISR;Israel;Staat Israel|State of Israel|Medīnat Yisrā'el;Asien;;;;;EGY|JOR|LBN|PSE|SYR;;;;;;;true
-ITA;Italien;Italienische Republik|Italy|Italian Republic|Repubblica italiana;Europa;Rom;Rome;;;AUT|CHE|FRA|SMR|SVN|VAT;;;;;;;true
-JAM;Jamaika;Jamaica;Nordamerika;Kingston;;;;;;;;;;;true
-JOR;Jordanien;Haschemitisches Königreich Jordanien|Jordan|Hashemite Kingdom of Jordan|al-Mamlakah al-Urdunīyah al-Hāshimīyah;Asien;Amman;;;;IRQ|ISR|PSE|SAU|SYR;;;;;;;true
-JPN;Japan;Nippon|Nihon;Asien;Tokio;Tokyo;;;;;;;;;;true
-KAZ;Kasachstan;Republik Kasachstan|Kazakhstan|Republic of Kazakhstan|Qazaqstan|Казахстан|Қазақстан Республикасы|Qazaqstan Respublïkası|Республика Казахстан|Respublika Kazakhstan;Asien;Astana;;;;CHN|KGZ|RUS|TKM|UZB;;;;;;;true
-KEN;Kenia;Republik Kenia|Kenya|Republic of Kenya|Jamhuri ya Kenya;Afrika;Nairobi;;;;ETH|SOM|SSD|TZA|UGA;;;;;;;true
-KGZ;Kirgisistan;Kirgisische Republik|Kyrgyzstan|Kyrgyz Republic|Киргизия|Кыргыз Республикасы|Kyrgyz Respublikasy;Asien;Bischkek;Bishkek;;;CHN|KAZ|TJK|UZB;;;;;;;true
-KHM;Kambodscha;Königreich Kambodscha|Cambodia|Kingdom of Cambodia;Asien;Phnom Penh;;;;LAO|THA|VNM;;;;;;;true
-KIR;Kiribati;Republik Kiribati|Independent and Sovereign Republic of Kiribati|Republic of Kiribati|Ribaberiki Kiribati;Ozeanien;Süd-Tarawa;South Tarawa;;;;;;;;;;true
-KNA;St. Kitts und Nevis;Föderation von St. Kitts und Nevis|Saint Kitts and Nevis|Federation of Saint Christopher and Nevis;Nordamerika;Basseterre;;;;;;;;;;;true
-KOR;Südkorea;Republik Korea|South Korea|Republic of Korea|Korea, Republic of|남한|남조선;Asien;Seoul;;;;PRK;;;;;;;true
-KWT;Kuwait;Staat Kuwait|State of Kuwait|Dawlat al-Kuwait;Asien;Kuwait-Stadt;Kuwait City;;;IRQ|SAU;;;;;;;true
-LAO;Laos;Demokratische Volksrepublik Laos|Lao People's Democratic Republic|Lao|Sathalanalat Paxathipatai Paxaxon Lao;Asien;Vientiane;;;;CHN|KHM|MMR|THA|VNM;;;;;;;true
-LBN;Libanon;Libanesische Republik|Lebanon|Lebanese Republic|Al-Jumhūrīyah Al-Libnānīyah;Asien;Beirut;;;;ISR|SYR;;;;;;;true
-LBR;Liberia;Republik Liberia|Republic of Liberia;Afrika;Monrovia;;;;CIV|GIN|SLE;;;;;;;true
-LBY;Libyen;Staat Libyen|Libya|State of Libya|Dawlat Libya;Afrika;Tripolis;Tripoli;;;DZA|EGY|NER|SDN|TCD|TUN;;;;;;;true
-LCA;St. Lucia;Saint Lucia;Nordamerika;Castries;;;;;;;;;;;true
-LIE;Liechtenstein;Fürstentum Liechtenstein|Principality of Liechtenstein;Europa;Vaduz;;;;AUT|CHE;;;;;;;true
-LKA;Sri Lanka;Demokratische Sozialistische Republik Sri Lanka|Democratic Socialist Republic of Sri Lanka|ilaṅkai;Asien;;;;;;;;;;;;true
-LSO;Lesotho;Königreich Lesotho|Kingdom of Lesotho|Muso oa Lesotho;Afrika;Maseru;;;;ZAF;;;;;;;true
-LTU;Litauen;Republik Litauen|Lithuania|Republic of Lithuania|Lietuvos Respublika;Europa;Vilnius;;;;BLR|LVA|POL|RUS;;;;;;;true
-LUX;Luxemburg;Großherzogtum Luxemburg,|Luxembourg|Grand Duchy of Luxembourg|Grand-Duché de Luxembourg|Großherzogtum Luxemburg|Groussherzogtum Lëtzebuerg;Europa;Luxemburg;Luxembourg;;;BEL|DEU|FRA;;;;;;;true
-LVA;Lettland;Republik Lettland|Latvia|Republic of Latvia|Latvijas Republika;Europa;Riga;;;;BLR|EST|LTU|RUS;;;;;;;true
-MAR;Marokko;Königreich Marokko|Morocco|Kingdom of Morocco|Al-Mamlakah al-Maġribiyah;Afrika;Rabat;;;;DZA|ESP;;;;;;;true
-MCO;Monaco;Fürstentum Monaco|Principality of Monaco|Principauté de Monaco;Europa;Monaco;;;;FRA;;;;;;;true
-MDA;Moldawien;Republik Moldau|Moldova|Republic of Moldova|Moldova, Republic of|Republica Moldova;Europa;Chișinău;;;;ROU|UKR;;;;;;;true
-MDG;Madagaskar;Republik Madagaskar|Madagascar|Republic of Madagascar|Repoblikan'i Madagasikara|République de Madagascar;Afrika;Antananarivo;;;;;;;;;;;true
-MDV;Malediven;Republik Malediven|Maldives|Republic of the Maldives|Maldive Islands|Dhivehi Raajjeyge Jumhooriyya;Asien;Malé;;;;;;;;;;;true
-MEX;Mexiko;Vereinigte Mexikanische Staaten|Mexico|United Mexican States|Mexicanos|Estados Unidos Mexicanos;Nordamerika;Mexiko-Stadt;Mexico City;;;BLZ|GTM|USA;;;;;;;true
-MHL;Marshallinseln;Republik Marshallinseln|Marshall Islands|Republic of the Marshall Islands|Aolepān Aorōkin M̧ajeļ;Ozeanien;Majuro;;;;;;;;;;;true
-MKD;Nordmazedonien;Republik Nordmazedonien|North Macedonia|Republic of North Macedonia|The former Yugoslav Republic of Macedonia|Macedonia, The Former Yugoslav Republic of|Република Северна Македонија|Macedonia;Europa;Skopje;;;;ALB|BGR|GRC|SRB|XKX;;;;;;;true
-MLI;Mali;Republik Mali|Republic of Mali|République du Mali;Afrika;Bamako;;;;BFA|CIV|DZA|GIN|MRT|NER|SEN;;;;;;;true
-MLT;Malta;Republik Malta|Republic of Malta|Repubblika ta' Malta;Europa;Valletta;;;;;;;;;;;true
-MMR;Myanmar;Republik der Union Myanmar|Republic of the Union of Myanmar|Burma|Pyidaunzu Thanmăda Myăma Nainngandaw;Asien;Naypyidaw;;;;BGD|CHN|IND|LAO|THA;;;;;;;true
-MNE;Montenegro;Crna Gora;Europa;Podgorica;;;;ALB|BIH|HRV|SRB|XKX;;;;;;;true
-MNG;Mongolei;Mongolia;Asien;Ulaanbaatar;Ulan Bator;;;CHN|RUS;;;;;;;true
-MOZ;Mosambik;Republik Mosambik|Mozambique|Republic of Mozambique|República de Moçambique;Afrika;Maputo;;;;MWI|SWZ|TZA|ZAF|ZMB|ZWE;;;;;;;true
-MRT;Mauretanien;Islamische Republik Mauretanien|Mauritania|Islamic Republic of Mauritania|al-Jumhūriyyah al-ʾIslāmiyyah al-Mūrītāniyyah;Afrika;Nouakchott;;;;DZA|MLI|SEN;;;;;;;true
-MUS;Mauritius;Republik Mauritius|Republic of Mauritius|République de Maurice;Afrika;Port Louis;;;;;;;;;;;true
-MWI;Malawi;Republik Malawi|Republic of Malawi;Afrika;Lilongwe;;;;MOZ|TZA|ZMB;;;;;;;true
-MYS;Malaysia;;Asien;Kuala Lumpur;;;;BRN|IDN|THA;;;;;;;true
-NAM;Namibia;Republik Namibia|Republic of Namibia|Namibië;Afrika;Windhoek;;;;AGO|BWA|ZAF|ZMB;;;;;;;true
-NER;Niger;Republik Niger|Republic of Niger|Nijar;Afrika;Niamey;;;;BEN|BFA|DZA|LBY|MLI|NGA|TCD;;;;;;;true
-NGA;Nigeria;Bundesrepublik Nigeria|Federal Republic of Nigeria|Nijeriya|Naíjíríà;Afrika;Abuja;;;;BEN|CMR|NER|TCD;;;;;;;true
-NIC;Nicaragua;Republik Nicaragua|Republic of Nicaragua|República de Nicaragua;Nordamerika;Managua;;;;CRI|HND;;;;;;;true
-NLD;Niederlande;Holland|Netherlands|Kingdom of the Netherlands|Nederland|The Netherlands;Europa;Amsterdam;;;;BEL|DEU;;;;;;;true
-NOR;Norwegen;Königreich Norwegen|Norway|Kingdom of Norway|Norge|Noreg|Kongeriket Norge|Kongeriket Noreg;Europa;Oslo;;;;FIN|RUS|SWE;;;;;;;true
-NPL;Nepal;Demokratische Bundesrepublik Nepal|Federal Democratic Republic of Nepal|Loktāntrik Ganatantra Nepāl;Asien;Kathmandu;;;;CHN|IND;;;;;;;true
-NRU;Nauru;Republik Nauru|Republic of Nauru|Naoero|Pleasant Island|Ripublik Naoero;Ozeanien;;;;;;;;;;;;true
-NZL;Neuseeland;New Zealand|Aotearoa;Ozeanien;Wellington;;;;;;;;;;;true
-OMN;Oman;Sultanat Oman|Sultanate of Oman|Salṭanat ʻUmān;Asien;Maskat;Muscat;;;ARE|SAU|YEM;;;;;;;true
-PAK;Pakistan;Islamische Republik Pakistan|Islamic Republic of Pakistan|Islāmī Jumhūriya'eh Pākistān;Asien;Islamabad;;;;AFG|CHN|IND|IRN;;;;;;;true
-PAN;Panama;Republik Panama|Republic of Panama|República de Panamá;Nordamerika;Panama-Stadt;Panama City;;;COL|CRI;;;;;;;true
-PER;Peru;Republik Peru|Republic of Peru|República del Perú;Südamerika;Lima;;;;BOL|BRA|CHL|COL|ECU;;;;;;;true
-PHL;Philippinen;Republik der Philippinen|Philippines|Republic of the Philippines|Repúblika ng Pilipinas;Asien;Manila;;;;;;;;;;;true
-PLW;Palau;Republik Palau|Republic of Palau|Beluu er a Belau;Ozeanien;Ngerulmud;;;;;;;;;;;true
-PNG;Papua-Neuguinea;Unabhängiger Staat Papua-Neuguinea|Papua New Guinea|Independent State of Papua New Guinea|Independen Stet bilong Papua Niugini;Ozeanien;Port Moresby;;;;IDN;;;;;;;true
-POL;Polen;Republik Polen|Poland|Republic of Poland|Rzeczpospolita Polska;Europa;Warschau;Warsaw;;;BLR|CZE|DEU|LTU|RUS|SVK|UKR;;;;;;;true
-PRK;Nordkorea;Demokratische Volksrepublik Korea|North Korea|Democratic People's Republic of Korea|DPRK|조선민주주의인민공화국|Chosŏn Minjujuŭi Inmin Konghwaguk|Korea, Democratic People's Republic of|북한|북조선;Asien;Pjöngjang;Pyongyang;;;CHN|KOR|RUS;;;;;;;true
-PRT;Portugal;Portugiesische Republik|Portuguese Republic|Portuguesa|República Portuguesa;Europa;Lissabon;Lisbon;;;ESP;;;;;;;true
-PRY;Paraguay;Republik Paraguay|Republic of Paraguay|República del Paraguay|Tetã Paraguái;Südamerika;Asunción;;;;ARG|BOL|BRA;;;;;;;true
-PSE;Palästina;Staat Palästina|Palestine|State of Palestine|Palestine, State of|Dawlat Filasṭin;Asien;;;;;EGY|ISR|JOR;;;;;;;false
-QAT;Katar;Staat Katar|Qatar|State of Qatar|Dawlat Qaṭar;Asien;Doha;;;;SAU;;;;;;;true
-ROU;Rumänien;Romania|Rumania|Roumania|România;Europa;Bukarest;Bucharest;;;BGR|HUN|MDA|SRB|UKR;;;;;;;true
-RUS;Russland;Russische Föderation|Russia|Russian Federation|Российская Федерация;Europa;Moskau;Moscow;;;AZE|BLR|CHN|EST|FIN|GEO|KAZ|LTU|LVA|MNG|NOR|POL|PRK|UKR;;;;;;;true
-RWA;Ruanda;Republik Ruanda|Rwanda|Republic of Rwanda|Repubulika y'u Rwanda|République du Rwanda;Afrika;Kigali;;;;BDI|COD|TZA|UGA;;;;;;;true
-SAU;Saudi-Arabien;Königreich Saudi-Arabien|Saudi Arabia|Kingdom of Saudi Arabia|Saudi|Al-Mamlakah al-‘Arabiyyah as-Su‘ūdiyyah;Asien;Riad;Riyadh;;;ARE|IRQ|JOR|KWT|OMN|QAT|YEM;;;;;;;true
-SDN;Sudan;Republik Sudan|Republic of the Sudan|Jumhūrīyat as-Sūdān;Afrika;;;;;CAF|EGY|ERI|ETH|LBY|SSD|TCD;;;;;;;true
-SEN;Senegal;Republik Senegal|Republic of Senegal|République du Sénégal;Afrika;Dakar;;;;GIN|GMB|GNB|MLI|MRT;;;;;;;true
-SGP;Singapur;Republik Singapur|Singapore|Republic of Singapore|Singapura|Republik Singapura|新加坡共和国;Asien;Singapur;Singapore;;;;;;;;;;true
-SLB;Salomonen;Solomon Islands;Ozeanien;Honiara;;;;;;;;;;;true
-SLE;Sierra Leone;Republik Sierra Leone|Republic of Sierra Leone;Afrika;Freetown;;;;GIN|LBR;;;;;;;true
-SLV;El Salvador;Republik El Salvador|Republic of El Salvador|República de El Salvador;Nordamerika;San Salvador;;;;GTM|HND;;;;;;;true
-SMR;San Marino;Republik San Marino|Most Serene Republic of San Marino|Republic of San Marino|Repubblica di San Marino;Europa;San Marino;City of San Marino;;;ITA;;;;;;;true
-SOM;Somalia;Bundesrepublik Somalia|Federal Republic of Somalia|aṣ-Ṣūmāl|Jamhuuriyadda Federaalka Soomaaliya|Jumhūriyyat aṣ-Ṣūmāl al-Fiderāliyya;Afrika;Mogadischu;Mogadishu;;;DJI|ETH|KEN;;;;;;;true
-SRB;Serbien;Republik Serbien|Serbia|Republic of Serbia|Srbija|Republika Srbija|Србија|Република Србија;Europa;Belgrad;Belgrade;;;BGR|BIH|HRV|HUN|MKD|MNE|ROU|XKX;;;;;;;true
-SSD;Südsudan;Republik Südsudan|South Sudan|Republic of South Sudan;Afrika;Juba;;;;CAF|COD|ETH|KEN|SDN|UGA;;;;;;;true
-STP;São Tomé und Príncipe;Demokratische Republik São Tomé und Príncipe|São Tomé and Príncipe|Democratic Republic of São Tomé and Príncipe|Sao Tome and Principe|República Democrática de São Tomé e Príncipe;Afrika;São Tomé;;;;;;;;;;;true
-SUR;Suriname;Republik Suriname|Republic of Suriname|Sarnam|Sranangron|Republiek Suriname;Südamerika;Paramaribo;;;;BRA|GUY;;;;;;;true
-SVK;Slowakei;Slowakische Republik|Slovakia|Slovak Republic|Slovenská republika;Europa;Bratislava;;;;AUT|CZE|HUN|POL|UKR;;;;;;;true
-SVN;Slowenien;Republik Slowenien|Slovenia|Republic of Slovenia|Republika Slovenija;Europa;Ljubljana;;;;AUT|HRV|HUN|ITA;;;;;;;true
-SWE;Schweden;Königreich Schweden|Sweden|Kingdom of Sweden|Konungariket Sverige;Europa;Stockholm;;;;FIN|NOR;;;;;;;true
-SWZ;Eswatini;Königreich Eswatini|Swasiland|Kingdom of Eswatini|Swaziland|weSwatini|Swatini|Ngwane|Umbuso weSwatini;Afrika;;;;;MOZ|ZAF;;;;;;;true
-SYC;Seychellen;Republik der Seychellen|Seychelles|Republic of Seychelles|Repiblik Sesel|République des Seychelles;Afrika;Victoria;;;;;;;;;;;true
-SYR;Syrien;Arabische Republik Syrien|Syria|Syrian Arab Republic|Al-Jumhūrīyah Al-ʻArabīyah As-Sūrīyah;Asien;Damaskus;Damascus;;;IRQ|ISR|JOR|LBN|TUR;;;;;;;true
-TCD;Tschad;Republik Tschad|Chad|Republic of Chad|Tchad|République du Tchad;Afrika;N'Djamena;;;;CAF|CMR|LBY|NER|NGA|SDN;;;;;;;true
-TGO;Togo;Republik Togo|Togolese Republic|Togolese|République Togolaise;Afrika;Lomé;;;;BEN|BFA|GHA;;;;;;;true
-THA;Thailand;Königreich Thailand|Kingdom of Thailand|Prathet|Thai|ราชอาณาจักรไทย|Ratcha Anachak Thai;Asien;Bangkok;;;;KHM|LAO|MMR|MYS;;;;;;;true
-TJK;Tadschikistan;Republik Tadschikistan|Tajikistan|Republic of Tajikistan|Toçikiston|Ҷумҳурии Тоҷикистон|Çumhuriyi Toçikiston;Asien;Duschanbe;Dushanbe;;;AFG|CHN|KGZ|UZB;;;;;;;true
-TKM;Turkmenistan;;Asien;Aschgabat;Ashgabat;;;AFG|IRN|KAZ|UZB;;;;;;;true
-TLS;Timor-Leste;Demokratische Republik Timor-Leste|Osttimor|Democratic Republic of Timor-Leste|East Timor|Timor|República Democrática de Timor-Leste|Repúblika Demokrátika Timór-Leste|Timór Lorosa'e|Timor Lorosae;Asien;Dili;;;;IDN;;;;;;;true
-TON;Tonga;Königreich Tonga|Kingdom of Tonga;Ozeanien;Nuku'alofa;;;;;;;;;;;true
-TTO;Trinidad und Tobago;Republik Trinidad und Tobago|Trinidad and Tobago|Republic of Trinidad and Tobago;Nordamerika;Port of Spain;;;;;;;;;;;true
-TUN;Tunesien;Tunesische Republik|Tunisia|Tunisian Republic|Republic of Tunisia|al-Jumhūriyyah at-Tūnisiyyah;Afrika;Tunis;;;;DZA|LBY;;;;;;;true
-TUR;Türkei;Türkiye|Republik Türkei|Republic of Türkiye|Turkiye|Republic of Turkey|Türkiye Cumhuriyeti;Asien;Ankara;;;;ARM|AZE|BGR|GEO|GRC|IRN|IRQ|SYR;;;;;;;true
-TUV;Tuvalu;;Ozeanien;Funafuti;;;;;;;;;;;true
-TWN;Taiwan;Republik China (Taiwan)|Republic of China (Taiwan)|Republic of China|中華民國|Zhōnghuá Mínguó|Chinese Taipei;Asien;Taipei;;;;;;;;;;;false
-TZA;Tansania;Vereinigte Republik Tansania|Tanzania|United Republic of Tanzania|Tanzania, United Republic of|Jamhuri ya Muungano wa Tanzania;Afrika;Dodoma;;;;BDI|COD|KEN|MOZ|MWI|RWA|UGA|ZMB;;;;;;;true
-UGA;Uganda;Republik Uganda|Republic of Uganda|Jamhuri ya Uganda;Afrika;Kampala;;;;COD|KEN|RWA|SSD|TZA;;;;;;;true
-UKR;Ukraine;Ukrayina;Europa;Kyjiw;Kyiv|Kiew;;;BLR|HUN|MDA|POL|ROU|RUS|SVK;;;;;;;true
-URY;Uruguay;Republik Östlich des Uruguay|Oriental Republic of Uruguay|República Oriental del Uruguay;Südamerika;Montevideo;;;;ARG|BRA;;;;;;;true
-USA;Vereinigte Staaten;USA|Vereinigte Staaten von Amerika|United States|United States of America;Nordamerika;Washington, D.C.;Washington D.C.;;;CAN|MEX;;;;;;;true
-UZB;Usbekistan;Republik Usbekistan|Uzbekistan|Republic of Uzbekistan|O‘zbekiston Respublikasi|Ўзбекистон Республикаси;Asien;Taschkent;Tashkent;;;AFG|KAZ|KGZ|TJK|TKM;;;;;;;true
-VAT;Vatikanstadt;Vatikan|Staat Vatikanstadt|Vatican City|Vatican City State|Holy See (Vatican City State)|Vatican|Stato della Città del Vaticano;Europa;Vatikanstadt;Vatican City;;;ITA;;;;;;;false
-VCT;St. Vincent und die Grenadinen;Saint Vincent and the Grenadines;Nordamerika;Kingstown;;;;;;;;;;;true
-VEN;Venezuela;Bolivarische Republik Venezuela|Bolivarian Republic of Venezuela|Venezuela, Bolivarian Republic of|República Bolivariana de Venezuela;Südamerika;Caracas;;;;BRA|COL|GUY;;;;;;;true
-VNM;Vietnam;Sozialistische Republik Vietnam|Socialist Republic of Vietnam|Cộng hòa Xã hội chủ nghĩa Việt Nam;Asien;Hanoi;;;;CHN|KHM|LAO;;;;;;;true
-VUT;Vanuatu;Republic of Vanuatu|Ripablik blong Vanuatu|République de Vanuatu;Ozeanien;Port Vila;;;;;;;;;;;true
-WSM;Samoa;Unabhängige Staat Samoa|Independent State of Samoa|Malo Saʻoloto Tutoʻatasi o Sāmoa;Ozeanien;Apia;;;;;;;;;;;true
-XKX;Kosovo;Republik Kosovo|Republic of Kosovo|Република Косово;Europa;Pristina;;;;ALB|MKD|MNE|SRB;;;;;;;false
-YEM;Jemen;Republik Jemen|Yemen|Republic of Yemen|Yemeni Republic|al-Jumhūriyyah al-Yamaniyyah;Asien;;;;;OMN|SAU;;;;;;;true
-ZAF;Südafrika;Republik Südafrika|South Africa|Republic of South Africa|RSA|Suid-Afrika;Afrika;Pretoria;Bloemfontein|Kapstadt|Cape Town;;;BWA|LSO|MOZ|NAM|SWZ|ZWE;;;;;;;true
-ZMB;Sambia;Republik Sambia|Zambia|Republic of Zambia;Afrika;Lusaka;;;;AGO|BWA|COD|MOZ|MWI|NAM|TZA|ZWE;;;;;;;true
-ZWE;Simbabwe;Republik Simbabwe|Zimbabwe|Republic of Zimbabwe;Afrika;Harare;;;;BWA|MOZ|ZAF|ZMB;;;;;;;true
+id;name;name_aliases;continent;continent_alt;capital;capital_aliases;capital_note;capital_lat;capital_lon;neighbors;seas;memberships;currency;central_bank;stock_index;regime_type;un_member;color
+AFG;Afghanistan;Islamische Republik Afghanistan|Islamic Republic of Afghanistan|Afġānistān;Asien;;Kabul;;;;;CHN|IRN|PAK|TJK|TKM|UZB;;;;;;;true;#000001
+AGO;Angola;Republik Angola|Republic of Angola|República de Angola|ʁɛpublika de an'ɡɔla;Afrika;;Luanda;;;;;COD|COG|NAM|ZMB;;;;;;;true;#FF0000
+ALB;Albanien;Republik Albanien|Albania|Republic of Albania|Shqipëri|Shqipëria|Shqipnia;Europa;;Tirana;;;;;GRC|MKD|MNE|XKX;;;;;;;true;#FF0000
+AND;Andorra;Fürstentum Andorra|Principality of Andorra|Principat d'Andorra;Europa;;Andorra la Vella;;;;;ESP|FRA;;;;;;;true;#0018A8
+ARE;Vereinigte Arabische Emirate;United Arab Emirates|UAE|Emirates;Asien;;Abu Dhabi;;;;;OMN|SAU;;;;;;;true;#FF0000
+ARG;Argentinien;Argentinische Republik|Argentina|Argentine Republic|República Argentina;Südamerika;;Buenos Aires;;;;;BOL|BRA|CHL|PRY|URY;;;;;;;true;#74ACDF
+ARM;Armenien;Republik Armenien|Armenia|Republic of Armenia|Hayastan|Հայաստանի Հանրապետություն;Asien;;Jerewan;Yerevan;;;;AZE|GEO|IRN|TUR;;;;;;;true;#D90012
+ATG;Antigua und Barbuda;Antigua and Barbuda;Nordamerika;;Saint John's;;;;;;;;;;;;true;#CE1126
+AUS;Australien;Commonwealth Australien|Australia|Commonwealth of Australia;Ozeanien;;Canberra;;;;;;;;;;;;true;#00008B
+AUT;Österreich;Republik Österreich|Austria|Republic of Austria|Osterreich;Europa;;Wien;Vienna;;;;CHE|CZE|DEU|HUN|ITA|LIE|SVK|SVN;;;;;;;true;#C8102E
+AZE;Aserbaidschan;Republik Aserbaidschan|Azerbaijan|Republic of Azerbaijan|Azərbaycan Respublikası;Asien;Europa;Baku;;;;;ARM|GEO|IRN|RUS|TUR;;;;;;;true;#00B9E4
+BDI;Burundi;Republik Burundi|Republic of Burundi|Republika y'Uburundi|République du Burundi;Afrika;;Gitega;;;;;COD|RWA|TZA;;;;;;;true;#CF0921
+BEL;Belgien;Königreich Belgien|Belgium|Kingdom of Belgium|België|Belgie|Belgique|Koninkrijk België|Royaume de Belgique;Europa;;Brüssel;Brussels;;;;DEU|FRA|LUX|NLD;;;;;;;true;#000001
+BEN;Benin;Republik Benin|Republic of Benin|République du Bénin;Afrika;;Porto-Novo;;Porto-Novo ist die Hauptstadt. Die Regierung sitzt in Cotonou.;;;BFA|NER|NGA|TGO;;;;;;;true;#319400
+BFA;Burkina Faso;;Afrika;;Ouagadougou;;;;;BEN|CIV|GHA|MLI|NER|TGO;;;;;;;true;#35A100
+BGD;Bangladesch;Volksrepublik Bangladesch|Bangladesh|People's Republic of Bangladesh|Gônôprôjatôntri Bangladesh;Asien;;Dhaka;;;;;IND|MMR;;;;;;;true;#006A4E
+BGR;Bulgarien;Republik Bulgarien|Bulgaria|Republic of Bulgaria|Република България;Europa;;Sofia;;;;;GRC|MKD|ROU|SRB|TUR;;;;;;;true;#00966E
+BHR;Bahrain;Königreich Bahrain|Kingdom of Bahrain|Mamlakat al-Baḥrayn;Asien;;Manama;;;;;;;;;;;;true;#CE1126
+BHS;Bahamas;Commonwealth der Bahamas|Commonwealth of the Bahamas;Nordamerika;;Nassau;;;;;;;;;;;;true;#08CED6
+BIH;Bosnien und Herzegowina;Bosnia and Herzegovina|Bosnia-Herzegovina|Босна и Херцеговина;Europa;;Sarajevo;;;;;HRV|MNE|SRB;;;;;;;true;#000099
+BLR;Belarus;Republik Belarus|Republic of Belarus|Bielaruś|Белоруссия|Республика Белоруссия;Europa;;Minsk;;;;;LTU|LVA|POL|RUS|UKR;;;;;;;true;#CE1720
+BLZ;Belize;;Nordamerika;;Belmopan;;;;;GTM|MEX;;;;;;;true;#003F87
+BOL;Bolivien;Plurinationaler Staat Bolivien|Bolivia|Plurinational State of Bolivia|Buliwya|Wuliwya|Bolivia, Plurinational State of|Estado Plurinacional de Bolivia|Buliwya Mamallaqta|Wuliwya Suyu|Tetã Volívia;Südamerika;;Sucre;La Paz;Sucre ist die verfassungsmäßige Hauptstadt. Regierung und Parlament sitzen in La Paz.;;;ARG|BRA|CHL|PER|PRY;;;;;;;true;#007934
+BRA;Brasilien;Föderative Republik Brasilien|Brazil|Federative Republic of Brazil|Brasil|República Federativa do Brasil;Südamerika;;Brasília;;;;;ARG|BOL|COL|GUY|PER|PRY|SUR|URY|VEN;;;;;;;true;#229E45
+BRB;Barbados;;Nordamerika;;Bridgetown;;;;;;;;;;;;true;#00267F
+BRN;Brunei;Sultanat Brunei Darussalam|Nation of Brunei, Abode of Peace|Brunei Darussalam|Nation of Brunei|the Abode of Peace;Asien;;Bandar Seri Begawan;;;;;MYS;;;;;;;true;#F7E017
+BTN;Bhutan;Königreich Bhutan|Kingdom of Bhutan;Asien;;Thimphu;;;;;CHN|IND;;;;;;;true;#FFD520
+BWA;Botswana;Republik Botsuana|Republic of Botswana|Lefatshe la Botswana;Afrika;;Gaborone;;;;;NAM|ZAF|ZMB|ZWE;;;;;;;true;#00CBFF
+CAF;Zentralafrikanische Republik;Central African Republic|République centrafricaine;Afrika;;Bangui;;;;;CMR|COD|COG|SDN|SSD|TCD;;;;;;;true;#FFFF00
+CAN;Kanada;Canada;Nordamerika;;Ottawa;;;;;USA;;;;;;;true;#D52B1E
+CHE;Schweiz;Schweizerische Eidgenossenschaft|Switzerland|Swiss Confederation|Suisse|Svizzera|Svizra;Europa;;Bern;;Bern ist Bundesstadt und Sitz von Regierung und Parlament. Damit erfüllt es die Funktion einer Hauptstadt.;;;AUT|DEU|FRA|ITA|LIE;;;;;;;true;#FF0000
+CHL;Chile;Republik Chile|Republic of Chile|República de Chile;Südamerika;Ozeanien;Santiago;;;;;ARG|BOL|PER;;;;;;;true;#D52B1E
+CHN;China;Volksrepublik China|People's Republic of China|Zhōngguó|Zhongguo|Zhonghua|中华人民共和国|Zhōnghuá Rénmín Gònghéguó;Asien;;Peking;Beijing;;;;AFG|BTN|IND|KAZ|KGZ|LAO|MMR|MNG|NPL|PAK|PRK|RUS|TJK|VNM;;;;;;;true;#EE1C25
+CIV;Elfenbeinküste;Côte d'Ivoire|Côte d’Ivoire|Republik Côte d'Ivoire|Ivory Coast|Republic of Côte d'Ivoire|Cote d'Ivoire|République de Côte d'Ivoire;Afrika;;Yamoussoukro;;Yamoussoukro ist die Hauptstadt. Abidjan ist die frühere Hauptstadt und das wirtschaftliche Zentrum.;;;BFA|GHA|GIN|LBR|MLI;;;;;;;true;#FF8200
+CMR;Kamerun;Republik Kamerun|Cameroon|Republic of Cameroon|République du Cameroun;Afrika;;Yaoundé;;;;;CAF|COG|GAB|GNQ|NGA|TCD;;;;;;;true;#FCD116
+COD;Demokratische Republik Kongo;DR Kongo|Kongo-Kinshasa|Kongo (Dem. Rep.)|DR Congo|Democratic Republic of the Congo|Congo-Kinshasa|Congo, the Democratic Republic of the|Democratic Republic of Congo|DRC;Afrika;;Kinshasa;;;;;AGO|BDI|CAF|COG|RWA|SSD|TZA|UGA|ZMB;;;;;;;true;#007FFF
+COG;Republik Kongo;Kongo-Brazzaville|Republic of the Congo|Congo-Brazzaville;Afrika;;Brazzaville;;;;;AGO|CAF|CMR|COD|GAB;;;;;;;true;#FFFF00
+COL;Kolumbien;Republik Kolumbien|Colombia|Republic of Colombia|República de Colombia;Südamerika;Nordamerika;Bogotá;;;;;BRA|ECU|PAN|PER|VEN;;;;;;;true;#FFE800
+COM;Komoren;Union der Komoren|Comoros|Union of the Comoros|Union des Comores|Udzima wa Komori|al-Ittiḥād al-Qumurī;Afrika;;Moroni;;;;;;;;;;;;true;#239E46
+CPV;Cabo Verde;Republik Cabo Verde|Kap Verde|Cape Verde|Republic of Cabo Verde|República de Cabo Verde;Afrika;;Praia;;;;;;;;;;;;true;#081873
+CRI;Costa Rica;Republik Costa Rica|Republic of Costa Rica|República de Costa Rica;Nordamerika;;San José;;;;;NIC|PAN;;;;;;;true;#0000B4
+CUB;Kuba;Republik Kuba|Cuba|Republic of Cuba|República de Cuba;Nordamerika;;Havanna;Havana;;;;;;;;;;;true;#002A8F
+CYP;Zypern;Republik Zypern|Cyprus|Republic of Cyprus|Kýpros|Kıbrıs|Κυπριακή Δημοκρατία|Kıbrıs Cumhuriyeti;Europa;Asien;Nikosia;Nicosia;;;;;;;;;;;true;#D47600
+CZE;Tschechien;Tschechische Republik|Czechia|Czech Republic|Česká republika|Česko;Europa;;Prag;Prague;;;;AUT|DEU|POL|SVK;;;;;;;true;#D7141A
+DEU;Deutschland;Bundesrepublik Deutschland|Germany|Federal Republic of Germany;Europa;;Berlin;;;;;AUT|BEL|CHE|CZE|DNK|FRA|LUX|NLD|POL;;;;;;;true;#000001
+DJI;Dschibuti;Republik Dschibuti|Djibouti|Republic of Djibouti|Jabuuti|Gabuuti|République de Djibouti|Gabuutih Ummuuno|Jamhuuriyadda Jabuuti;Afrika;;Dschibuti;Djibouti;;;;ERI|ETH|SOM;;;;;;;true;#6699FF
+DMA;Dominica;Commonwealth von Dominica|Commonwealth of Dominica|Dominique|Wai‘tu kubuli;Nordamerika;;Roseau;;;;;;;;;;;;true;#108C00
+DNK;Dänemark;Königreich Dänemark|Denmark|Kingdom of Denmark|Danmark|Kongeriget Danmark;Europa;;Kopenhagen;Copenhagen;;;;DEU;;;;;;;true;#C8102E
+DOM;Dominikanische Republik;Dominican Republic;Nordamerika;;Santo Domingo;;;;;HTI;;;;;;;true;#002D62
+DZA;Algerien;Demokratische Volksrepublik Algerien|Algeria|People's Democratic Republic of Algeria|Dzayer|Algérie;Afrika;;Algier;Algiers;;;;LBY|MAR|MLI|MRT|NER|TUN;;;;;;;true;#006233
+ECU;Ecuador;Republik Ecuador|Republic of Ecuador|República del Ecuador;Südamerika;;Quito;;;;;COL|PER;;;;;;;true;#FFE800
+EGY;Ägypten;Arabische Republik Ägypten|Egypt|Arab Republic of Egypt;Afrika;Asien;Kairo;Cairo;;;;ISR|LBY|PSE|SDN;;;;;;;true;#CE1126
+ERI;Eritrea;Staat Eritrea|State of Eritrea|ሃገረ ኤርትራ|Dawlat Iritriyá|ʾErtrā|Iritriyā;Afrika;;Asmara;;;;;DJI|ETH|SDN;;;;;;;true;#BE0027
+ESP;Spanien;Königreich Spanien|Spain|Kingdom of Spain|Reino de España;Europa;Afrika;Madrid;;;;;AND|FRA|MAR|PRT;;;;;;;true;#AA151B
+EST;Estland;Republik Estland|Estonia|Republic of Estonia|Eesti|Eesti Vabariik;Europa;;Tallinn;;;;;LVA|RUS;;;;;;;true;#1791FF
+ETH;Äthiopien;Demokratische Bundesrepublik Äthiopien|Ethiopia|Federal Democratic Republic of Ethiopia|ʾĪtyōṗṗyā|የኢትዮጵያ ፌዴራላዊ ዲሞክራሲያዊ ሪፐብሊክ;Afrika;;Addis Abeba;Addis Ababa;;;;DJI|ERI|KEN|SDN|SOM|SSD;;;;;;;true;#298C08
+FIN;Finnland;Republik Finnland|Finland|Republic of Finland|Suomi|Suomen tasavalta|Republiken Finland;Europa;;Helsinki;;;;;NOR|RUS|SWE;;;;;;;true;#002F6C
+FJI;Fidschi;Republik Fidschi|Fiji|Republic of Fiji|Viti|Matanitu ko Viti|Fijī Gaṇarājya;Ozeanien;;Suva;;;;;;;;;;;;true;#68BFE5
+FRA;Frankreich;Französische Republik|France|French Republic|République française;Europa;Afrika|Nordamerika|Südamerika;Paris;;;;;AND|BEL|CHE|DEU|ESP|ITA|LUX|MCO;;;;;;;true;#000091
+FSM;Föderierte Staaten von Mikronesien;Mikronesien|Micronesia|Federated States of Micronesia|Micronesia, Federated States of;Ozeanien;;Palikir;;;;;;;;;;;;true;#6797D6
+GAB;Gabun;Gabunische Republik|Gabon|Gabonese Republic|République Gabonaise;Afrika;;Libreville;;;;;CMR|COG|GNQ;;;;;;;true;#36A100
+GBR;Vereinigtes Königreich;Vereinigtes Königreich Großbritannien und Nordirland|United Kingdom|United Kingdom of Great Britain and Northern Ireland|UK|Great Britain;Europa;;London;;;;;IRL;;;;;;;true;#C8102E
+GEO;Georgien;Georgia|Sakartvelo;Asien;Europa;Tiflis;Tbilisi;;;;ARM|AZE|RUS|TUR;;;;;;;true;#FF0000
+GHA;Ghana;Republik Ghana|Republic of Ghana;Afrika;;Accra;;;;;BFA|CIV|TGO;;;;;;;true;#CE1126
+GIN;Guinea;Republik Guinea|Republic of Guinea|République de Guinée;Afrika;;Conakry;;;;;CIV|GNB|LBR|MLI|SEN|SLE;;;;;;;true;#FF0000
+GMB;Gambia;Republik Gambia|Republic of the Gambia;Afrika;;Banjul;;;;;SEN;;;;;;;true;#000099
+GNB;Guinea-Bissau;Republik Guinea-Bissau|Republic of Guinea-Bissau|República da Guiné-Bissau;Afrika;;Bissau;;;;;GIN|SEN;;;;;;;true;#FCD116
+GNQ;Äquatorialguinea;Republik Äquatorialguinea|Equatorial Guinea|Republic of Equatorial Guinea|República de Guinea Ecuatorial|République de Guinée équatoriale|República da Guiné Equatorial;Afrika;;Ciudad de la Paz;;Ciudad de la Paz löste Malabo im Januar 2026 als Hauptstadt ab.;;;CMR|GAB;;;;;;;true;#3E9A00
+GRC;Griechenland;Hellenische Republik|Greece|Hellenic Republic|Elláda|Ελληνική Δημοκρατία;Europa;Asien;Athen;Athens;;;;ALB|BGR|MKD|TUR;;;;;;;true;#0D5EAF
+GRD;Grenada;;Nordamerika;;St. George's;;;;;;;;;;;;true;#CE1126
+GTM;Guatemala;Republik Guatemala|Republic of Guatemala;Nordamerika;;Guatemala-Stadt;Guatemala City;;;;BLZ|HND|MEX|SLV;;;;;;;true;#4997D0
+GUY;Guyana;Kooperative Republik Guyana|Co-operative Republic of Guyana;Südamerika;;Georgetown;;;;;BRA|SUR|VEN;;;;;;;true;#399408
+HND;Honduras;Republik Honduras|Republic of Honduras|República de Honduras;Nordamerika;;Tegucigalpa;;;;;GTM|NIC|SLV;;;;;;;true;#18C3DF
+HRV;Kroatien;Republik Kroatien|Croatia|Republic of Croatia|Hrvatska|Republika Hrvatska;Europa;;Zagreb;;;;;BIH|HUN|MNE|SRB|SVN;;;;;;;true;#FF0000
+HTI;Haiti;Republik Haiti|Republic of Haiti|République d'Haïti|Repiblik Ayiti;Nordamerika;;Port-au-Prince;;;;;DOM;;;;;;;true;#00209F
+HUN;Ungarn;Hungary;Europa;;Budapest;;;;;AUT|HRV|ROU|SRB|SVK|SVN|UKR;;;;;;;true;#D43516
+IDN;Indonesien;Republik Indonesien|Indonesia|Republic of Indonesia|Republik Indonesia;Asien;Ozeanien;Jakarta;;Jakarta ist Hauptstadt. Nusantara ist als künftige Hauptstadt vorgesehen. Der formelle Wechsel erfordert einen Präsidialerlass.;;;MYS|PNG|TLS;;;;;;;true;#E70011
+IND;Indien;Republik Indien|India|Republic of India|Bhārat|Bharat Ganrajya|இந்தியா;Asien;;Neu-Delhi;New Delhi;;;;BGD|BTN|CHN|MMR|NPL|PAK;;;;;;;true;#FF9933
+IRL;Irland;Republik Irland|Ireland|Republic of Ireland|Éire|Poblacht na hÉireann;Europa;;Dublin;;;;;GBR;;;;;;;true;#009A49
+IRN;Iran;Islamische Republik Iran|Islamic Republic of Iran|Iran, Islamic Republic of|Jomhuri-ye Eslāmi-ye Irān;Asien;;Teheran;Tehran;;;;AFG|ARM|AZE|IRQ|PAK|TKM|TUR;;;;;;;true;#DA0000
+IRQ;Irak;Republik Irak|Iraq|Republic of Iraq|Jumhūriyyat al-‘Irāq;Asien;;Bagdad;Baghdad;;;;IRN|JOR|KWT|SAU|SYR|TUR;;;;;;;true;#CE1126
+ISL;Island;Iceland|Republic of Iceland|Lýðveldið Ísland;Europa;;Reykjavík;;;;;;;;;;;;true;#003897
+ISR;Israel;Staat Israel|State of Israel|Medīnat Yisrā'el;Asien;;;;Israel betrachtet Jerusalem als seine Hauptstadt. Der internationale Status Jerusalems ist umstritten.;;;EGY|JOR|LBN|PSE|SYR;;;;;;;true;#0038B8
+ITA;Italien;Italienische Republik|Italy|Italian Republic|Repubblica italiana;Europa;;Rom;Rome;;;;AUT|CHE|FRA|SMR|SVN|VAT;;;;;;;true;#009246
+JAM;Jamaika;Jamaica;Nordamerika;;Kingston;;;;;;;;;;;;true;#FFCC00
+JOR;Jordanien;Haschemitisches Königreich Jordanien|Jordan|Hashemite Kingdom of Jordan|al-Mamlakah al-Urdunīyah al-Hāshimīyah;Asien;;Amman;;;;;IRQ|ISR|PSE|SAU|SYR;;;;;;;true;#FF0000
+JPN;Japan;Nippon|Nihon;Asien;Ozeanien;Tokio;Tokyo;;;;;;;;;;;true;#BC002D
+KAZ;Kasachstan;Republik Kasachstan|Kazakhstan|Republic of Kazakhstan|Qazaqstan|Казахстан|Қазақстан Республикасы|Qazaqstan Respublïkası|Республика Казахстан|Respublika Kazakhstan;Asien;Europa;Astana;;;;;CHN|KGZ|RUS|TKM|UZB;;;;;;;true;#00ABC2
+KEN;Kenia;Republik Kenia|Kenya|Republic of Kenya|Jamhuri ya Kenya;Afrika;;Nairobi;;;;;ETH|SOM|SSD|TZA|UGA;;;;;;;true;#006600
+KGZ;Kirgisistan;Kirgisische Republik|Kyrgyzstan|Kyrgyz Republic|Киргизия|Кыргыз Республикасы|Kyrgyz Respublikasy;Asien;;Bischkek;Bishkek;;;;CHN|KAZ|TJK|UZB;;;;;;;true;#FF0000
+KHM;Kambodscha;Königreich Kambodscha|Cambodia|Kingdom of Cambodia;Asien;;Phnom Penh;;;;;LAO|THA|VNM;;;;;;;true;#032EA1
+KIR;Kiribati;Republik Kiribati|Independent and Sovereign Republic of Kiribati|Republic of Kiribati|Ribaberiki Kiribati;Ozeanien;;Süd-Tarawa;South Tarawa;;;;;;;;;;;true;#E73E2D
+KNA;St. Kitts und Nevis;Föderation von St. Kitts und Nevis|Saint Kitts and Nevis|Federation of Saint Christopher and Nevis;Nordamerika;;Basseterre;;;;;;;;;;;;true;#000001
+KOR;Südkorea;Republik Korea|South Korea|Republic of Korea|Korea, Republic of|남한|남조선;Asien;;Seoul;;;;;PRK;;;;;;;true;#0047A0
+KWT;Kuwait;Staat Kuwait|State of Kuwait|Dawlat al-Kuwait;Asien;;Kuwait-Stadt;Kuwait City;;;;IRQ|SAU;;;;;;;true;#00D941
+LAO;Laos;Demokratische Volksrepublik Laos|Lao People's Democratic Republic|Lao|Sathalanalat Paxathipatai Paxaxon Lao;Asien;;Vientiane;;;;;CHN|KHM|MMR|THA|VNM;;;;;;;true;#CE1126
+LBN;Libanon;Libanesische Republik|Lebanon|Lebanese Republic|Al-Jumhūrīyah Al-Libnānīyah;Asien;;Beirut;;;;;ISR|SYR;;;;;;;true;#EE161F
+LBR;Liberia;Republik Liberia|Republic of Liberia;Afrika;;Monrovia;;;;;CIV|GIN|SLE;;;;;;;true;#CC0000
+LBY;Libyen;Staat Libyen|Libya|State of Libya|Dawlat Libya;Afrika;;Tripolis;Tripoli;;;;DZA|EGY|NER|SDN|TCD|TUN;;;;;;;true;#000001
+LCA;St. Lucia;Saint Lucia;Nordamerika;;Castries;;;;;;;;;;;;true;#65CFFF
+LIE;Liechtenstein;Fürstentum Liechtenstein|Principality of Liechtenstein;Europa;;Vaduz;;;;;AUT|CHE;;;;;;;true;#CE1126
+LKA;Sri Lanka;Demokratische Sozialistische Republik Sri Lanka|Democratic Socialist Republic of Sri Lanka|ilaṅkai;Asien;;Sri Jayewardenepura Kotte;Sri Jayawardenepura Kotte|Sri Jayawardenapura Kotte|Sri Jayewardenepura|Kotte;Sri Jayewardenepura Kotte ist die Verwaltungshauptstadt und Sitz des Parlaments. Colombo ist das Wirtschaftszentrum und die frühere Hauptstadt.;;;;;;;;;;true;#8D2029
+LSO;Lesotho;Königreich Lesotho|Kingdom of Lesotho|Muso oa Lesotho;Afrika;;Maseru;;;;;ZAF;;;;;;;true;#00209F
+LTU;Litauen;Republik Litauen|Lithuania|Republic of Lithuania|Lietuvos Respublika;Europa;;Vilnius;;;;;BLR|LVA|POL|RUS;;;;;;;true;#006A44
+LUX;Luxemburg;Großherzogtum Luxemburg,|Luxembourg|Grand Duchy of Luxembourg|Grand-Duché de Luxembourg|Großherzogtum Luxemburg|Groussherzogtum Lëtzebuerg;Europa;;Luxemburg;Luxembourg;;;;BEL|DEU|FRA;;;;;;;true;#ED2939
+LVA;Lettland;Republik Lettland|Latvia|Republic of Latvia|Latvijas Republika;Europa;;Riga;;;;;BLR|EST|LTU|RUS;;;;;;;true;#981E32
+MAR;Marokko;Königreich Marokko|Morocco|Kingdom of Morocco|Al-Mamlakah al-Maġribiyah;Afrika;;Rabat;;;;;DZA|ESP;;;;;;;true;#C1272D
+MCO;Monaco;Fürstentum Monaco|Principality of Monaco|Principauté de Monaco;Europa;;Monaco;;;;;FRA;;;;;;;true;#F31830
+MDA;Moldawien;Republik Moldau|Moldova|Republic of Moldova|Moldova, Republic of|Republica Moldova;Europa;;Chișinău;;;;;ROU|UKR;;;;;;;true;#DE2110
+MDG;Madagaskar;Republik Madagaskar|Madagascar|Republic of Madagascar|Repoblikan'i Madagasikara|République de Madagascar;Afrika;;Antananarivo;;;;;;;;;;;;true;#FC3D32
+MDV;Malediven;Republik Malediven|Maldives|Republic of the Maldives|Maldive Islands|Dhivehi Raajjeyge Jumhooriyya;Asien;;Malé;;;;;;;;;;;;true;#D21034
+MEX;Mexiko;Vereinigte Mexikanische Staaten|Mexico|United Mexican States|Mexicanos|Estados Unidos Mexicanos;Nordamerika;;Mexiko-Stadt;Mexico City;;;;BLZ|GTM|USA;;;;;;;true;#006847
+MHL;Marshallinseln;Republik Marshallinseln|Marshall Islands|Republic of the Marshall Islands|Aolepān Aorōkin M̧ajeļ;Ozeanien;;Majuro;;;;;;;;;;;;true;#3B5AA3
+MKD;Nordmazedonien;Republik Nordmazedonien|North Macedonia|Republic of North Macedonia|The former Yugoslav Republic of Macedonia|Macedonia, The Former Yugoslav Republic of|Република Северна Македонија|Macedonia;Europa;;Skopje;;;;;ALB|BGR|GRC|SRB|XKX;;;;;;;true;#D20000
+MLI;Mali;Republik Mali|Republic of Mali|République du Mali;Afrika;;Bamako;;;;;BFA|CIV|DZA|GIN|MRT|NER|SEN;;;;;;;true;#009A00
+MLT;Malta;Republik Malta|Republic of Malta|Repubblika ta' Malta;Europa;;Valletta;;;;;;;;;;;;true;#CF142B
+MMR;Myanmar;Republik der Union Myanmar|Republic of the Union of Myanmar|Burma|Pyidaunzu Thanmăda Myăma Nainngandaw;Asien;;Naypyidaw;;;;;BGD|CHN|IND|LAO|THA;;;;;;;true;#FECB00
+MNE;Montenegro;Crna Gora;Europa;;Podgorica;;;;;ALB|BIH|HRV|SRB|XKX;;;;;;;true;#C40308
+MNG;Mongolei;Mongolia;Asien;;Ulaanbaatar;Ulan Bator;;;;CHN|RUS;;;;;;;true;#DA2032
+MOZ;Mosambik;Republik Mosambik|Mozambique|Republic of Mozambique|República de Moçambique;Afrika;;Maputo;;;;;MWI|SWZ|TZA|ZAF|ZMB|ZWE;;;;;;;true;#FFCA00
+MRT;Mauretanien;Islamische Republik Mauretanien|Mauritania|Islamic Republic of Mauritania|al-Jumhūriyyah al-ʾIslāmiyyah al-Mūrītāniyyah;Afrika;;Nouakchott;;;;;DZA|MLI|SEN;;;;;;;true;#006233
+MUS;Mauritius;Republik Mauritius|Republic of Mauritius|République de Maurice;Afrika;;Port Louis;;;;;;;;;;;;true;#EE2737
+MWI;Malawi;Republik Malawi|Republic of Malawi;Afrika;;Lilongwe;;;;;MOZ|TZA|ZMB;;;;;;;true;#F41408
+MYS;Malaysia;;Asien;;Kuala Lumpur;;Kuala Lumpur ist die Hauptstadt. Die Bundesverwaltung sitzt in Putrajaya.;;;BRN|IDN|THA;;;;;;;true;#CC0000
+NAM;Namibia;Republik Namibia|Republic of Namibia|Namibië;Afrika;;Windhoek;;;;;AGO|BWA|ZAF|ZMB;;;;;;;true;#C70000
+NER;Niger;Republik Niger|Republic of Niger|Nijar;Afrika;;Niamey;;;;;BEN|BFA|DZA|LBY|MLI|NGA|TCD;;;;;;;true;#E05206
+NGA;Nigeria;Bundesrepublik Nigeria|Federal Republic of Nigeria|Nijeriya|Naíjíríà;Afrika;;Abuja;;;;;BEN|CMR|NER|TCD;;;;;;;true;#008753
+NIC;Nicaragua;Republik Nicaragua|Republic of Nicaragua|República de Nicaragua;Nordamerika;;Managua;;;;;CRI|HND;;;;;;;true;#0067C6
+NLD;Niederlande;Holland|Netherlands|Kingdom of the Netherlands|Nederland|The Netherlands;Europa;Nordamerika;Amsterdam;;Amsterdam ist die Hauptstadt. Regierung und Parlament sitzen in Den Haag.;;;BEL|DEU;;;;;;;true;#AE1C28
+NOR;Norwegen;Königreich Norwegen|Norway|Kingdom of Norway|Norge|Noreg|Kongeriket Norge|Kongeriket Noreg;Europa;;Oslo;;;;;FIN|RUS|SWE;;;;;;;true;#ED2939
+NPL;Nepal;Demokratische Bundesrepublik Nepal|Federal Democratic Republic of Nepal|Loktāntrik Ganatantra Nepāl;Asien;;Kathmandu;;;;;CHN|IND;;;;;;;true;#CE0000
+NRU;Nauru;Republik Nauru|Republic of Nauru|Naoero|Pleasant Island|Ripublik Naoero;Ozeanien;;;;Nauru hat keine offizielle Hauptstadt. Die Regierungsgebäude liegen im Distrikt Yaren.;;;;;;;;;;true;#002170
+NZL;Neuseeland;New Zealand|Aotearoa;Ozeanien;;Wellington;;;;;;;;;;;;true;#00247D
+OMN;Oman;Sultanat Oman|Sultanate of Oman|Salṭanat ʻUmān;Asien;;Maskat;Muscat;;;;ARE|SAU|YEM;;;;;;;true;#EF2D29
+PAK;Pakistan;Islamische Republik Pakistan|Islamic Republic of Pakistan|Islāmī Jumhūriya'eh Pākistān;Asien;;Islamabad;;;;;AFG|CHN|IND|IRN;;;;;;;true;#0C590B
+PAN;Panama;Republik Panama|Republic of Panama|República de Panamá;Nordamerika;;Panama-Stadt;Panama City;;;;COL|CRI;;;;;;;true;#0000AB
+PER;Peru;Republik Peru|Republic of Peru|República del Perú;Südamerika;;Lima;;;;;BOL|BRA|CHL|COL|ECU;;;;;;;true;#D91023
+PHL;Philippinen;Republik der Philippinen|Philippines|Republic of the Philippines|Repúblika ng Pilipinas;Asien;;Manila;;;;;;;;;;;;true;#0038A8
+PLW;Palau;Republik Palau|Republic of Palau|Beluu er a Belau;Ozeanien;;Ngerulmud;;;;;;;;;;;;true;#4AADD6
+PNG;Papua-Neuguinea;Unabhängiger Staat Papua-Neuguinea|Papua New Guinea|Independent State of Papua New Guinea|Independen Stet bilong Papua Niugini;Ozeanien;;Port Moresby;;;;;IDN;;;;;;;true;#000001
+POL;Polen;Republik Polen|Poland|Republic of Poland|Rzeczpospolita Polska;Europa;;Warschau;Warsaw;;;;BLR|CZE|DEU|LTU|RUS|SVK|UKR;;;;;;;true;#DC143C
+PRK;Nordkorea;Demokratische Volksrepublik Korea|North Korea|Democratic People's Republic of Korea|DPRK|조선민주주의인민공화국|Chosŏn Minjujuŭi Inmin Konghwaguk|Korea, Democratic People's Republic of|북한|북조선;Asien;;Pjöngjang;Pyongyang;;;;CHN|KOR|RUS;;;;;;;true;#C60000
+PRT;Portugal;Portugiesische Republik|Portuguese Republic|Portuguesa|República Portuguesa;Europa;Afrika;Lissabon;Lisbon;;;;ESP;;;;;;;true;#FF0000
+PRY;Paraguay;Republik Paraguay|Republic of Paraguay|República del Paraguay|Tetã Paraguái;Südamerika;;Asunción;;;;;ARG|BOL|BRA;;;;;;;true;#D52B1E
+PSE;Palästina;Staat Palästina|Palestine|State of Palestine|Palestine, State of|Dawlat Filasṭin;Asien;;;;Palästina beansprucht Ost-Jerusalem als Hauptstadt. Die Palästinensische Autonomiebehörde hat ihren Verwaltungssitz in Ramallah.;;;EGY|ISR|JOR;;;;;;;false;#000000
+QAT;Katar;Staat Katar|Qatar|State of Qatar|Dawlat Qaṭar;Asien;;Doha;;;;;SAU;;;;;;;true;#8D1B3D
+ROU;Rumänien;Romania|Rumania|Roumania|România;Europa;;Bukarest;Bucharest;;;;BGR|HUN|MDA|SRB|UKR;;;;;;;true;#00319C
+RUS;Russland;Russische Föderation|Russia|Russian Federation|Российская Федерация;Europa;Asien;Moskau;Moscow;;;;AZE|BLR|CHN|EST|FIN|GEO|KAZ|LTU|LVA|MNG|NOR|POL|PRK|UKR;;;;;;;true;#0039A6
+RWA;Ruanda;Republik Ruanda|Rwanda|Republic of Rwanda|Repubulika y'u Rwanda|République du Rwanda;Afrika;;Kigali;;;;;BDI|COD|TZA|UGA;;;;;;;true;#00A1DE
+SAU;Saudi-Arabien;Königreich Saudi-Arabien|Saudi Arabia|Kingdom of Saudi Arabia|Saudi|Al-Mamlakah al-‘Arabiyyah as-Su‘ūdiyyah;Asien;;Riad;Riyadh;;;;ARE|IRQ|JOR|KWT|OMN|QAT|YEM;;;;;;;true;#165D31
+SDN;Sudan;Republik Sudan|Republic of the Sudan|Jumhūrīyat as-Sūdān;Afrika;;Khartum;Khartoum;Port Sudan war während des Kriegs zeitweise Regierungssitz. Die Regierung meldete im Januar 2026 ihre Rückkehr nach Khartum.;;;CAF|EGY|ERI|ETH|LBY|SSD|TCD;;;;;;;true;#FF0000
+SEN;Senegal;Republik Senegal|Republic of Senegal|République du Sénégal;Afrika;;Dakar;;;;;GIN|GMB|GNB|MLI|MRT;;;;;;;true;#0B7226
+SGP;Singapur;Republik Singapur|Singapore|Republic of Singapore|Singapura|Republik Singapura|新加坡共和国;Asien;;Singapur;Singapore;;;;;;;;;;;true;#DF0000
+SLB;Salomonen;Solomon Islands;Ozeanien;;Honiara;;;;;;;;;;;;true;#0000D6
+SLE;Sierra Leone;Republik Sierra Leone|Republic of Sierra Leone;Afrika;;Freetown;;;;;GIN|LBR;;;;;;;true;#00CD00
+SLV;El Salvador;Republik El Salvador|Republic of El Salvador|República de El Salvador;Nordamerika;;San Salvador;;;;;GTM|HND;;;;;;;true;#0F47AF
+SMR;San Marino;Republik San Marino|Most Serene Republic of San Marino|Republic of San Marino|Repubblica di San Marino;Europa;;San Marino;City of San Marino;;;;ITA;;;;;;;true;#19B6EF
+SOM;Somalia;Bundesrepublik Somalia|Federal Republic of Somalia|aṣ-Ṣūmāl|Jamhuuriyadda Federaalka Soomaaliya|Jumhūriyyat aṣ-Ṣūmāl al-Fiderāliyya;Afrika;;Mogadischu;Mogadishu;;;;DJI|ETH|KEN;;;;;;;true;#40A6FF
+SRB;Serbien;Republik Serbien|Serbia|Republic of Serbia|Srbija|Republika Srbija|Србија|Република Србија;Europa;;Belgrad;Belgrade;;;;BGR|BIH|HRV|HUN|MKD|MNE|ROU|XKX;;;;;;;true;#C6363C
+SSD;Südsudan;Republik Südsudan|South Sudan|Republic of South Sudan;Afrika;;Juba;;;;;CAF|COD|ETH|KEN|SDN|UGA;;;;;;;true;#0F47AF
+STP;São Tomé und Príncipe;Demokratische Republik São Tomé und Príncipe|São Tomé and Príncipe|Democratic Republic of São Tomé and Príncipe|Sao Tome and Principe|República Democrática de São Tomé e Príncipe;Afrika;;São Tomé;;;;;;;;;;;;true;#12AD2B
+SUR;Suriname;Republik Suriname|Republic of Suriname|Sarnam|Sranangron|Republiek Suriname;Südamerika;;Paramaribo;;;;;BRA|GUY;;;;;;;true;#377E3F
+SVK;Slowakei;Slowakische Republik|Slovakia|Slovak Republic|Slovenská republika;Europa;;Bratislava;;;;;AUT|CZE|HUN|POL|UKR;;;;;;;true;#EE1C25
+SVN;Slowenien;Republik Slowenien|Slovenia|Republic of Slovenia|Republika Slovenija;Europa;;Ljubljana;;;;;AUT|HRV|HUN|ITA;;;;;;;true;#0000BF
+SWE;Schweden;Königreich Schweden|Sweden|Kingdom of Sweden|Konungariket Sverige;Europa;;Stockholm;;;;;FIN|NOR;;;;;;;true;#005293
+SWZ;Eswatini;Königreich Eswatini|Swasiland|Kingdom of Eswatini|Swaziland|weSwatini|Swatini|Ngwane|Umbuso weSwatini;Afrika;;Mbabane;Lobamba;Mbabane ist die Verwaltungshauptstadt. Lobamba ist Sitz von Parlament und Monarchie.;;;MOZ|ZAF;;;;;;;true;#3E5EB9
+SYC;Seychellen;Republik der Seychellen|Seychelles|Republic of Seychelles|Repiblik Sesel|République des Seychelles;Afrika;;Victoria;;;;;;;;;;;;true;#D92223
+SYR;Syrien;Arabische Republik Syrien|Syria|Syrian Arab Republic|Al-Jumhūrīyah Al-ʻArabīyah As-Sūrīyah;Asien;;Damaskus;Damascus;;;;IRQ|ISR|JOR|LBN|TUR;;;;;;;true;#007A3D
+TCD;Tschad;Republik Tschad|Chad|Republic of Chad|Tchad|République du Tchad;Afrika;;N'Djamena;;;;;CAF|CMR|LBY|NER|NGA|SDN;;;;;;;true;#002664
+TGO;Togo;Republik Togo|Togolese Republic|Togolese|République Togolaise;Afrika;;Lomé;;;;;BEN|BFA|GHA;;;;;;;true;#118600
+THA;Thailand;Königreich Thailand|Kingdom of Thailand|Prathet|Thai|ราชอาณาจักรไทย|Ratcha Anachak Thai;Asien;;Bangkok;;;;;KHM|LAO|MMR|MYS;;;;;;;true;#A51931
+TJK;Tadschikistan;Republik Tadschikistan|Tajikistan|Republic of Tajikistan|Toçikiston|Ҷумҳурии Тоҷикистон|Çumhuriyi Toçikiston;Asien;;Duschanbe;Dushanbe;;;;AFG|CHN|KGZ|UZB;;;;;;;true;#CC0000
+TKM;Turkmenistan;;Asien;;Aschgabat;Ashgabat;;;;AFG|IRN|KAZ|UZB;;;;;;;true;#00843D
+TLS;Timor-Leste;Demokratische Republik Timor-Leste|Osttimor|Democratic Republic of Timor-Leste|East Timor|Timor|República Democrática de Timor-Leste|Repúblika Demokrátika Timór-Leste|Timór Lorosa'e|Timor Lorosae;Asien;;Dili;;;;;IDN;;;;;;;true;#CB000F
+TON;Tonga;Königreich Tonga|Kingdom of Tonga;Ozeanien;;Nuku'alofa;;;;;;;;;;;;true;#C10000
+TTO;Trinidad und Tobago;Republik Trinidad und Tobago|Trinidad and Tobago|Republic of Trinidad and Tobago;Nordamerika;;Port of Spain;;;;;;;;;;;;true;#E00000
+TUN;Tunesien;Tunesische Republik|Tunisia|Tunisian Republic|Republic of Tunisia|al-Jumhūriyyah at-Tūnisiyyah;Afrika;;Tunis;;;;;DZA|LBY;;;;;;;true;#E70013
+TUR;Türkei;Türkiye|Republik Türkei|Republic of Türkiye|Turkiye|Republic of Turkey|Türkiye Cumhuriyeti;Asien;Europa;Ankara;;;;;ARM|AZE|BGR|GEO|GRC|IRN|IRQ|SYR;;;;;;;true;#E30A17
+TUV;Tuvalu;;Ozeanien;;Funafuti;;;;;;;;;;;;true;#009FCA
+TWN;Taiwan;Republik China (Taiwan)|Republic of China (Taiwan)|Republic of China|中華民國|Zhōnghuá Mínguó|Chinese Taipei;Asien;;Taipei;;;;;;;;;;;;false;#FF0000
+TZA;Tansania;Vereinigte Republik Tansania|Tanzania|United Republic of Tanzania|Tanzania, United Republic of|Jamhuri ya Muungano wa Tanzania;Afrika;;Dodoma;;;;;BDI|COD|KEN|MOZ|MWI|RWA|UGA|ZMB;;;;;;;true;#000001
+UGA;Uganda;Republik Uganda|Republic of Uganda|Jamhuri ya Uganda;Afrika;;Kampala;;;;;COD|KEN|RWA|SSD|TZA;;;;;;;true;#FFE700
+UKR;Ukraine;Ukrayina;Europa;;Kyjiw;Kyiv|Kiew;;;;BLR|HUN|MDA|POL|ROU|RUS|SVK;;;;;;;true;#0057B8
+URY;Uruguay;Republik Östlich des Uruguay|Oriental Republic of Uruguay|República Oriental del Uruguay;Südamerika;;Montevideo;;;;;ARG|BRA;;;;;;;true;#0038A8
+USA;Vereinigte Staaten;USA|Vereinigte Staaten von Amerika|United States|United States of America;Nordamerika;Ozeanien;Washington, D.C.;Washington D.C.;;;;CAN|MEX;;;;;;;true;#BD3D44
+UZB;Usbekistan;Republik Usbekistan|Uzbekistan|Republic of Uzbekistan|O‘zbekiston Respublikasi|Ўзбекистон Республикаси;Asien;;Taschkent;Tashkent;;;;AFG|KAZ|KGZ|TJK|TKM;;;;;;;true;#1EB53A
+VAT;Vatikanstadt;Vatikan|Staat Vatikanstadt|Vatican City|Vatican City State|Holy See (Vatican City State)|Vatican|Stato della Città del Vaticano;Europa;;Vatikanstadt;Vatican City;;;;ITA;;;;;;;false;#FFE000
+VCT;St. Vincent und die Grenadinen;Saint Vincent and the Grenadines;Nordamerika;;Kingstown;;;;;;;;;;;;true;#F4F100
+VEN;Venezuela;Bolivarische Republik Venezuela|Bolivarian Republic of Venezuela|Venezuela, Bolivarian Republic of|República Bolivariana de Venezuela;Südamerika;Nordamerika;Caracas;;;;;BRA|COL|GUY;;;;;;;true;#FFCC00
+VNM;Vietnam;Sozialistische Republik Vietnam|Socialist Republic of Vietnam|Cộng hòa Xã hội chủ nghĩa Việt Nam;Asien;;Hanoi;;;;;CHN|KHM|LAO;;;;;;;true;#DA251D
+VUT;Vanuatu;Republic of Vanuatu|Ripablik blong Vanuatu|République de Vanuatu;Ozeanien;;Port Vila;;;;;;;;;;;;true;#D21034
+WSM;Samoa;Unabhängige Staat Samoa|Independent State of Samoa|Malo Saʻoloto Tutoʻatasi o Sāmoa;Ozeanien;;Apia;;;;;;;;;;;;true;#CE1126
+XKX;Kosovo;Republik Kosovo|Republic of Kosovo|Република Косово;Europa;;Pristina;;;;;ALB|MKD|MNE|SRB;;;;;;;false;#244AA5
+YEM;Jemen;Republik Jemen|Yemen|Republic of Yemen|Yemeni Republic|al-Jumhūriyyah al-Yamaniyyah;Asien;Afrika;Sanaa;Sana'a|San'a|Aden;Sanaa ist die verfassungsmäßige Hauptstadt. Aden ist der vorläufige Sitz der international anerkannten Regierung.;;;OMN|SAU;;;;;;;true;#F10600
+ZAF;Südafrika;Republik Südafrika|South Africa|Republic of South Africa|RSA|Suid-Afrika;Afrika;;Pretoria;Bloemfontein|Kapstadt|Cape Town;Pretoria ist Regierungssitz, Kapstadt ist Parlamentssitz und Bloemfontein ist die traditionelle Justizhauptstadt.;;;BWA|LSO|MOZ|NAM|SWZ|ZWE;;;;;;;true;#007847
+ZMB;Sambia;Republik Sambia|Zambia|Republic of Zambia;Afrika;;Lusaka;;;;;AGO|BWA|COD|MOZ|MWI|NAM|TZA|ZWE;;;;;;;true;#198A00
+ZWE;Simbabwe;Republik Simbabwe|Zimbabwe|Republic of Zimbabwe;Afrika;;Harare;;;;;BWA|MOZ|ZAF|ZMB;;;;;;;true;#006400

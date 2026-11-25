@@ -19,6 +19,8 @@ export interface PracticeQuestion {
   answerLabel: string;
   answer: AnswerOption;
   options: AnswerOption[];
+  alternativeAnswers?: AnswerOption[];
+  noteColumn?: string;
   flag?: string;
   acceptedIds: ReadonlySet<string>;
   match?: ReturnType<typeof createAnswerLookup>;
@@ -94,10 +96,25 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
     const values = attribute.type === 'enum'
       ? distinctOptions(attribute.values.map((name) => ({ id: normalizeAnswer(name), name })))
       : candidates.map(({ id, name }) => ({ id, name }));
+    const alternatives = new Map<string, AnswerOption[]>();
+    const alternativeCountries = new Map<string, Set<string>>();
+    if (attribute.type === 'enum' && attribute.alternativeValuesColumn) {
+      for (const entity of entities) {
+        const names = list(entity, attribute.alternativeValuesColumn);
+        if (!names.length) continue;
+        const accepted = names.map((name) => ({ id: normalizeAnswer(name), name }));
+        alternatives.set(entity.id, accepted);
+        for (const { id } of accepted) {
+          const countries = alternativeCountries.get(id) ?? new Set<string>();
+          countries.add(entity.id);
+          alternativeCountries.set(id, countries);
+        }
+      }
+    }
     const valueMatch = createAnswerLookup(attribute.type === 'enum'
       ? [...candidates, ...values.filter(({ id }) => !groups.has(id)).map((option) => ({ ...option, name_aliases: [] }))]
       : candidates);
-    return [{ attribute, groups, values, valueMatch }];
+    return [{ attribute, groups, values, valueMatch, alternatives, alternativeCountries }];
   });
 
   const categories = [locationCategory, ...attributes.map(({ attribute }) => attribute)];
@@ -144,7 +161,7 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
         }
       }
     }
-    for (const { attribute, groups, values, valueMatch } of attributes) {
+    for (const { attribute, groups, values, valueMatch, alternatives, alternativeCountries } of attributes) {
       if (!selected(attribute.key, settings)) continue;
       const populated = [...groups.values()].flatMap(({ members }) => members);
       for (const direction of directions) {
@@ -155,34 +172,39 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
         for (const [valueId, { value, members }] of groups) {
           const local = members.filter((entity) => inRegion(entity, settings));
           const targets = reverse && settings.order === 'mixed' ? shuffle(local, random).slice(0, 1) : local;
+          const countriesWithValue = new Set(members.map(({ id }) => id));
+          for (const id of alternativeCountries.get(valueId) ?? []) countriesWithValue.add(id);
           for (const entity of targets) {
             const answer = reverse ? { id: entity.id, name: entity.name }
               : flag ? { id: entity.id, name: entity.name, flag: value }
                 : { id: valueId, name: String(entity[attribute.key]) };
+            const alternativeAnswers = reverse ? undefined : alternatives.get(entity.id);
+            const acceptedValues = new Set([answer.id, ...(alternativeAnswers?.map(({ id }) => id) ?? [])]);
             let options: AnswerOption[] = [];
             if (format === 'choice') {
               if (reverse || flag) {
-                const sameValue = new Set(members.map(({ id }) => id));
-                options = countryChoices(answer, entity, populated.filter(({ id }) => !sameValue.has(id)), random,
+                options = countryChoices(answer, entity, populated.filter(({ id }) => !countriesWithValue.has(id)), random,
                   flag ? attribute.key : undefined, flag && !reverse);
               } else {
-                const choices = shuffle(values.filter(({ id }) => id !== valueId), random);
+                const choices = shuffle(values.filter(({ id }) => !acceptedValues.has(id)), random);
                 if (attribute.type === 'text') {
                   const isLocal = (id: string) => groups.get(id)?.members.some(({ continent }) => continent && continent === entity.continent);
                   choices.sort((a, b) => Number(Boolean(isLocal(b.id))) - Number(Boolean(isLocal(a.id))));
                 }
                 options = shuffle([answer, ...choices.slice(0, 3)], random);
               }
-              const needed = !reverse && attribute.type === 'enum' ? Math.max(2, Math.min(4, values.length)) : 4;
+              const needed = !reverse && attribute.type === 'enum'
+                ? Math.max(2, Math.min(4, values.length - (alternativeAnswers?.length ?? 0))) : 4;
               if (options.length < needed) continue;
             }
 
             questions.push({
               entity, category: attribute.key, direction, format, answer, options,
+              alternativeAnswers, noteColumn: attribute.noteColumn,
               prompt: questionPrompt(attribute, entity, value, direction, format),
               answerLabel: reverse ? definition.entityLabel : attribute.label,
               flag: reverse && flag ? value : undefined,
-              acceptedIds: new Set(reverse && format !== 'choice' ? members.map(({ id }) => id) : [answer.id]),
+              acceptedIds: reverse && format !== 'choice' ? countriesWithValue : acceptedValues,
               match: format === 'typed' ? reverse ? nameMatch : valueMatch : undefined,
             });
           }
