@@ -94,7 +94,7 @@ it('shows a capital note in feedback after a correct typed answer', async () => 
   find<HTMLInputElement>('#country-answer').value = 'Abuja';
   find<HTMLFormElement>('.typed-answer').requestSubmit();
   expect(find('.verdict-title').textContent).toBe('Richtig.');
-  expect(find('.verdict-detail').textContent).toBe('Abuja löste Lagos als Hauptstadt ab.');
+  expect(find('.verdict-detail').textContent).toBe('„Abuja“. Abuja löste Lagos als Hauptstadt ab.');
 });
 
 it('advances only correct answers after five seconds and frames the solution and wrong country together', async () => {

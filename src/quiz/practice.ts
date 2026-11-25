@@ -1,4 +1,6 @@
 import type { QuizSet } from '../data/load';
+import { attributePoint } from '../data/map';
+import type { Coordinate } from '../data/map';
 import type { AttributeDefinition, Entity } from '../data/schema';
 import { createAnswerLookup, normalizeAnswer } from '../match/answers';
 import { shuffle } from './shuffle';
@@ -21,8 +23,10 @@ export interface PracticeQuestion {
   options: AnswerOption[];
   alternativeAnswers?: AnswerOption[];
   noteColumn?: string;
+  source?: string;
   flag?: string;
   acceptedIds: ReadonlySet<string>;
+  point?: Coordinate;
   match?: ReturnType<typeof createAnswerLookup>;
 }
 
@@ -35,7 +39,7 @@ function categoryFormats(attribute: Category, direction: Direction): AnswerForma
   if (attribute.type === 'location') return direction === 'forward' ? ['map'] : ['choice', 'typed'];
   const formats: AnswerFormat[] = ['choice'];
   if (attribute.type !== 'flag' || direction === 'reverse') formats.push('typed');
-  if (attribute.type === 'text' && direction === 'reverse') formats.push('map');
+  if (attribute.type === 'text' && (direction === 'reverse' || attribute.point)) formats.push('map');
   return formats.filter((format) => !attribute.modes || attribute.modes.some((mode) =>
     mode === direction || mode === format || mode === `${direction}-${format}`));
 }
@@ -61,7 +65,9 @@ function questionPrompt(attribute: AttributeDefinition, entity: Entity, value: s
     template = direction === 'forward' ? 'Welche Flagge gehört zu {entity}?' : 'Welches Land ist das?';
   } else if (format === 'map') {
     const reverse = attribute.prompts?.reverse ?? `Welches Land hat „{value}“ als ${attribute.label}?`;
-    template = attribute.prompts?.reverseMap ?? `${reverse} Markiere es auf der Karte.`;
+    template = direction === 'forward'
+      ? attribute.prompts?.mapPoint ?? `Markiere {value} auf der Karte von {entity}.`
+      : attribute.prompts?.reverseMap ?? `${reverse} Markiere es auf der Karte.`;
   } else if (direction === 'forward') {
     template = `Was ist der Wert für „${attribute.label}“ bei {entity}?`;
   } else {
@@ -77,44 +83,44 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
     .sort((a, b) => a.localeCompare(b, 'de'));
   const attributes = definition.attributes.flatMap((attribute) => {
     if (attribute.quiz === false || !['text', 'enum', 'flag'].includes(attribute.type)) return [];
-    const groups = new Map<string, { value: string; members: Entity[] }>();
+    const groups = new Map<string, { value: string; primary: Entity[]; alternatives: Entity[] }>();
+    const alternativeAnswers = new Map<string, AnswerOption[]>();
+    const populated: Entity[] = [];
+
+    function addMember(value: string, entity: Entity, role: 'primary' | 'alternatives'): AnswerOption {
+      const id = normalizeAnswer(value);
+      const group = groups.get(id) ?? { value, primary: [], alternatives: [] };
+      groups.set(id, group);
+      group[role].push(entity);
+      return { id, name: value };
+    }
+
     for (const entity of entities) {
       const value = entity[attribute.key];
       if (typeof value !== 'string' || !value.trim()) continue;
-      const id = normalizeAnswer(value);
-      const group = groups.get(id);
-      if (group) group.members.push(entity);
-      else groups.set(id, { value, members: [entity] });
+      populated.push(entity);
+      addMember(value, entity, 'primary');
+    }
+    if ('alternativeValuesColumn' in attribute && attribute.alternativeValuesColumn) {
+      for (const entity of populated) {
+        const options = list(entity, attribute.alternativeValuesColumn).map((value) => addMember(value, entity, 'alternatives'));
+        if (options.length) alternativeAnswers.set(entity.id, options);
+      }
     }
     if (!groups.size || !directions.some((direction) => categoryFormats(attribute, direction).length)) return [];
 
-    const candidates = [...groups].map(([id, { value, members }]) => ({
+    const candidates = [...groups].map(([id, { value, primary }]) => ({
       id,
       name: value,
-      name_aliases: attribute.aliasesColumn ? members.flatMap((entity) => list(entity, attribute.aliasesColumn!)) : [],
+      name_aliases: attribute.aliasesColumn ? primary.flatMap((entity) => list(entity, attribute.aliasesColumn!)) : [],
     }));
     const values = attribute.type === 'enum'
       ? distinctOptions(attribute.values.map((name) => ({ id: normalizeAnswer(name), name })))
       : candidates.map(({ id, name }) => ({ id, name }));
-    const alternatives = new Map<string, AnswerOption[]>();
-    const alternativeCountries = new Map<string, Set<string>>();
-    if (attribute.type === 'enum' && attribute.alternativeValuesColumn) {
-      for (const entity of entities) {
-        const names = list(entity, attribute.alternativeValuesColumn);
-        if (!names.length) continue;
-        const accepted = names.map((name) => ({ id: normalizeAnswer(name), name }));
-        alternatives.set(entity.id, accepted);
-        for (const { id } of accepted) {
-          const countries = alternativeCountries.get(id) ?? new Set<string>();
-          countries.add(entity.id);
-          alternativeCountries.set(id, countries);
-        }
-      }
-    }
     const valueMatch = createAnswerLookup(attribute.type === 'enum'
       ? [...candidates, ...values.filter(({ id }) => !groups.has(id)).map((option) => ({ ...option, name_aliases: [] }))]
       : candidates);
-    return [{ attribute, groups, values, valueMatch, alternatives, alternativeCountries }];
+    return [{ attribute, groups, values, valueMatch, populated, alternativeAnswers }];
   });
 
   const categories = [locationCategory, ...attributes.map(({ attribute }) => attribute)];
@@ -125,9 +131,20 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
     settings.direction === 'mixed' || settings.direction === direction;
 
   function formatsFor(settings: RoundSettings) {
-    return new Set(categories.filter(({ key }) => selected(key, settings))
-      .flatMap((category) => directions.filter((direction) => inDirection(direction, settings))
-        .flatMap((direction) => categoryFormats(category, direction))));
+    const formats = new Set<AnswerFormat>();
+    for (const category of categories) {
+      if (!selected(category.key, settings)) continue;
+      for (const direction of directions) {
+        if (!inDirection(direction, settings)) continue;
+        for (const format of categoryFormats(category, direction)) {
+          if (format === 'map' && direction === 'forward' && category.type !== 'location'
+            && !entities.some((entity) => inRegion(entity, settings)
+              && typeof entity[category.key] === 'string' && attributePoint(entity, category))) continue;
+          formats.add(format);
+        }
+      }
+    }
+    return formats;
   }
 
   function locationQuestion(entity: Entity, direction: Direction, format: AnswerFormat, random: () => number): PracticeQuestion | undefined {
@@ -149,9 +166,9 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
     };
   }
 
-  function createRound(settings: RoundSettings, random = Math.random): PracticeQuestion[] {
+  function buildQuestions(settings: RoundSettings, random: () => number, eligible: Entity[]): PracticeQuestion[] {
     const questions: PracticeQuestion[] = [];
-    const eligible = entities.filter((entity) => inRegion(entity, settings));
+    const eligibleIds = new Set(eligible.map(({ id }) => id));
     if (selected('location', settings)) {
       for (const direction of directions) {
         if (!inDirection(direction, settings) || !categoryFormats(locationCategory, direction).includes(settings.format)) continue;
@@ -161,25 +178,26 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
         }
       }
     }
-    for (const { attribute, groups, values, valueMatch, alternatives, alternativeCountries } of attributes) {
+    for (const { attribute, groups, values, valueMatch, populated, alternativeAnswers } of attributes) {
       if (!selected(attribute.key, settings)) continue;
-      const populated = [...groups.values()].flatMap(({ members }) => members);
       for (const direction of directions) {
         if (!inDirection(direction, settings) || !categoryFormats(attribute, direction).includes(settings.format)) continue;
         const reverse = direction === 'reverse';
         const flag = attribute.type === 'flag';
         const { format } = settings;
-        for (const [valueId, { value, members }] of groups) {
-          const local = members.filter((entity) => inRegion(entity, settings));
+        for (const [valueId, { value, primary, alternatives }] of groups) {
+          const matchingCountries = [...primary, ...alternatives];
+          const local = (reverse ? matchingCountries : primary).filter(({ id }) => eligibleIds.has(id));
           const targets = reverse && settings.order === 'mixed' ? shuffle(local, random).slice(0, 1) : local;
-          const countriesWithValue = new Set(members.map(({ id }) => id));
-          for (const id of alternativeCountries.get(valueId) ?? []) countriesWithValue.add(id);
+          const countriesWithValue = new Set(matchingCountries.map(({ id }) => id));
           for (const entity of targets) {
+            const point = !reverse && format === 'map' ? attributePoint(entity, attribute) : undefined;
+            if (!reverse && format === 'map' && !point) continue;
             const answer = reverse ? { id: entity.id, name: entity.name }
               : flag ? { id: entity.id, name: entity.name, flag: value }
                 : { id: valueId, name: String(entity[attribute.key]) };
-            const alternativeAnswers = reverse ? undefined : alternatives.get(entity.id);
-            const acceptedValues = new Set([answer.id, ...(alternativeAnswers?.map(({ id }) => id) ?? [])]);
+            const otherAnswers = reverse ? undefined : alternativeAnswers.get(entity.id);
+            const acceptedValues = new Set([answer.id, ...(otherAnswers?.map(({ id }) => id) ?? [])]);
             let options: AnswerOption[] = [];
             if (format === 'choice') {
               if (reverse || flag) {
@@ -188,19 +206,21 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
               } else {
                 const choices = shuffle(values.filter(({ id }) => !acceptedValues.has(id)), random);
                 if (attribute.type === 'text') {
-                  const isLocal = (id: string) => groups.get(id)?.members.some(({ continent }) => continent && continent === entity.continent);
+                  const isLocal = (id: string) => groups.get(id)?.primary.some(({ continent }) => continent && continent === entity.continent);
                   choices.sort((a, b) => Number(Boolean(isLocal(b.id))) - Number(Boolean(isLocal(a.id))));
                 }
                 options = shuffle([answer, ...choices.slice(0, 3)], random);
               }
               const needed = !reverse && attribute.type === 'enum'
-                ? Math.max(2, Math.min(4, values.length - (alternativeAnswers?.length ?? 0))) : 4;
+                ? Math.max(2, Math.min(4, values.length - (otherAnswers?.length ?? 0))) : 4;
               if (options.length < needed) continue;
             }
 
             questions.push({
-              entity, category: attribute.key, direction, format, answer, options,
-              alternativeAnswers, noteColumn: attribute.noteColumn,
+              entity, category: attribute.key, direction, format, answer, options, point,
+              alternativeAnswers: otherAnswers,
+              noteColumn: attribute.atlasNoteOnly ? undefined : attribute.noteColumn,
+              source: attribute.source,
               prompt: questionPrompt(attribute, entity, value, direction, format),
               answerLabel: reverse ? definition.entityLabel : attribute.label,
               flag: reverse && flag ? value : undefined,
@@ -211,7 +231,31 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
         }
       }
     }
+    return questions;
+  }
 
+  function createRound(settings: RoundSettings, random = Math.random): PracticeQuestion[] {
+    const countryRound = settings.countryRound;
+    if (countryRound) {
+      const { selection, steps, countryId, count } = countryRound;
+      const specific = selection === 'specific' ? entities.find(({ id }) => id === countryId) : undefined;
+      if ((selection === 'specific' && !specific) || (selection === 'region' && !settings.region)) return [];
+      const eligible = entities.filter((entity) => entity !== specific && (selection !== 'region' || inRegion(entity, settings)));
+      const shuffled = shuffle(eligible, random);
+      const ordered = specific ? [specific, ...shuffled] : shuffled;
+      const groups: PracticeQuestion[][] = [];
+      for (const entity of ordered) {
+        const questions = steps.flatMap(({ category, format }) => buildQuestions({
+          ...settings, categories: [category], direction: 'forward', format, order: 'country',
+        }, random, [entity]));
+        if (questions.length) groups.push(questions);
+        else if (entity === specific) return [];
+        if (groups.length === count) break;
+      }
+      return groups.flat();
+    }
+
+    const questions = buildQuestions(settings, random, entities.filter((entity) => inRegion(entity, settings)));
     let ordered = shuffle(questions, random);
     if (settings.order === 'country') {
       const byCountry = new Map<string, PracticeQuestion[]>();
@@ -225,7 +269,7 @@ export function createPracticeEngine({ definition, entities }: QuizSet) {
     return settings.length === 'all' ? ordered : ordered.slice(0, settings.length);
   }
 
-  return { categories, regions, formatsFor, createRound };
+  return { categories, regions, countries: entities, formatsFor, createRound };
 }
 
 function countryChoices(

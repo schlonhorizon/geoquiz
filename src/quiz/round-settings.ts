@@ -8,6 +8,12 @@ export const roundSettingsSchema = z.object({
   region: z.string(),
   difficulty: z.literal('all'),
   length: z.union([z.literal(10), z.literal(20), z.literal('all')]),
+  countryRound: z.optional(z.object({
+    steps: z.array(z.object({ category: z.string(), format: z.enum(['map', 'choice', 'typed']) })).check(z.minLength(1)),
+    selection: z.enum(['random', 'region', 'specific']),
+    countryId: z.string(),
+    count: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(10)]),
+  })),
 });
 
 export const presetsSchema = z.object({
@@ -25,3 +31,4 @@ export type PresetLibrary = z.infer<typeof presetsSchema>;
 export type Preset = PresetLibrary['presets'][number];
 export type Direction = Exclude<RoundSettings['direction'], 'mixed'>;
 export type AnswerFormat = RoundSettings['format'];
+export type CountryRoundSettings = NonNullable<RoundSettings['countryRound']>;

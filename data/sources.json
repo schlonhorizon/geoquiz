@@ -1,0 +1,81 @@
+[
+  {
+    "name": "world-countries",
+    "use": "Ländernamen, Regionen, Nachbarländer und Währungszuordnung",
+    "date": "Version 5.1.0",
+    "url": "https://github.com/mledoze/countries/tree/5.1.0",
+    "license": "Open Database License 1.0",
+    "licenseUrl": "https://opendatacommons.org/licenses/odbl/1-0/"
+  },
+  {
+    "name": "V-Dem Country-Year Dataset",
+    "use": "Regierungsform nach Regimes of the World (v2x_regime), deutsche Bezeichnungen",
+    "date": "Version 16, Berichtsjahr 2025",
+    "url": "https://doi.org/10.23696/vdemds26",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+  },
+  {
+    "name": "How the World Is Governed",
+    "use": "Staatsformen, Tristan Hotham. Deutsche Klassen und verfassungsrechtliche Ergänzungen aus dem Validierungsreport",
+    "date": "2026",
+    "url": "https://doi.org/10.5281/zenodo.24134970",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+  },
+  {
+    "name": "CIA World Factbook",
+    "use": "Vergleich der Staatsformen und institutionellen Angaben",
+    "date": "Ausgaben 2024 und 2026",
+    "url": "https://github.com/factbook/factbook.json",
+    "license": "Gemeinfrei (Aufbereitung als JSON unter CC0 1.0)",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+    "name": "Natural Earth",
+    "use": "Ländergrenzen und Hauptstadtpunkte (Admin 0 und Populated Places)",
+    "date": "Version 5.1.2",
+    "url": "https://www.naturalearthdata.com/downloads/",
+    "license": "Gemeinfrei",
+    "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/"
+  },
+  {
+    "name": "GeoNames",
+    "use": "Geografische Lage von Ciudad de la Paz und Referenzpunkte",
+    "date": "Abruf 25. November 2026",
+    "url": "https://www.geonames.org/",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://www.geonames.org/about.html"
+  },
+  {
+    "name": "flag-icons",
+    "use": "Länderflaggen und daraus berechnete Flaggenfarben",
+    "date": "Version 7.6.0",
+    "url": "https://github.com/lipis/flag-icons/tree/v7.6.0",
+    "license": "MIT",
+    "licenseUrl": "https://github.com/lipis/flag-icons/blob/v7.6.0/LICENSE"
+  },
+  {
+    "name": "Inter Tight",
+    "use": "Schrift, bereitgestellt über Fontsource",
+    "date": "Fontsource-Version 5.3.0",
+    "url": "https://fontsource.org/fonts/inter-tight",
+    "license": "SIL Open Font License 1.1",
+    "localLicense": "licenses/inter-tight.txt"
+  },
+  {
+    "name": "ISO 4217 (SIX)",
+    "use": "Offizielle Währungscodes und Bezeichnungen",
+    "date": "Liste vom 17. September 2026",
+    "url": "https://www.iso.org/iso-4217-currency-codes.html",
+    "license": "Nutzungsbedingungen der ISO",
+    "licenseUrl": "https://www.iso.org/copyright.html"
+  },
+  {
+    "name": "OSFI, Zentralbanken und Börsen",
+    "use": "Namen von Zentralbanken, Leitindizes und Börsenstatus. Einzelbelege und Verfassungstexte stehen im Validierungsreport.",
+    "date": "Stand 25. November 2026",
+    "url": "https://github.com/schlonhorizon/geoquiz/blob/main/docs/world-data-report.md",
+    "license": "Fakten aus amtlichen und institutionellen Quellen. Nutzungsbedingungen bei der jeweiligen Quelle."
+  }
+]

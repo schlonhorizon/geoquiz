@@ -1,30 +1,18 @@
 import type { QuizSet } from '../data/load';
 import type { Entity } from '../data/schema';
-import { flagImage } from './flag-image';
+import type { CountryMap } from '../map/country-map';
+import { renderCountryHero } from './country-hero';
 
 export function renderProfile(
   sheet: HTMLElement,
   { definition, entities }: QuizSet,
   entity: Entity,
+  map: CountryMap | undefined,
   onSelect: (id: string) => void,
   onClose: () => void,
 ) {
-  const flagKey = definition.attributes.find(({ type }) => type === 'flag')?.key;
-  const header = document.createElement('header');
-  header.className = 'atlas-header';
-  const title = document.createElement('h2');
-  title.id = 'profile-title';
-  title.textContent = entity.name;
-  const close = document.createElement('button');
-  close.type = 'button';
-  close.className = 'square-button';
-  close.setAttribute('aria-label', 'Steckbrief schließen');
-  close.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1l14 14M15 1L1 15"/></svg>';
-  close.addEventListener('click', onClose);
-
-  header.append(title);
-  if (flagKey && typeof entity[flagKey] === 'string') header.append(flagImage(entity[flagKey]));
-  header.append(close);
+  const previousColor = sheet.querySelector<HTMLElement>('.country-hero')?.style.getPropertyValue('--country-color');
+  const { header } = renderCountryHero({ entity, definition, map, onBack: onClose, previousColor });
 
   const names = new Map(entities.map(({ id, name }) => [id, name]));
   const fields = document.createElement('dl');
@@ -35,7 +23,8 @@ export function renderProfile(
     const value = entity[key];
     const note = noteColumn ? entity[noteColumn] : undefined;
     const empty = value == null || value === '' || (Array.isArray(value) && !value.length);
-    if (empty && !note) continue;
+    const fallback = attribute.emptyValueColumn ? entity[attribute.emptyValueColumn] : undefined;
+    if (empty && !note && !fallback) continue;
     const row = document.createElement('div');
     const term = document.createElement('dt');
     term.textContent = label;
@@ -53,13 +42,16 @@ export function renderProfile(
       if (!description.childElementCount && !note) continue;
     } else if (!empty) {
       description.textContent = Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? value ? 'Ja' : 'Nein' : String(value);
+    } else if (typeof fallback === 'string') {
+      description.textContent = fallback;
     }
-    if (type === 'enum' && attribute.alternativeValuesColumn) {
+    if ('alternativeValuesColumn' in attribute && attribute.alternativeValuesColumn) {
       const alternatives = entity[attribute.alternativeValuesColumn];
       if (Array.isArray(alternatives) && alternatives.length) {
         description.append(` (${alternatives.join(', ')} ebenfalls möglich)`);
       }
     }
+    if (!empty && attribute.source) description.append(` (${attribute.source})`);
     if (typeof note === 'string') {
       const detail = document.createElement('p');
       detail.className = 'atlas-note';

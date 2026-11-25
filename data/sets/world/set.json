@@ -26,7 +26,7 @@
       "type": "text",
       "aliasesColumn": "capital_aliases",
       "noteColumn": "capital_note",
-      "point": { "lat": "capital_lat", "lon": "capital_lon" },
+      "point": { "lat": "capital_lat", "lon": "capital_lon", "required": true },
       "prompts": {
         "forward": "Was ist die Hauptstadt von {entity}?",
         "reverse": "{value} ist die Hauptstadt von …?",
@@ -39,6 +39,8 @@
       "type": "enum",
       "values": ["Europa", "Asien", "Afrika", "Nordamerika", "Südamerika", "Ozeanien"],
       "alternativeValuesColumn": "continent_alt",
+      "noteColumn": "continent_note",
+      "atlasNoteOnly": true,
       "prompts": {
         "forward": "Auf welchem Kontinent liegt {entity}?",
         "reverse": "Welches Land liegt auf dem Kontinent {value}?"
@@ -54,6 +56,7 @@
       "label": "Währung",
       "type": "text",
       "aliasesColumn": "currency_aliases",
+      "alternativeValuesColumn": "currency_alt",
       "prompts": {
         "forward": "Welche Währung ist für {entity} hinterlegt?",
         "reverse": "Für welches Land ist „{value}“ als Währung hinterlegt?"
@@ -64,6 +67,7 @@
       "label": "Zentralbank",
       "type": "text",
       "aliasesColumn": "central_bank_aliases",
+      "noteColumn": "central_bank_note",
       "prompts": {
         "forward": "Wie heißt die für {entity} zuständige Zentralbank oder Währungsbehörde?",
         "reverse": "Für welches Land ist „{value}“ die Zentralbank oder Währungsbehörde?"
@@ -74,6 +78,7 @@
       "label": "Leitindex",
       "type": "text",
       "aliasesColumn": "stock_index_aliases",
+      "emptyValueColumn": "stock_index_status",
       "prompts": {
         "forward": "Welcher Aktienindex ist für {entity} als Leitindex hinterlegt?",
         "reverse": "Für welches Land ist „{value}“ als Leitindex hinterlegt?"
@@ -81,12 +86,37 @@
     },
     {
       "key": "regime_type",
-      "label": "Regierungsform (V-Dem 2025)",
+      "label": "Regierungsform",
       "type": "enum",
+      "source": "nach V-Dem 2025",
       "values": ["Geschlossene Autokratie", "Wahlautokratie", "Wahldemokratie", "Liberale Demokratie"],
       "prompts": {
         "forward": "Wie stuft V-Dem die Regierungsform von {entity} für 2025 ein?",
         "reverse": "Welches Land stuft V-Dem für 2025 als „{value}“ ein?"
+      }
+    },
+    {
+      "key": "government_form",
+      "label": "Staatsform",
+      "type": "enum",
+      "noteColumn": "government_form_note",
+      "source": "nach Hotham 2026 und Verfassungstexten",
+      "values": [
+        "Absolute Monarchie",
+        "Direktorialrepublik",
+        "Einparteienstaat",
+        "Parlamentarische Monarchie",
+        "Parlamentarische Republik",
+        "Präsidialrepublik",
+        "Regierende Monarchie",
+        "Republik mit parlamentarisch gewählter Exekutive",
+        "Semipräsidentielle Republik",
+        "Theokratie",
+        "Übergangsordnung"
+      ],
+      "prompts": {
+        "forward": "Welche Staatsform hat {entity}?",
+        "reverse": "Welches Land hat die Staatsform „{value}“?"
       }
     },
     { "key": "un_member", "label": "UN-Mitglied", "type": "boolean", "quiz": false }

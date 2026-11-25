@@ -1,5 +1,6 @@
-import { mergeArcs } from 'topojson-client';
-import type { GeometryObject, Topology } from 'topojson-specification';
+import { geoContains } from 'd3-geo';
+import { feature, mergeArcs } from 'topojson-client';
+import type { GeometryObject, MultiPolygon, Polygon, Topology } from 'topojson-specification';
 import { z } from 'zod';
 import { getMapEntityId } from '../../src/data/map';
 import type { Entity, SetDefinition } from '../../src/data/schema';
@@ -59,8 +60,11 @@ export function mergeLandAreas(content: string, { object, idProperty, mergeLand 
   return JSON.stringify(topology) + '\n';
 }
 
-export function validateMap(content: string, map: SetDefinition['map'], entities: Map<string, Entity>, issues: DataIssues) {
-  const topology = topologySchema.parse(JSON.parse(content));
+export function validateMap(content: string, definition: SetDefinition, entities: Map<string, Entity>, issues: DataIssues) {
+  const { map, attributes } = definition;
+  const raw: Topology = JSON.parse(content);
+  const topology = topologySchema.parse(raw);
+  const pointAttributes = attributes.filter(({ point }) => point);
   if (!Object.hasOwn(topology.objects, map.object)) {
     issues.errors.push(`TopoJSON-Objekt "${map.object}" fehlt in ${map.file}.`);
     return;
@@ -99,6 +103,18 @@ export function validateMap(content: string, map: SetDefinition['map'], entities
       continue;
     }
     geometryIds.add(idLabel);
+    const entity = entities.get(idLabel);
+    if (!entity) continue;
+    for (const { key, point } of pointAttributes) {
+      if (!point) continue;
+      const latitude = entity[point.lat];
+      const longitude = entity[point.lon];
+      if (typeof latitude !== 'number' || typeof longitude !== 'number'
+        || !Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+      if (!geoContains(feature(raw, entry as Polygon | MultiPolygon), [longitude, latitude])) {
+        issues.errors.push(`${label}: Der Punkt für "${key}" liegt außerhalb der Fläche.`);
+      }
+    }
   }
 
   for (const id of entities.keys()) {

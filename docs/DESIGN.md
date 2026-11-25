@@ -79,9 +79,11 @@ Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. 
 
 Das Vollbild-Overlay ist weiß. Die Menüspalte ist zentriert und maximal 560 px breit. Jede Ebene erhält oben eine Kopfzeile. Escape und das 48-px-Zurück-Feld gehen eine Ebene zurück. Auf der ersten Ebene schließt Escape das Menü.
 
-1. **Hauptmenü**. Kopf mit „GEOQUIZ“, dem eingerahmten Label „GEBIET: WELT“ und dem Schließen-Feld rechts. Die nummerierte Liste zeigt „01 Üben →“, „02 Atlas →“ und „03 Fortschritt“ mit „FOLGT“. Zeilen verwenden 44 px/800 und 2-px-Trennlinien. Beim Desktop-Hover rückt der aktive Eintrag 12 px ein. Darunter steht die einklappbare Zeile „EINSTELLUNGEN“ mit Plus. Sie ist beim Öffnen geschlossen. Darin stehen Lösungszoom, Kleinstaaten-Ringe und „Weltansicht zurücksetzen“.
+1. **Hauptmenü**. Kopf mit „GEOQUIZ“, dem eingerahmten Label „GEBIET: WELT“ und dem Schließen-Feld rechts. Die nummerierte Liste zeigt „01 Üben →“, „02 Atlas →“ und „03 Fortschritt“ mit „FOLGT“. Zeilen verwenden 44 px/800 und 2-px-Trennlinien. Beim Desktop-Hover rückt der aktive Eintrag 12 px ein. Darunter steht die einklappbare Zeile „EINSTELLUNGEN“ mit Plus. Sie ist beim Öffnen geschlossen. Darin stehen Lösungszoom, Kleinstaaten-Ringe, „Weltansicht zurücksetzen“ und „Quellen und Lizenzen“. Die Quellenseite nutzt dieselbe Vollbildnavigation. Zurück und Escape führen zu den aufgeklappten Einstellungen.
 2. **Üben**. Links das Zurück-Feld mit `←`, daneben „Üben“ in 44 px/800. Unter „VORLAGEN“ stehen die verfügbaren Vorlagen als 28-px-Zeilen mit Gewicht 800. Die Zeile startet die Runde mit den zuletzt gewählten Einstellungen. Rechts führt „Anpassen“ in 13 px/700 zum Rundenaufbau und ist beim Hover unterstrichen. Vorlagen mit „FOLGT“ sind grau und deaktiviert. „EIGENE RUNDE“ führt mit einer Zeile zum Rundenaufbau.
 3. **Rundenaufbau**. Links steht pro Zeile das Label in 11 px und Großbuchstaben, rechts die Optionen als eckige Segmente mit 2-px-Rahmen und −2 px Abstand. Gewählte Segmente sind schwarz mit weißer Schrift. Die Kategorie erlaubt Mehrfachauswahl. Unpassende Antwortarten werden ausgegraut. In „Auswahl“ steht Schwierigkeit als Platzhalter. Unten bleibt der 56-px-Primärbutton „Runde starten →“ sichtbar. Enter startet die Runde.
+
+Bei „Ein Land komplett“ bietet der Rundenaufbau Zufall, Region und ein bestimmtes Startland mit Suche nach Namen oder Alias. Die Anzahl ist 1, 3, 5 oder 10 Länder. Bei einem gewählten Startland folgen die weiteren Länder per Zufall.
 
 ## 4. Karte
 
@@ -96,6 +98,7 @@ Das Vollbild-Overlay ist weiß. Die Menüspalte ist zentriert und maximal 560 px
 - Beim Zeigen der Lösung für einen Kleinstaat laufen drei blaue Radar-Ringe mit 2 px Strichstärke zum Marker zusammen. Der letzte Ring bleibt stehen. Eine kurze Linie verbindet ihn mit einem weißen Namensschild mit 2 px Rahmen und 13 px/700. Das Schild sitzt im freien Kartenbereich oberhalb des Weiter-Overlays und unterhalb des Fragepanels. Es folgt dem Marker beim Verschieben und Zoomen.
 - In den Menü-Einstellungen lassen sich blaue Kleinstaaten-Ringe einschalten. Sie sind standardmäßig ausgeblendet. Die klickbaren Marker bleiben sichtbar. Der Ring hat 2 px Strichstärke mit `vector-effect: non-scaling-stroke`.
 - Blau markierte Länder pulsieren bei ihrer ersten Hervorhebung kurz, unabhängig von ihrer Größe und der Ring-Einstellung. Bei Kleinstaaten pulsiert auch der Marker.
+- **Hauptstadt auf der Landeskarte**. Das Zielland in `--paper` nimmt mit 10 % Rand den freien Kartenbereich ein. Der 50°-Mindestbereich gilt für den Weltzoom. Auf der Landeskarte sind die Nachbarflächen grau (`--land-off`). Bei der Auflösung erscheint der Hauptstadtpunkt in `--ok`, der eigene Tipp in `--highlight` und eine Linie dazwischen. Das Urteil zeigt die Distanz in Kilometern. Die Toleranz beträgt 10 % der Landesdiagonale, mindestens 25 und höchstens 150 km.
 
 ## 5. Bildschirme
 
@@ -110,16 +113,17 @@ Die Karte liegt im Vollbild. Über ihr stehen die kompakte Frage und unten, je n
 
 ### Atlas
 
-Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick den Steckbrief mit großem Ländernamen, Flagge und Zeilen für die befüllten Kategorien. Pro Zeile stehen links das Label und rechts der Wert. Anklickbare Nachbarn öffnen den jeweiligen Steckbrief und rücken das Land ins Kartenfenster.
+Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick den Steckbrief mit dem Farbblock des Länderdesigns, Landesumriss, Hauptstadtpunkt, Flagge und Namen. Pro Zeile stehen links das Label und rechts der Wert. Zugehörige Hinweise für Hauptstadt, Kontinent, Zentralbank und Staatsform sowie der Leitindex-Status stehen beim jeweiligen Feld. Anklickbare Nachbarn öffnen ihren Steckbrief und rücken das Land ins Kartenfenster. „← Karte“ schließt den Steckbrief.
 
 ### Ein Land komplett und Atlas-Landesdesign
 
-- Oben ein **Farbblock** in der Hauptfarbe des Landes, Höhe `clamp(250px, 36vh, 380px)`, unten 2 px Linie. Darin: Zurück-Link „← Karte“ (umrandet in Textfarbe), „LAND 02 / 05“, rechts der Landesumriss (gefüllt in Textfarbe, 90 %), unten links Label „LAND“ und der Ländername groß. Der Atlas-Steckbrief übernimmt diese Kopfgestaltung in Meilenstein 6.
+- Oben ein **Farbblock** in der Hauptfarbe des Landes, Höhe `clamp(250px, 36dvh, 380px)`, unten 2 px Linie. „← Karte“ ist in der Textfarbe umrandet. Die Kopfzeile zeigt „LAND 02 / 05“ und das Menüfeld. Rechts sitzt der Landesumriss, zu 90 % in der Textfarbe gefüllt. Unten links stehen „LAND“ und der Ländername. Der Atlas-Steckbrief verwendet denselben Farbblock mit „ATLAS“ und eingezeichnetem Hauptstadtpunkt.
 - Textfarbe im Farbblock automatisch: Weiß oder `--ink`, je nachdem, was nach WCAG den höheren Kontrast zur Landesfarbe hat.
 - Darunter Spalte (max. 560 px): Fortschrittszellen, Fragenummer + Kategorie (Label-Stil), Frage, Optionen, Primärbutton.
-- Fragenreihenfolge: **Flagge**, Hauptstadt, Kontinent, Währung, Zentralbank, Leitindex, Staatsform (Kategorien ohne Daten werden übersprungen).
-- Die Flagge erscheint im Farbblock **erst, nachdem die Flaggenfrage beantwortet ist** (fällt über dem Ländernamen ein, 64 × 48 px).
-- Am Ende ein **Steckbrief**: „STECKBRIEF“ + Ergebnis 56 px, darunter je Kategorie eine Zeile (Punkt schwarz/rot, Label, Wert; bei Flagge die Mini-Flagge), Primärbutton „Nächstes Land“.
+- In Reihenfolge werden Flagge, Name der Hauptstadt, Hauptstadtpunkt, Kontinent, Währung, Zentralbank, Leitindex, Staatsform und Regierungsform nach V-Dem 2025 gefragt. Kategorien und Koordinaten ohne hinterlegten Wert werden übersprungen.
+- Die Flagge fällt nach Auflösung der Flaggenfrage über dem Ländernamen ein (64 × 48 px).
+- Für die Hauptstadtposition wächst der Farbblock auf etwa 60 % der sichtbaren Höhe. Die große Karte im Farbblock nimmt den Tipp entgegen und behält Punkt und Verbindung bis zum Weitergehen im Bild. Beim Wechsel schrumpft der Farbblock wieder.
+- Nach jedem Land erscheint der **Steckbrief** mit Label „STECKBRIEF“ und Ergebnis in 56 px. Darunter steht eine Zeile je Frage mit Urteils-Punkt, Bezeichnung und Wert. Die Flaggenzeile zeigt eine Mini-Flagge. „Im Atlas öffnen“ führt zum Land. Der Primärbutton heißt „Nächstes Land“ oder nach dem letzten Land „Neue Runde“.
 
 ## 6. Bewegung
 
@@ -143,6 +147,8 @@ Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick d
 | Länderwechsel: Farbe | 800 ms | `--ease-inout` | neue Farbe schiebt sich von unten über die alte (`clip-path`) |
 | Ländername | 800 ms, 300 ms Verzögerung | `--ease-out` | gleitet aus einer Maske nach oben |
 | Landesumriss | 1800 ms, 350 ms Verzögerung | `--ease-inout` | erst als Linie gezeichnet (`stroke-dashoffset`), ab 70 % füllt er sich |
+| Landeskarte im Farbblock | 600 ms | `--ease-smooth` | Farbblock auf ca. 60 % der sichtbaren Höhe vergrößern und beim Weitergehen zurücksetzen |
+| Landeskarte im freien Kartenbereich | 650 ms | `--ease-smooth` | auf den eingepassten Ausschnitt vergrößern |
 | Flagge fällt in den Farbblock | 600 ms | `--ease-pop` | von oben, −8°, 70 % Größe |
 | Fortschrittszelle | 450 ms | `--ease-inout` | füllt sich von links |
 | Steckbrief | | | Ergebnis zählt alle 140 ms um 1 hoch; Zeilen je 60 ms versetzt |
@@ -164,6 +170,7 @@ Die Menüblöcke sind die Kopfzeilen, Listenzeilen, Abschnittslabels und Aktions
 - Nach jedem Urteil führen ein Tipp auf das Antwort-Sheet oder das Weiter-Overlay sowie Leertaste oder Enter weiter.
 - Während einer Kartenbewegung oder solange die Maus über dem Antwort-Sheet steht, pausiert der Countdown einer richtigen Antwort. Das Feld zeigt „PAUSIERT“ und der Balken bleibt stehen. Sobald beide Interaktionen beendet sind, läuft die Restzeit weiter.
 - **Tastatur**. `1`–`4` wählen eine Option. `S` überspringt außerhalb von Textfeldern. Enter im Tippfeld prüft die Antwort, bei leerem Feld überspringt es. Leertaste und Enter gehen nach dem Urteil weiter oder starten eine neue Runde. Enter startet im Rundenaufbau. Escape geht im Menü eine Ebene zurück und schließt es auf der ersten Ebene.
+- **Landeskarten per Tastatur**. Die Pfeiltasten bewegen den Zeiger. Umschalt + Pfeiltaste bewegt ihn in größeren Schritten. Enter oder Leertaste bestätigen den Punkt.
 - Fokus für Tastaturnutzer ist als 3 px Kontur in `--ink` mit 2 px Abstand sichtbar (`:focus-visible`).
 
 ## 8. Daten für das Design

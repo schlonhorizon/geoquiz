@@ -8,7 +8,10 @@ const attributeFields = {
   label: text,
   aliasesColumn: text.optional(),
   noteColumn: text.optional(),
-  point: z.object({ lat: text, lon: text }).optional(),
+  atlasNoteOnly: z.boolean().optional(),
+  emptyValueColumn: text.optional(),
+  source: text.optional(),
+  point: z.object({ lat: text, lon: text, required: z.boolean().optional() }).optional(),
   prompts: z.record(z.string(), text).optional(),
   modes: z.array(text).optional(),
   emptyMeans: text.optional(),
@@ -19,7 +22,12 @@ const attributeFields = {
 const attributeSchema = z.discriminatedUnion('type', [
   z.object({
     ...attributeFields,
-    type: z.enum(['text', 'boolean', 'list', 'entityRefList', 'flag', 'color']),
+    type: z.enum(['boolean', 'list', 'entityRefList', 'flag', 'color']),
+  }),
+  z.object({
+    ...attributeFields,
+    type: z.literal('text'),
+    alternativeValuesColumn: text.optional(),
   }),
   z.object({
     ...attributeFields,
@@ -31,7 +39,6 @@ const attributeSchema = z.discriminatedUnion('type', [
     ...attributeFields,
     type: z.literal('number'),
     year: z.number().int().optional(),
-    source: text.optional(),
   }),
 ]);
 
