@@ -34,7 +34,7 @@ Die aus `world-countries` abgeleiteten Länderdaten in `entities.csv` stehen unt
 
 ## Kerngebiete
 
-Der Build schließt **119 Teilflächen in 12 Ländern** aus dem Kerngebiet aus. Automatisch entfallen Teilflächen, deren kürzester geografischer Abstand zum äußeren Rand der größten Teilfläche über 1.500 km liegt und deren Fläche unter 20 % der größten Teilfläche beträgt. Die vollständigen Landesflächen bleiben auf der Karte sichtbar und anklickbar.
+Der Build schließt **85 Teilflächen in 15 Ländern** aus dem Kerngebiet aus. Automatisch entfallen Teilflächen, deren kürzester geografischer Abstand zum äußeren Rand der größten Teilfläche über 1.500 km liegt und deren Fläche unter 20 % der größten Teilfläche beträgt. Die vollständigen Landesflächen bleiben auf der Karte sichtbar und anklickbar.
 
 | Land | ID | Ausgeschlossene Teilflächen |
 |---|---|---:|
@@ -45,13 +45,18 @@ Der Build schließt **119 Teilflächen in 12 Ländern** aus dem Kerngebiet aus. 
 | Indien | IND | 4 |
 | Indonesien | IDN | 19 |
 | Kiribati | KIR | 10 |
+| Kolumbien | COL | 2 |
 | Neuseeland | NZL | 2 |
 | Niederlande | NLD | 3 |
+| Norwegen | NOR | 10 |
 | Portugal | PRT | 5 |
+| Spanien | ESP | 7 |
 | Südafrika | ZAF | 1 |
-| Vereinigte Staaten | USA | 60 |
+| Vereinigte Staaten | USA | 7 |
 
-Zwei Länder verwenden manuelle Ausnahmen in `set.json`. Bei Ecuador sind die Galápagosinseln über `outline.exclude` eingetragen, da sie innerhalb der 1.500-km-Grenze liegen. Bei Kiribati behält `outline.include` die Gilbertinseln um Süd-Tarawa im Kerngebiet. `outline.exclude` entfernt zusätzlich Teilflächen im zentralen Pazifik, die die automatische Auswahl um Kiritimati behalten hätte. Alle 194 Hauptstadtpunkte liegen im jeweiligen Kerngebiet.
+`outline.exclude` entfernt die Galápagosinseln, die Kanarischen Inseln, Svalbard einschließlich Spitzbergen und Jan Mayen sowie San Andrés und Providencia. Für San Andrés und Providencia ergänzt die Weltkarte die beiden Polygone aus Natural Earth 1:10 Mio. [Natural Earth Admin 0, 1:10 Mio.](https://github.com/nvkelso/natural-earth-vector/blob/v5.1.2/geojson/ne_10m_admin_0_countries.geojson)
+
+Bei Kiribati behält `outline.include` die Gilbertinseln um Süd-Tarawa im Kerngebiet. `outline.exclude` entfernt zusätzlich Teilflächen im zentralen Pazifik, die die automatische Auswahl um Kiritimati behalten hätte. Alaskas Festland bleibt nach der automatischen Regel enthalten. `outline.include` ergänzt die 53 Teilflächen Alaskas, die die Regel ausschließen würde, darunter die westlichen Aleuten. In den Vereinigten Staaten liegen damit nur die sieben in der Karte erfassten Polygone Hawaiis außerhalb des Kerngebiets. Alle 194 Hauptstadtpunkte liegen im jeweiligen Kerngebiet.
 
 ## Hauptstadt-Korrekturen
 
