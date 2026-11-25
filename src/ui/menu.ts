@@ -14,6 +14,8 @@ interface MenuActions {
   showAtlas(): void;
   setAnimation(value: boolean): void;
   setMarkerRings(value: boolean): void;
+  waterVisible: boolean;
+  setWaterVisibility(value: boolean): void;
   resetMap(): void;
 }
 
@@ -46,6 +48,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
   let animationRun = 0;
   let animationEnabled = true;
   let rings = false;
+  let waterVisible = actions.waterVisible;
   let settingsOpen = false;
   let returnToPractice = 'custom';
 
@@ -115,6 +118,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
           <div ${settingsOpen ? '' : 'inert'}>
             <label data-menu-block><input type="checkbox" id="animate-feedback" ${animationEnabled ? 'checked' : ''}> Lösungszoom animieren</label>
             <label data-menu-block><input type="checkbox" id="marker-rings" ${rings ? 'checked' : ''}> Kleinstaaten-Ringe anzeigen</label>
+            <label data-menu-block><input type="checkbox" id="map-water" ${waterVisible ? 'checked' : ''}> Seen und Flüsse</label>
             <button type="button" data-action="reset" data-menu-block>Weltansicht zurücksetzen</button>
             <button type="button" data-action="sources" data-menu-block>Quellen und Lizenzen</button>
           </div>
@@ -440,6 +444,7 @@ export function renderMenu(dialog: HTMLDialogElement, toggle: HTMLButtonElement,
     if (!(input instanceof HTMLInputElement)) return;
     if (input.id === 'animate-feedback') actions.setAnimation(animationEnabled = input.checked);
     if (input.id === 'marker-rings') actions.setMarkerRings(rings = input.checked);
+    if (input.id === 'map-water') actions.setWaterVisibility(waterVisible = input.checked);
   });
   dialog.addEventListener('submit', (event) => {
     event.preventDefault();

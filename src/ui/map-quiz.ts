@@ -1,5 +1,5 @@
 import type { Topology } from 'topojson-specification';
-import type { QuizSet } from '../data/load';
+import type { MapResources, QuizSet } from '../data/load';
 import { assessCapital, createCountryMaps } from '../map/country-map';
 import { renderWorldMap } from '../map/world-map';
 import { createPracticeEngine, locationCategory } from '../quiz/practice';
@@ -21,7 +21,7 @@ import type { QuestionOutcome } from './country-result';
 const continueGap = 8;
 const verdictLabels = { correct: 'Richtig.', incorrect: 'Falsch.', skipped: 'Übersprungen.' };
 
-export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: Topology, library: PresetLibrary) {
+export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: Topology, library: PresetLibrary, resources: MapResources = {}) {
   const { definition, entities } = set;
   if (!entities.length) throw new Error('The world set needs countries');
 
@@ -147,7 +147,10 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
 
   const byId = new Map(entities.map((entity) => [entity.id, entity]));
   const engine = createPracticeEngine(set);
-  const countryMaps = createCountryMaps(topology, definition.map);
+  const countryMaps = createCountryMaps(topology, definition.map, resources.water);
+  const settings = new LocalSettingsStore();
+  const waterVisible = settings.loadWaterVisibility();
+  container.classList.toggle('hide-map-water', !waterVisible);
   const countdown = createAdvanceTimer((paused) => {
     next.toggleAttribute('data-paused', paused);
     nextLabel.textContent = paused ? 'Pausiert' : 'Weiter';
@@ -162,7 +165,9 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   const map = renderWorldMap(svg, topology, definition.map, entities, (id) => {
     if (!round) showProfile(id);
     else if (round.questions[index]?.format === 'map' && !round.questions[index].point) submitAnswer(id);
-  }, (source, active) => countdown.setPaused(source, active));
+  }, (source, active) => countdown.setPaused(source, active), {
+    ...resources, capital: definition.attributes.find(({ key, point }) => key === 'capital' && point),
+  });
   const optionButtons = new Map<string, HTMLButtonElement>();
   let round: { questions: PracticeQuestion[]; settings: RoundSettings; label: string; countryCount: number } | undefined;
   let focusIds: string[] = [];
@@ -264,6 +269,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     if (!model) return;
     const view = renderCountryMap(model, `Landeskarte von ${name}`, {
       capitalName: question.answer.name,
+      loadDetail: resources.loadDetail,
       onPick: (guess) => submitAnswer(undefined, false, false, { guess, ...assessCapital(guess, solution, model.bounds) }),
       onResolvedClick: () => { if (verdict === 'correct') advance(); },
       onInteraction: (active) => { if (activePointMap === view) countdown.setPaused('capital-map', active); },
@@ -274,6 +280,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
       pointStage.replaceChildren(view.frame);
       pointStage.hidden = false;
     }
+    view.refreshWater();
   }
 
   function showCountryIntro() {
@@ -622,11 +629,17 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     setId: definition.id,
     engine,
     library,
-    store: new LocalSettingsStore(),
+    store: settings,
     startRound,
     showAtlas,
     setAnimation: (animate) => { animateZoom = animate; },
     setMarkerRings: (show) => svg.classList.toggle('show-marker-rings', show),
+    waterVisible,
+    setWaterVisibility: (show) => {
+      container.classList.toggle('hide-map-water', !show);
+      settings.saveWaterVisibility(show);
+      activePointMap?.refreshWater();
+    },
     resetMap: () => { focusMap([]); map.resetView(); },
   });
 

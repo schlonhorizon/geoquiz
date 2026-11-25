@@ -58,6 +58,8 @@
   },
   "map": {
     "file": "map.topojson",
+    "waterFile": "water.topojson",
+    "detailFile": "map-detail.topojson",
     "object": "countries",
     "idProperty": "id",
     "projection": "miller",

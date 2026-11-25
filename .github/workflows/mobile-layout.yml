@@ -6,6 +6,8 @@ on:
       - 'src/**'
       - 'index.html'
       - 'scripts/check-mobile-layout.mjs'
+      - 'scripts/check-map-details.mjs'
+      - 'data/sets/**'
       - '.github/workflows/mobile-layout.yml'
   workflow_dispatch:
 
@@ -35,6 +37,7 @@ jobs:
             sleep 1
           done
           node scripts/check-mobile-layout.mjs
+          node scripts/check-map-details.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

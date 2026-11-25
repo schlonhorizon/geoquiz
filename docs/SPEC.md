@@ -41,6 +41,8 @@ data/
       set.json          # Metadaten + Attribut-Definitionen
       entities.csv      # eine Zeile pro Land, eine Spalte pro Attribut
       map.topojson      # Geometrien, verknüpft über id
+      water.topojson    # Gewässer der Übersicht
+      map-detail.topojson # Grenzen und Gewässer der Detailstufe
     de/
       set.json
       entities.csv
@@ -114,6 +116,8 @@ Ein Unterteilungs-Set (z. B. `de`) hat `"parent": { "set": "world", "entity": "D
 
 `outline.include` und `outline.exclude` sind optionale Zuordnungen von Entity-IDs zu Punkten `[Längengrad, Breitengrad]`. Jeder Punkt muss innerhalb genau einer Teilfläche liegen und wählt diese aus. Die Ausnahmen werden nach dem geometrischen Zusammenführen ausgewertet. Der Build legt abweichende Kerngebiete als TopoJSON-Objekt `core` an. Die Einträge verwenden die vorhandenen Bögen. Fehlt dort eine Entity, ist ihre gesamte Karte das Kerngebiet.
 
+`map.waterFile` und `map.detailFile` sind optional. Sie werden zusammen mit der Übersicht validiert und als separate Dateien ausgegeben. Beide unterstützen die Objekte `lakes` und `rivers`, die Detaildatei zusätzlich `minorRivers` und dieselben Länder-IDs wie die Übersicht. Beide Auflösungen wenden `map.mergeLand` auf Ländergrenzen an. Der Build verwendet die Übersicht für Kerngebiete und Quiz-Ausschnitte. `npm run data:prepare-map-details` erzeugt die eingecheckten Zusatzdaten aus der gepinnten Version Natural Earth 5.1.2. Der normale Build braucht dafür keinen Download.
+
 ### 3.5 Attributtypen → automatisch erzeugte Fragetypen
 
 | Typ | Beispiel | Erzeugte Fragen |
@@ -170,6 +174,8 @@ Der Build schlägt fehl oder warnt bei:
 ## 4. Karten
 
 - **Weltkarte**: Natural Earth 50m (`Admin 0 – Countries`), Miller-Projektion (`d3-geo-projection`), Zoom und Verschieben (`d3-zoom`) per Maus und Touch. Drei Kartenkopien und ein horizontaler Versatz modulo Kartenbreite erlauben nahtloses, endloses Verschieben. Alle Kopien unterstützen Länder- und Markerklicks. Die Karte ist vertikal begrenzt und endet im Süden vor der Antarktis. Im Atlas bezieht sich die Begrenzung auf die gesamte Bildschirmhöhe. Bei der kleinsten Zoomstufe füllt die Karte diese Höhe.
+- **Kartendetails**. Bei 3-facher Vergrößerung gegenüber der Einpassung der Welt (`WORLD_DETAIL_ZOOM`) lädt die Weltkarte Natural Earth 1:10 Mio. nach. Die Geometriesätze blenden innerhalb von 200 ms über. Projektion, Kameraposition, Spielfortschritt und Treffer-IDs gelten über beide Auflösungen hinweg. Die 1:50-Mio.-Übersicht bleibt bei einem Ladefehler verfügbar. Landeskarten verwenden die Gewässerstufe der entsprechenden regionalen Ansicht.
+- **Gewässer**. Seen und größere Flüsse erscheinen in allen Kartenmodi auf der jeweils aktiven Auflösung. Kleine Flüsse erscheinen ab `MINOR_RIVER_ZOOM` (7-fach). Der gemeinsame Schalter „Seen und Flüsse“ steht standardmäßig auf An und wird lokal gespeichert. Die Gewässer tragen keine Namen.
 - **Vollbild-Layout**: Die Karte füllt den Viewport (`100dvw × 100dvh`). Fragepanel und Antwort-Sheet sind oben und unten horizontal zentriert. Rechts in der Meta-Zeile sitzen die 48-px-Felder für Überspringen und Menü. Zoom und Verschieben laufen über die Kartengesten. Die Overlays berücksichtigen die Safe Area und lassen die übrige Karte bedienbar. Auf der Karte sind Browser-Scrollen, Pull-to-refresh und Doppeltipp-Zoom deaktiviert. Der Fokusrahmen wird bei Tastaturbedienung sichtbar.
 - **Homescreen**: Das Web-App-Manifest startet GeoQuiz im Standalone-Modus und enthält Theme-Farbe und App-Icons.
 - **Mobil-Layout**: Bildschirmhöhe und Safe Areas folgen `100dvh` und `viewport-fit=cover`. Bei geöffnetem Tippfeld berücksichtigt die App den sichtbaren Viewport (`visualViewport`). Menü, Länder-Modus sowie Antwort- und Steckbriefinhalte sind in Hoch- und Querformat scrollbar. [Mobilgestaltung](DESIGN.md#handy-und-querformat)
@@ -214,7 +220,7 @@ Die Bewertung verwendet die Großkreisentfernung vom gewählten Punkt zur hinter
 
 ## 6. Üben, Atlas und Fortschritt
 
-Die App startet im **Atlas**. Im weißen Vollbildmenü stehen neben „GEOQUIZ“ der Gebietshinweis „GEBIET: WELT“ und das Schließen-Feld. Die Liste führt zu **01 Üben**, **02 Atlas** und **03 Fortschritt**. Fortschritt ist als „Folgt“ markiert. Unter **Einstellungen** stehen Lösungszoom, Kleinstaaten-Ringe, das Zurücksetzen der Weltansicht sowie **Quellen und Lizenzen** mit Stand und Lizenzangaben. [Menü in der Design-Spezifikation](DESIGN.md#menü)
+Die App startet im **Atlas**. Im weißen Vollbildmenü stehen neben „GEOQUIZ“ der Gebietshinweis „GEBIET: WELT“ und das Schließen-Feld. Die Liste führt zu **01 Üben**, **02 Atlas** und **03 Fortschritt**. Fortschritt ist als „Folgt“ markiert. Unter **Einstellungen** stehen Lösungszoom, Kleinstaaten-Ringe, Seen und Flüsse, das Zurücksetzen der Weltansicht sowie **Quellen und Lizenzen** mit Stand und Lizenzangaben. [Menü in der Design-Spezifikation](DESIGN.md#menü)
 
 ### 6.1 Üben
 
@@ -247,6 +253,8 @@ Der Rundenaufbau hat sechs Stellschrauben:
 ### 6.2 Atlas
 
 Im Atlas steht oben „ATLAS“ und „Land antippen“. Die Karte lässt sich frei erkunden. Ein Klick auf ein Land öffnet unten seinen Steckbrief und rückt das Land in den sichtbaren Kartenausschnitt. Der Steckbrief verwendet den Farbblock des Länderdesigns mit Umriss, Flagge, Name und gegebenenfalls Hauptstadtpunkt. Unterhalb stehen befüllte Kategorien, zugehörige Hinweise und der Leitindex-Status. Bei verknüpften Ländern, etwa Nachbarn, springt ein Tipp direkt zum verknüpften Steckbrief und Kartenort.
+
+Atlas-Hauptstadtmarker verwenden die hinterlegten Koordinaten. Ein 6-px-Quadrat erscheint bei 60 px Bildschirmdiagonale des Kerngebiets, der Name bei 140 px. Größere Kerngebiete haben bei Kollisionen Vorrang. Diese Beschriftungen sind ausschließlich im Atlas verfügbar. Quiz-Lösungen erscheinen erst nach der Antwort.
 
 Die Quizauflösung verlinkt auf die Steckbriefe des gesuchten Landes und des gegebenenfalls gewählten Landes. Ein Attributwert führt ebenfalls zu einem Steckbrief, wenn er genau einem Land zugeordnet ist. Das Overlay pausiert den bestehenden Countdown und hält die Frage an derselben Stelle. Es schließt per Schließen-Feld, Escape oder Wischen nach unten am oberen Ende des Steckbriefs.
 
@@ -302,6 +310,7 @@ Alle Zugriffe auf den Fortschritt laufen über ein Interface `ProgressStore` (`l
 - **Üben, Atlas und Vollbildmenü**. Vorlagen und Rundenaufbau, gespeicherte Einstellungen je Vorlage, Atlas-Steckbrief, beide Flaggenlayouts und gestaffelte Menü-Animationen sind umgesetzt. [Design-Spezifikation](DESIGN.md)
 - **Meilenstein 6 – Ein Land komplett und Landeskarten**. Die Vorlage führt mit festgelegter Fragenfolge und eigenem Steckbrief durch ein oder mehrere Länder. Der Atlas verwendet das Länderdesign. Hauptstadtpositionen werden auf eingepassten Landeskarten nach Distanz bewertet. [Länderdesign](DESIGN.md#ein-land-komplett-und-atlas-landesdesign)
 - **Mobiloptimierung**. Steckbrief-Sheets mit zwei Rastpunkten, kompaktes Quizurteil, angepasste Flaggenfragen und Tippfeld oberhalb der Bildschirmtastatur. [Mobilgestaltung](DESIGN.md#handy-und-querformat)
+- **Kartendetails**. Nachgeladene 1:10-Mio.-Grenzen, Seen und Flüsse sowie zoomabhängige Hauptstadtmarker im Atlas. [Kartengestaltung](DESIGN.md#4-karte)
 
 ### Offen in Umsetzungsreihenfolge
 

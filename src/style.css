@@ -74,11 +74,33 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   pointer-events: none;
 }
 
-.map-land, .map-country, .map-marker {
+.map-land, .map-country, .map-marker, .map-lake {
   stroke: var(--ink);
   stroke-width: .8px;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
+}
+
+.map-overview, .map-detail { transition: opacity 200ms ease; }
+.map-detail, [data-map-detail="detail"] .map-overview { opacity: 0; }
+[data-map-detail="detail"] .map-detail { opacity: 1; }
+.world-map[data-map-detail="detail"] .map-overview .map-country,
+.world-map[data-map-detail="overview"] .map-detail .map-country { pointer-events: none; }
+
+.map-water, .map-water *, .atlas-capitals { pointer-events: none; }
+.hide-map-water .map-water, svg:not([data-minor-rivers]) .map-river-minor { display: none; }
+.map-lake { fill: var(--sea); }
+.map-river { fill: none; stroke: var(--river); stroke-width: .6px; vector-effect: non-scaling-stroke; }
+.map-capital, .map-capital text { opacity: 0; transition: opacity 150ms ease; }
+.map-capital[data-visible], .map-capital text[data-visible] { opacity: 1; }
+.map-capital rect, .map-capital text { fill: var(--ink); }
+.map-capital text {
+  font-size: 11px;
+  font-weight: 600;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
 }
 
 .map-land {
@@ -740,6 +762,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .map-overview, .map-detail { transition: none; }
   .question-entry, .question-flag > img, .answer, .answer[data-state="incorrect"], .flag-option[data-state] .answer-label,
   .answer-sheet:has(.verdict:not([hidden])), .round-summary:not([hidden]),
   .verdict-dot, .score-pop, .continue-overlay, .show-marker-rings .map-marker-ring,

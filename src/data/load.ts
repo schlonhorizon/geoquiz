@@ -31,6 +31,27 @@ export function loadMap({ id, map }: SetDefinition): Promise<Topology> {
   return fetchJson(`sets/${id}/${map.file}`);
 }
 
+export interface MapResources {
+  water?: Topology;
+  loadDetail?: () => Promise<Topology>;
+}
+
+export async function loadMapResources({ id, map }: SetDefinition): Promise<MapResources> {
+  const water = map.waterFile ? await fetchJson<Topology>(`sets/${id}/${map.waterFile}`).catch((error: unknown) => {
+    console.warn('Die Gewässerübersicht konnte nicht geladen werden.', error);
+    return undefined;
+  }) : undefined;
+  const detailFile = map.detailFile;
+  let detail: Promise<Topology> | undefined;
+  return {
+    water,
+    loadDetail: detailFile ? () => detail ??= fetchJson<Topology>(`sets/${id}/${detailFile}`).catch((error: unknown) => {
+      detail = undefined;
+      throw error;
+    }) : undefined,
+  };
+}
+
 export function loadPresets(): Promise<PresetLibrary> {
   return fetchJson('presets.json');
 }

@@ -1,5 +1,5 @@
 import '@fontsource-variable/inter-tight';
-import { loadMap, loadPresets, loadSets } from './data/load';
+import { loadMap, loadMapResources, loadPresets, loadSets } from './data/load';
 import { renderMapQuiz } from './ui/map-quiz';
 import './ui/tokens.css';
 import './style.css';
@@ -13,7 +13,8 @@ if (container) {
     .then(async ([sets, presets]) => {
       const world = sets.find(({ definition }) => definition.id === 'world');
       if (!world) throw new Error('The world set is missing');
-      renderMapQuiz(container, world, await loadMap(world.definition), presets);
+      const [map, resources] = await Promise.all([loadMap(world.definition), loadMapResources(world.definition)]);
+      renderMapQuiz(container, world, map, presets, resources);
     })
     .catch((error: unknown) => {
       console.error(error);

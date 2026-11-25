@@ -11,6 +11,7 @@
     "dev": "vite",
     "data": "tsx scripts/build-data.ts",
     "data:seed-colors": "tsx scripts/seed-flag-colors.ts",
+    "data:prepare-map-details": "node scripts/prepare-map-details.mjs",
     "test": "vitest run",
     "build": "npm run data && tsc --noEmit && vite build",
     "preview": "vite preview"
@@ -39,6 +40,8 @@
     "flag-icons": "7.6.0",
     "happy-dom": "^21.0.4",
     "i18n-iso-countries": "7.14.0",
+    "topojson-server": "3.0.1",
+    "topojson-simplify": "3.0.3",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "vite": "^7.2.0",

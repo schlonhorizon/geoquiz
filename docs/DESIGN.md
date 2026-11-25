@@ -20,6 +20,7 @@ Als CSS Custom Properties in einer zentralen Datei (`src/ui/tokens.css`):
   --ink: #111111;          /* Text, Rahmen, Primärbutton */
   --paper: #FFFFFF;        /* Panels, Land auf der Karte */
   --sea: #F1F1F1;          /* Meer, App-Hintergrund */
+  --river: #949494;        /* Flusslinien */
   --land-hover: #D6D6D6;
   --land-off: #E4E4E4;     /* Gebiete ohne Quiz (Westsahara, Grönland …) */
   --muted: #6B6B6B;        /* deaktivierte Einträge, abgeblendete Optionen */
@@ -79,7 +80,7 @@ Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. 
 
 Das Vollbild-Overlay ist weiß. Die Menüspalte ist zentriert und maximal 560 px breit. Jede Ebene erhält oben eine Kopfzeile. Escape und das 48-px-Zurück-Feld gehen eine Ebene zurück. Auf der ersten Ebene schließt Escape das Menü.
 
-1. **Hauptmenü**. Kopf mit „GEOQUIZ“, dem eingerahmten Label „GEBIET: WELT“ und dem Schließen-Feld rechts. Die nummerierte Liste zeigt „01 Üben →“, „02 Atlas →“ und „03 Fortschritt“ mit „FOLGT“. Zeilen verwenden 44 px/800 und 2-px-Trennlinien. Beim Desktop-Hover rückt der aktive Eintrag 12 px ein. Darunter steht die einklappbare Zeile „EINSTELLUNGEN“ mit Plus. Sie ist beim Öffnen geschlossen. Darin stehen Lösungszoom, Kleinstaaten-Ringe, „Weltansicht zurücksetzen“ und „Quellen und Lizenzen“. Die Quellenseite nutzt dieselbe Vollbildnavigation. Zurück und Escape führen zu den aufgeklappten Einstellungen.
+1. **Hauptmenü**. Kopf mit „GEOQUIZ“, dem eingerahmten Label „GEBIET: WELT“ und dem Schließen-Feld rechts. Die nummerierte Liste zeigt „01 Üben →“, „02 Atlas →“ und „03 Fortschritt“ mit „FOLGT“. Zeilen verwenden 44 px/800 und 2-px-Trennlinien. Beim Desktop-Hover rückt der aktive Eintrag 12 px ein. Darunter steht die einklappbare Zeile „EINSTELLUNGEN“ mit Plus. Sie ist beim Öffnen geschlossen. Darin stehen Lösungszoom, Kleinstaaten-Ringe, „Seen und Flüsse“ (standardmäßig an), „Weltansicht zurücksetzen“ und „Quellen und Lizenzen“. Die Quellenseite nutzt dieselbe Vollbildnavigation. Zurück und Escape führen zu den aufgeklappten Einstellungen.
 2. **Üben**. Links das Zurück-Feld mit `←`, daneben „Üben“ in 44 px/800. Unter „VORLAGEN“ stehen die verfügbaren Vorlagen als 28-px-Zeilen mit Gewicht 800. Die Zeile startet die Runde mit den zuletzt gewählten Einstellungen. Rechts führt „Anpassen“ in 13 px/700 zum Rundenaufbau und ist beim Hover unterstrichen. Vorlagen mit „FOLGT“ sind grau und deaktiviert. „EIGENE RUNDE“ führt mit einer Zeile zum Rundenaufbau.
 3. **Rundenaufbau**. Links steht pro Zeile das Label in 11 px und Großbuchstaben, rechts die Optionen als eckige Segmente mit 2-px-Rahmen und −2 px Abstand. Gewählte Segmente sind schwarz mit weißer Schrift. Die Kategorie erlaubt Mehrfachauswahl. Unpassende Antwortarten werden ausgegraut. In „Auswahl“ steht Schwierigkeit als Platzhalter. Unten bleibt der 56-px-Primärbutton „Runde starten →“ sichtbar. Enter startet die Runde.
 
@@ -92,6 +93,9 @@ Vor den Kategorie-Segmenten steht „Alle / Keine“. Ein Tipp schaltet zwischen
 - Projektion Miller, horizontal endlos (wie umgesetzt), Antarktis entfernt.
 - Meer `--sea`, Land `--paper`, Grenzen `--ink` 0,8 px mit `vector-effect: non-scaling-stroke`.
 - Gradnetz alle 30° Länge und 20° Breite, 1 px `--grid`.
+- Die Weltkarte wechselt bei 3-fachem Zoom von 1:50 Mio. auf 1:10 Mio. Beide Ebenen teilen sich die Miller-Projektion und blenden in 200 ms über. Mit reduzierter Bewegung wechselt die Auflösung direkt.
+- Seen sind in `--sea` gefüllt und haben die gleiche Kontur wie die Küsten. Flüsse erscheinen mit 0,6 px in `--river` und behalten ihre Strichstärke beim Zoomen. Kleine Flüsse kommen bei 7-fachem Zoom hinzu. Gewässer haben keine Beschriftung.
+- Im Atlas erscheint bei 60 px Diagonale des Kerngebiets ein festes 6-px-Quadrat in `--ink`. Ab 140 px erscheint der Hauptstadtname mit 11 px/600 und weißer Kontur. Größere Länder haben Vorrang, sobald sich die Namensflächen überschneiden. Quadrate und Namen blenden getrennt in 150 ms ein und aus. Quizkarten zeigen diese Atlas-Ebene nicht.
 - Hover bei freier Auswahl und in Kartenfragen verwendet `--land-hover`. Gebiete ohne Quiz bleiben grau (`--land-off`).
 - **Land → Kategorie**. Die Karte fliegt zum Land und markiert es blau (`--highlight`). Beim Urteil wird das Land grün (`--ok`) oder rot (`--accent`). Beim Überspringen bleibt es blau. Die Lage-Frage per Kartenklick hält das gesuchte Land bis zur Antwort verdeckt.
 - **Kategorie → Land**. Bei Lage → Land beginnt die Frage mit dem hervorgehobenen Land. Bei den übrigen Kategorien erscheint die Lösung erst beim Urteil. Dann fliegt die Karte zur grünen Lösung. Eine falsch gewählte Entität erscheint rot und wird gemeinsam mit der Lösung eingerahmt. Welche Antwort bei mehreren passenden Ländern richtig ist, bestimmt die Übungs-Engine.

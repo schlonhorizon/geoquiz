@@ -5,7 +5,7 @@ import { setDefinitionSchema } from '../src/data/schema';
 import type { Entity, SetDefinition, SetIndex } from '../src/data/schema';
 import { readEntities } from './data/entities';
 import { flagCode, flagDirectory, flagPackage } from './data/flags';
-import { mergeLandAreas, validateMap } from './data/map';
+import { mergeLandAreas, validateMap, validateWater } from './data/map';
 import type { DataIssues } from './data/issues';
 import { addCoreOutlines } from './data/core-outline';
 import { presetsSchema } from '../src/quiz/round-settings';
@@ -15,6 +15,7 @@ interface BuiltSet {
   definitionJson: string;
   entities: Map<string, Entity>;
   mapJson: string;
+  extraMaps: Map<string, string>;
   flagFiles: Set<string>;
   excluded: Map<string, number[]>;
 }
@@ -52,7 +53,17 @@ async function readSet(setsDirectory: string, id: string, issues: DataIssues): P
   validateMap(mapJson, definition, entities, issues);
   const core = issues.errors.length ? { mapJson, excluded: new Map<string, number[]>() }
     : addCoreOutlines(mapJson, definition, issues);
-  return { definition, definitionJson, entities, flagFiles, ...core };
+  const extraMaps = new Map<string, string>();
+  for (const filename of [definition.map.waterFile, definition.map.detailFile]) {
+    if (!filename) continue;
+    const detailed = filename === definition.map.detailFile;
+    const sourceJson = await readUtf8(join(source, filename));
+    const content = detailed ? mergeLandAreas(sourceJson, definition.map) : sourceJson;
+    if (detailed) validateMap(content, { ...definition, map: { ...definition.map, file: filename } }, entities, issues);
+    validateWater(content, filename, detailed, issues);
+    extraMaps.set(filename, content);
+  }
+  return { definition, definitionJson, entities, flagFiles, extraMaps, ...core };
 }
 
 async function writeData(outputDirectory: string, sets: Map<string, BuiltSet>, presetsJson?: string) {
@@ -67,6 +78,7 @@ async function writeData(outputDirectory: string, sets: Map<string, BuiltSet>, p
         writeFile(join(directory, 'set.json'), set.definitionJson),
         writeFile(join(directory, 'entities.json'), encodeJson([...set.entities.values()])),
         writeFile(join(directory, set.definition.map.file), set.mapJson),
+        ...[...set.extraMaps].map(([file, content]) => writeFile(join(directory, file), content)),
       ]);
     }
     const flags = new Set([...sets.values()].flatMap(({ flagFiles }) => [...flagFiles]));

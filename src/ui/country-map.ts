@@ -1,8 +1,10 @@
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
 import type { D3ZoomEvent } from 'd3-zoom';
+import type { Topology } from 'topojson-specification';
 import type { Coordinate } from '../data/map';
 import type { CountryMap } from '../map/country-map';
+import { appendWater, MINOR_RIVER_ZOOM, WORLD_DETAIL_ZOOM } from '../map/water';
 import { createCapitalFeedback } from './capital-feedback';
 import type { CapitalAttempt } from './capital-feedback';
 
@@ -42,6 +44,7 @@ export function renderCountryMap(
     onInteraction?: (active: boolean) => void;
     answer?: Coordinate;
     capitalName?: string;
+    loadDetail?: () => Promise<Topology>;
   } = {},
 ) {
   const svg = element('svg', 'country-map');
@@ -58,11 +61,19 @@ export function renderCountryMap(
   const land = element('path', 'local-outline');
   land.setAttribute('d', model.outline);
   land.setAttribute('pathLength', '1');
+  scene.append(land);
+  const overview = element('g', 'map-overview');
+  const detail = element('g', 'map-detail');
+  if (options.onPick) {
+    appendWater(overview, model.water);
+    scene.append(overview, detail);
+    svg.dataset.mapDetail = 'overview';
+  }
   const line = element('line', 'capital-line');
   line.setAttribute('pathLength', '1');
   const answerPin = pin('capital-answer');
   const cursorPin = pin('capital-cursor');
-  scene.append(land, line, answerPin);
+  scene.append(line, answerPin);
   svg.append(scene, cursorPin);
   const frame = document.createElement('div');
   frame.className = 'country-map-frame';
@@ -71,6 +82,9 @@ export function renderCountryMap(
   let cursor: Coordinate = [left + width / 2, top + height / 2];
   let selecting = Boolean(options.onPick);
   let active = false;
+  let detailReady = false;
+  let requested = false;
+  let disposed = false;
   const selection = select(svg);
 
   function extent(): [Coordinate, Coordinate] {
@@ -83,11 +97,34 @@ export function renderCountryMap(
     return [[min.x, min.y], [max.x, max.y]];
   }
 
+  function refreshWater() {
+    if (!options.onPick || disposed || !svg.isConnected || svg.closest('.hide-map-water')) return;
+    const [[left, top], [right, bottom]] = extent();
+    const level = 2 * Math.PI * model.projectionScale * zoomTransform(svg).k / Math.max(right - left, bottom - top);
+    const eligible = level >= WORLD_DETAIL_ZOOM;
+    svg.toggleAttribute('data-minor-rivers', level >= MINOR_RIVER_ZOOM);
+    svg.dataset.mapDetail = eligible && detailReady ? 'detail' : 'overview';
+    if (!eligible) requested = false;
+    else if (!requested && !detailReady && options.loadDetail) {
+      requested = true;
+      void options.loadDetail().then((topology) => {
+        if (disposed) return;
+        appendWater(detail, model.projectWater(topology));
+        detailReady = true;
+        getComputedStyle(detail).opacity;
+        refreshWater();
+      }).catch((error: unknown) => {
+        console.warn('Die detaillierten Gewässer konnten nicht geladen werden.', error);
+      });
+    }
+  }
+
   const behavior = zoom<SVGSVGElement, unknown>().extent(extent).translateExtent(model.world)
     .scaleExtent([.35, 24]).clickDistance(dragThreshold)
     .on('zoom', ({ sourceEvent, transform }: D3ZoomEvent<SVGSVGElement, unknown>) => {
       if (sourceEvent && !active) options.onInteraction?.(active = true);
       scene.setAttribute('transform', transform.toString());
+      refreshWater();
       feedback?.layout();
     })
     .on('end', () => {
@@ -195,5 +232,11 @@ export function renderCountryMap(
       }
     });
   }
-  return { svg, frame, reveal, dispose: () => feedback?.dispose() };
+  const size = options.onPick ? new ResizeObserver(refreshWater) : undefined;
+  size?.observe(svg);
+  return { svg, frame, reveal, refreshWater, dispose: () => {
+    disposed = true;
+    size?.disconnect();
+    feedback?.dispose();
+  } };
 }
