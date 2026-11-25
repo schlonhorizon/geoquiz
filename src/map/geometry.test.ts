@@ -97,3 +97,18 @@ describe('map clicks', () => {
     expect(resolveCountryClick(undefined, false, 'FRA', false, () => false)).toBeUndefined();
   });
 });
+
+it('keeps detached parts inside the fit bounds of a country', () => {
+  const archipelago: Topology = {
+    type: 'Topology',
+    objects: { countries: { type: 'MultiPolygon', id: 'TEST', arcs: [[[0]], [[1]]] } },
+    arcs: [
+      [[0, 43], [0, 49], [8, 49], [8, 43], [0, 43]],
+      [[21, 42], [21, 43], [22, 43], [22, 42], [21, 42]],
+    ],
+  };
+  const { countries: [country] } = projectWorldMap(archipelago, {
+    file: 'map.topojson', object: 'countries', idProperty: 'id', projection: 'miller',
+  });
+  expect(country.bounds[1][0] - country.bounds[0][0]).toBeCloseTo(22 * 960 / 360);
+});

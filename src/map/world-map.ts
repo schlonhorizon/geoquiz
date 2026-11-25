@@ -8,9 +8,11 @@ import type { Entity, SetDefinition } from '../data/schema';
 import { countryCenter, projectWorldMap } from './geometry';
 import type { ProjectedCountry } from './geometry';
 import { boundaryTolerancePx, isNearMarker, markerDistance, markerHitRadiusPx, markerRadiusPx, resolveCountryClick } from './hit-test';
-import { clampMapY, fitCountryBounds, nearestWorldX, worldWidth, wrapWorldX } from './viewport';
+import { createSolutionRadar } from './solution-radar';
+import { clampMapY, fitCountryBounds, flightDuration, insetCountryFrame, interpolateFlight, nearestWorldX, worldWidth, wrapWorldX } from './viewport';
+import type { Bounds, MapFrame } from './viewport';
 
-import type { MapFrame } from './viewport';
+export type MapInteraction = 'gesture' | 'wheel';
 
 type CountryState = 'highlighted' | 'correct' | 'incorrect' | '';
 
@@ -20,6 +22,7 @@ const maxZoom = 24;
 const markerRingRadiusPx = 9;
 const flightEase = BezierEasing(.65, 0, .35, 1);
 const wheelEase = BezierEasing(0, 0, .58, 1);
+let nextTileId = 0;
 
 interface CountryView {
   shape: SVGPathElement;
@@ -58,11 +61,13 @@ export function renderWorldMap(
   config: SetDefinition['map'],
   entities: readonly Entity[],
   onCountrySelected: (id: string) => void,
+  onInteraction: (source: MapInteraction, active: boolean) => void,
 ) {
   const projected = projectWorldMap(topology, config);
   const entityNames = new Map(entities.map(({ id, name }) => [id, name]));
   const layers = new Map<string, CountryLayer>();
   const markerViews: { hitArea: SVGCircleElement; dot: SVGCircleElement; ring: SVGCircleElement }[] = [];
+  const radar = createSolutionRadar(svg);
   const group = document.createElementNS(svgNamespace, 'g');
   svg.append(group);
 
@@ -102,12 +107,39 @@ export function renderWorldMap(
   }
   for (const { tile, markers } of copies) tile.append(markers);
 
+  // A narrow band between the panels can require more width than the interactive tiles cover.
+  const tile = copies[1].tile;
+  tile.id = `world-tile-${++nextTileId}`;
+  const pattern = document.createElementNS(svgNamespace, 'pattern');
+  pattern.id = `${tile.id}-repeat`;
+  pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+  pattern.setAttribute('width', String(worldWidth));
+  pattern.setAttribute('height', String(projected.height));
+  const reference = document.createElementNS(svgNamespace, 'use');
+  reference.setAttribute('href', `#${tile.id}`);
+  pattern.append(reference);
+  const defs = document.createElementNS(svgNamespace, 'defs');
+  defs.append(pattern);
+  svg.prepend(defs);
+  const extraMap = [-1, 1].map(() => {
+    const area = document.createElementNS(svgNamespace, 'rect');
+    area.setAttribute('height', String(projected.height));
+    area.setAttribute('fill', `url(#${pattern.id})`);
+    group.prepend(area);
+    return area;
+  });
+
   let picking = false;
   let assistedId: string | undefined;
   let viewport = { width: 0, height: 0 };
   let displayCenterX = worldWidth / 2;
   let markerScale = 0;
   let wheelTarget: number | undefined;
+  let wheelPause: number | undefined;
+  let gestureActive = false;
+  let radarCountry: CountryLayer | undefined;
+  let flyOut = false;
+  let flight = 0;
   let frame: MapFrame | undefined;
   const hitContext = document.createElement('canvas').getContext('2d');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -135,8 +167,16 @@ export function renderWorldMap(
   }
 
   function constrainY(y: number, scale: number) {
-    const { top, bottom } = frame ?? { top: 0, bottom: viewport.height };
+    const { top, bottom } = frame ? insetCountryFrame(frame) : { top: 0, bottom: viewport.height };
     return top + clampMapY(y - top, projected.height * scale, bottom - top);
+  }
+
+  function placeRadar(transform: ZoomTransform) {
+    const point = radarCountry?.geometry.marker;
+    if (!point || !frame) return;
+    const x = viewport.width / 2 + (nearestWorldX(point[0], displayCenterX) - displayCenterX) * transform.k;
+    const y = transform.applyY(point[1]);
+    radar.place(x, y, viewport.width, viewport.height, frame);
   }
 
   function draw(transform: ZoomTransform) {
@@ -145,6 +185,13 @@ export function renderWorldMap(
     const x = viewport.width / 2 - displayCenterX * k;
     const y = transform.y;
     group.setAttribute('transform', `translate(${x},${y}) scale(${k})`);
+    const halfWidth = viewport.width / (2 * k);
+    const leftEdge = Math.min(-worldWidth, displayCenterX - halfWidth);
+    const rightEdge = Math.max(2 * worldWidth, displayCenterX + halfWidth);
+    extraMap[0].setAttribute('x', String(leftEdge));
+    extraMap[0].setAttribute('width', String(-worldWidth - leftEdge));
+    extraMap[1].setAttribute('x', String(2 * worldWidth));
+    extraMap[1].setAttribute('width', String(rightEdge - 2 * worldWidth));
 
     if (markerScale !== k) {
       for (const { hitArea, dot, ring } of markerViews) {
@@ -155,6 +202,7 @@ export function renderWorldMap(
       markerScale = k;
     }
     updateKeyboardTargets();
+    placeRadar(transform);
   }
 
   const zoomBehavior = zoom<SVGSVGElement, unknown>()
@@ -162,18 +210,32 @@ export function renderWorldMap(
     .constrain((transform) => zoomIdentity
       .translate(transform.x, constrainY(transform.y, transform.k))
       .scale(transform.k))
-    // Interpolate the view center and width without zooming out past either endpoint.
-    .interpolate((from, to) => (t) => [
-      from[0] + (to[0] - from[0]) * t,
-      from[1] + (to[1] - from[1]) * t,
-      from[2] + (to[2] - from[2]) * t,
-    ])
+    .interpolate((from, to) => {
+      const maxSpan = Math.max(viewport.width, viewport.height) * 2 * worldWidth / viewport.width;
+      const widest = Math.max(from[2], to[2]);
+      const peak = Math.min(Math.max(maxSpan, widest), widest * 1.18);
+      return interpolateFlight(from, to, flyOut ? peak : undefined);
+    })
     .clickDistance(5)
-    .on('zoom', ({ transform }: D3ZoomEvent<SVGSVGElement, unknown>) => draw(transform));
+    .on('zoom', ({ transform, sourceEvent }: D3ZoomEvent<SVGSVGElement, unknown>) => {
+      if (!gestureActive && (sourceEvent?.type === 'mousemove' || sourceEvent?.type === 'touchmove')) {
+        gestureActive = true;
+        onInteraction('gesture', true);
+      }
+      draw(transform);
+    })
+    .on('end', () => {
+      if (!gestureActive) return;
+      gestureActive = false;
+      onInteraction('gesture', false);
+    });
   selection.call(zoomBehavior).on('dblclick.zoom', null).on('wheel.zoom', null);
 
   selection.on('wheel.quiz', (event: WheelEvent) => {
     event.preventDefault();
+    onInteraction('wheel', true);
+    window.clearTimeout(wheelPause);
+    wheelPause = window.setTimeout(() => onInteraction('wheel', false), 180);
     const [minimum, maximum] = zoomBehavior.scaleExtent();
     const currentScale = wheelTarget ?? zoomTransform(svg).k;
     const factor = 2 ** zoomBehavior.wheelDelta().call(svg, event, 0, [svg]);
@@ -181,6 +243,7 @@ export function renderWorldMap(
     if (scale === currentScale) return;
     selection.interrupt();
     const anchor = pointer(event, svg);
+    flyOut = false;
     if (motion.matches) {
       selection.call(zoomBehavior.scaleTo, scale, anchor);
       return;
@@ -197,23 +260,49 @@ export function renderWorldMap(
     return zoomIdentity.translate(viewport.width / 2 - x * scale, top).scale(scale);
   }
 
-  function resetView() {
+  function resetView(animate = false) {
     frame = undefined;
-    const center: [number, number] = [worldWidth * 0.38, projected.height / 2];
-    const [minimum] = zoomBehavior.scaleExtent();
+    radarCountry = undefined;
+    radar.clear();
+    const minimum = viewport.width / worldWidth;
+    zoomBehavior.scaleExtent([minimum, minimum * maxZoom]);
     const scale = Math.max(minimum, Math.min(viewport.height / projected.height, minimum * 2));
-    selection.interrupt().call(zoomBehavior.transform, transformAround(center, scale));
+    flyTo([worldWidth * 0.38, projected.height / 2], scale, animate);
   }
 
-  function flyTo([x, y]: [number, number], scale: number, animate: boolean) {
-    const currentX = zoomTransform(svg).invertX(viewport.width / 2);
-    const transform = transformAround([nearestWorldX(x, currentX), y], scale);
+  function flyTo([x, y]: [number, number], scale: number, animate: boolean, panOnly = false) {
+    const current = zoomTransform(svg);
+    const center: [number, number] = [viewport.width / 2, frame ? (frame.top + frame.bottom) / 2 : viewport.height / 2];
+    const [currentX, currentY] = current.invert(center);
+    const targetX = nearestWorldX(x, currentX);
+    const transform = transformAround([targetX, y], scale);
+    const [targetCenterX, targetCenterY] = transform.invert(center);
+    const distance = Math.hypot(targetCenterX - currentX, targetCenterY - currentY);
+    const revision = ++flight;
     selection.interrupt();
-    if (animate && !motion.matches) {
-      selection.transition().duration(800).ease(flightEase).call(zoomBehavior.transform, transform);
+    const settle = () => {
+      if (revision !== flight || !radarCountry) return;
+      radar.show(radarCountry.name);
+      placeRadar(zoomTransform(svg));
+    };
+    const moves = Math.hypot(transform.x - current.x, transform.y - current.y) > 0.5
+      || Math.abs(transform.k - current.k) > 0.0001;
+    if (animate && !motion.matches && moves) {
+      flyOut = !panOnly && distance > 10;
+      selection.transition().duration(flightDuration(distance)).ease(flightEase)
+        .on('end.solution interrupt.solution cancel.solution', settle)
+        .call(zoomBehavior.transform, transform, center);
     } else {
       selection.call(zoomBehavior.transform, transform);
+      settle();
     }
+  }
+
+  function isInFrame([[left, top], [right, bottom]]: Bounds, visible: MapFrame, centerX: number) {
+    const transform = zoomTransform(svg);
+    const offset = nearestWorldX(centerX, transform.invertX(viewport.width / 2)) - centerX;
+    return transform.applyX(left + offset) >= 10 && transform.applyX(right + offset) <= viewport.width - 10
+      && transform.applyY(top) >= visible.top + 10 && transform.applyY(bottom) <= visible.bottom - 10;
   }
 
   function fitViewport() {
@@ -225,7 +314,9 @@ export function renderWorldMap(
     frame = undefined;
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     const minimum = width / worldWidth;
-    zoomBehavior.scaleExtent([minimum, minimum * maxZoom]);
+    const previousMinimum = zoomBehavior.scaleExtent()[0];
+    zoomBehavior.scaleExtent([before.width ? Math.min(minimum, previousMinimum * width / before.width) : minimum,
+      minimum * maxZoom]);
     if (!before.width) {
       resetView();
       return;
@@ -273,9 +364,10 @@ export function renderWorldMap(
     const target = assistedId ? layers.get(assistedId) : undefined;
     const clicked = event.target instanceof SVGElement ? event.target : null;
     const point = pointerOnMap(event);
-    const clickedMarker = clicked?.classList.contains('map-marker-hit') ?? false;
+    const onExtraMap = extraMap.some((area) => area === clicked);
+    let clickedMarker = clicked?.classList.contains('map-marker-hit') ?? false;
     let clickedId = clicked?.dataset.countryId;
-    if (clickedMarker && point) {
+    if ((clickedMarker || onExtraMap) && point) {
       // The circles can overlap at world scale. Use distance instead of SVG paint order.
       let shortest = markerHitRadiusPx;
       for (const [id, { geometry }] of layers) {
@@ -284,6 +376,13 @@ export function renderWorldMap(
         if (distance < shortest) {
           shortest = distance;
           clickedId = id;
+          clickedMarker = true;
+        }
+      }
+      if (!clickedMarker && onExtraMap && hitContext) {
+        const x = wrapWorldX(point.x);
+        for (const [id, { outline }] of layers) {
+          if (hitContext.isPointInPath(outline, x, point.y)) clickedId = id;
         }
       }
     }
@@ -309,6 +408,9 @@ export function renderWorldMap(
   return {
     resetView,
     clear() {
+      flight++;
+      radarCountry = undefined;
+      radar.clear();
       selection.interrupt();
       for (const id of layers.keys()) showCountryState(id, '');
     },
@@ -319,7 +421,7 @@ export function renderWorldMap(
       updateKeyboardTargets();
     },
     mark: showCountryState,
-    focusCountries(ids: readonly string[], visible: MapFrame, animate: boolean) {
+    focusCountries(ids: readonly string[], visible: MapFrame, animate: boolean, solutionId?: string) {
       const bounds = ids.flatMap((id) => {
         const country = layers.get(id);
         return country ? [country.geometry.bounds] : [];
@@ -327,10 +429,19 @@ export function renderWorldMap(
       if (!bounds.length || !viewport.width) return;
       const top = Math.min(viewport.height - 1, Math.max(0, visible.top));
       const bottom = Math.max(top + 1, Math.min(viewport.height, visible.bottom));
+      const previousFrame = frame;
       frame = { top, bottom };
       const [, maximum] = zoomBehavior.scaleExtent();
-      const { center, scale } = fitCountryBounds(bounds, viewport.width, frame, maximum);
-      flyTo(center, scale, animate);
+      const view = fitCountryBounds(bounds, viewport.width, frame, maximum);
+      const currentScale = zoomTransform(svg).k;
+      const panOnly = Boolean(previousFrame && currentScale <= view.scale + 0.0001
+        && isInFrame(view.bounds, frame, view.center[0]));
+      const solution = solutionId ? layers.get(solutionId) : undefined;
+      radarCountry = solution?.geometry.marker ? solution : undefined;
+      if (!radarCountry) radar.clear();
+      const scale = panOnly ? currentScale : view.scale;
+      zoomBehavior.scaleExtent([Math.min(viewport.width / worldWidth, scale), maximum]);
+      flyTo(view.center, scale, animate, panOnly);
     },
   };
 }

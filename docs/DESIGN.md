@@ -65,7 +65,8 @@ Eine Familie: **Inter Tight** (400, 500, 600, 700, 800), selbst gehostet (z. B. 
 
 - **Panel**: weiß, 2 px Rahmen. Die **Meta-Zeile** zeigt links Kategorie, Fragenummer und Punkte im Label-Stil mit `space-between`. Im Atlas steht dort „ATLAS“. Eine 2-px-Linie trennt die Meta-Zeile vom Inhalt.
 - **Quadrat-Feld**: 48 × 48 px, weiß, 2 px Linie zur Nachbarzelle, Strich-SVG mit 2 px Strichstärke. Auf dem Desktop invertieren Schwarz und Weiß beim Hover. In aktiven Fragen sitzt das Überspringen-Feld mit `→|` unmittelbar links vom Menü-Feld. Es hat das zugängliche Label „Überspringen“ und zeigt beim Desktop-Hover „Überspringen (S)“. Beim Urteil, in der Zusammenfassung und im Atlas bleibt das Menü-Feld sichtbar.
-- **Primärbutton** („Weiter“, „Neue Runde“): volle Breite, 56 px, schwarz, Text weiß 16 px/700. Links das Label, rechts „LEERTASTE“ (Label-Stil, 75 % Deckkraft) und `→`. Unten optional der **Timerbalken** (siehe 6).
+- **Primärbutton** („Antwort prüfen“, „Runde starten“, „Neue Runde“): volle Breite, 56 px, schwarz, Text weiß 16 px/700.
+- **Weiter-Overlay**. Ein schwarzes Feld steht mittig oberhalb des Antwort-Sheets. Oben steht „WEITER“ in weißem Label-Stil, darunter „Leertaste“ bei Maus und Tastatur oder „Tippen“ bei Touch. Bei einer richtigen Antwort zeigt ein 4-px-Balken in `--ok` die verbleibende Zeit. Während einer Pause steht oben „PAUSIERT“.
 - **Optionszeile** (Multiple Choice): Raster `48px 1fr`, min. 56 px hoch, 2 px Rahmen; Zeilen überlappen sich um 2 px (`margin-top: -2px`), sodass die Linien nicht doppelt werden. Links die Ziffer 1–4 in eigener Zelle (2 px Trennlinie), rechts der Text 16 px/600.
   - richtig: füllt sich schwarz, Text weiß
   - falsch gewählt: füllt sich rot, Text weiß, kurzes Wackeln
@@ -90,7 +91,9 @@ Das Vollbild-Overlay ist weiß. Die Menüspalte ist zentriert und maximal 560 px
 - Hover bei freier Auswahl und in Kartenfragen verwendet `--land-hover`. Gebiete ohne Quiz bleiben grau (`--land-off`).
 - **Land → Kategorie**. Die Karte fliegt zum Land und markiert es blau (`--highlight`). Beim Urteil wird das Land grün (`--ok`) oder rot (`--accent`). Beim Überspringen bleibt es blau. Die Lage-Frage per Kartenklick hält das gesuchte Land bis zur Antwort verdeckt.
 - **Kategorie → Land**. Bei Lage → Land beginnt die Frage mit dem hervorgehobenen Land. Bei den übrigen Kategorien erscheint die Lösung erst beim Urteil. Dann fliegt die Karte zur grünen Lösung. Eine falsch gewählte Entität erscheint rot und wird gemeinsam mit der Lösung eingerahmt. Welche Antwort bei mehreren passenden Ländern richtig ist, bestimmt die Übungs-Engine.
-- Der Zoom rahmt Länder im Platz zwischen oberem Fragepanel und unterem Sheet ein und nutzt nahe horizontale Weltkopien. Das Sheet kann bei wenig Platz scrollen. Mausrad, Ziehen und Touch-Gesten bleiben auf der freien Karte aktiv.
+- Der automatische Quizzoom zeigt die Weltregion zwischen Fragepanel und Antwortbereich. Die Breite umfasst mindestens 50 Längengrade (`MIN_VIEW_SPAN_DEG`). Braucht die vollständige Geometrie mehr Raum, etwa bei Russland, Kanada oder Brasilien, zoomt die Karte weiter heraus. Der Ausschnitt reserviert pro Seite 15 % Rand für die Geometrie. Er nutzt nahe horizontale Weltkopien. Das Sheet kann bei wenig Platz scrollen. Mausrad, Ziehen und Touch-Gesten bleiben auf der freien Karte aktiv.
+- Beim Fragenwechsel fliegt die Kamera von ihrer aktuellen Position zur nächsten Ansicht. Liegt das neue Land bereits im freien Ausschnitt und passt die Zoomstufe, schwenkt sie bei gleicher Vergrößerung. Fragen mit verdecktem Land wechseln sanft zur Weltansicht.
+- Beim Zeigen der Lösung für einen Kleinstaat laufen drei blaue Radar-Ringe mit 2 px Strichstärke zum Marker zusammen. Der letzte Ring bleibt stehen. Eine kurze Linie verbindet ihn mit einem weißen Namensschild mit 2 px Rahmen und 13 px/700. Das Schild sitzt im freien Kartenbereich oberhalb des Weiter-Overlays und unterhalb des Fragepanels. Es folgt dem Marker beim Verschieben und Zoomen.
 - In den Menü-Einstellungen lassen sich blaue Kleinstaaten-Ringe einschalten. Sie sind standardmäßig ausgeblendet. Die klickbaren Marker bleiben sichtbar. Der Ring hat 2 px Strichstärke mit `vector-effect: non-scaling-stroke`.
 - Blau markierte Länder pulsieren bei ihrer ersten Hervorhebung kurz, unabhängig von ihrer Größe und der Ring-Einstellung. Bei Kleinstaaten pulsiert auch der Marker.
 
@@ -98,7 +101,7 @@ Das Vollbild-Overlay ist weiß. Die Menüspalte ist zentriert und maximal 560 px
 
 ### Üben
 
-Die Karte liegt im Vollbild. Über ihr stehen die kompakte Frage und unten, je nach Antwortart, das Antwort-Sheet oder das Eingabefeld. Bei Land → Lage stehen „Wo liegt“ (14 px) und der große Ländername im Fragepanel. Nach der Antwort zeigt das Sheet Fragenummer, Urteils-Punkt, Urteil, Erklärung und Primärbutton. Am Ende gibt es „RUNDE BEENDET“, Ergebnis, Zusammenfassung und „Neue Runde“.
+Die Karte liegt im Vollbild. Über ihr stehen die kompakte Frage und unten, je nach Antwortart, das Antwort-Sheet oder das Eingabefeld. Bei Land → Lage stehen „Wo liegt“ (14 px) und der große Ländername im Fragepanel. Nach der Antwort zeigt das Sheet Fragenummer, Urteils-Punkt, Urteil und Erklärung. Oberhalb erscheint das Weiter-Overlay. Am Ende gibt es „RUNDE BEENDET“, Ergebnis, Zusammenfassung und „Neue Runde“.
 
 ### Flaggen
 
@@ -122,7 +125,9 @@ Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick d
 
 | Moment | Dauer | Kurve | Details |
 |---|---|---|---|
-| Kartenflug | 800 ms | `--ease-inout` | beim Zeigen und Einpassen der Länder im freien Kartenbereich |
+| Kartenflug | 700–1400 ms | `--ease-inout` | Dauer nach Entfernung. Beim Flug kurz herauszoomen, schwenken und wieder hineinzoomen. Ist das Ziel bereits im passenden Ausschnitt, nur schwenken. |
+| Kleinstaat als Lösung | 3 × 700 ms | `--ease-out` | ab Bildschirmrand mit je 180 ms Versatz zum Marker zusammenziehen. Die Kontur wird dichter. |
+| Radar-Ring und Namensschild | 150 ms | ease | nach dem letzten Durchlauf einblenden und bis zur nächsten Frage zeigen |
 | Kleinstaaten-Ring erscheint | 2 × 600 ms | `--ease-out` | Ring pulsiert zweimal und bleibt danach sichtbar |
 | Land wird hervorgehoben | 2 × 600 ms | `--ease-out` | Land und gegebenenfalls Marker pulsieren am Anfang und bleiben danach blau |
 | Mausrad-Zoom | 180 ms | ease-out | |
@@ -133,7 +138,8 @@ Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick d
 | Punktestand bei Treffer | 450 ms | `--ease-out` | kurz auf 135 % und zurück |
 | Option füllt sich | 420 ms | `--ease-inout` | Fläche wächst von links (`scaleX`), Textfarbe 120 ms verzögert |
 | Falsche Option wackelt | 420 ms | | ±6 px horizontal |
-| Timerbalken (richtig) | 1100 ms | linear | 4 px, `--ok`, am unteren Rand des Primärbuttons, wächst von links |
+| Weiter-Overlay | 300 ms | `--ease-smooth` | 8 px von unten einblenden |
+| Timerbalken (richtig) | 5000 ms | linear | 4 px, `--ok`, am unteren Rand des Weiter-Overlays. Läuft von voll auf leer und hält bei einer Pause an. |
 | Länderwechsel: Farbe | 800 ms | `--ease-inout` | neue Farbe schiebt sich von unten über die alte (`clip-path`) |
 | Ländername | 800 ms, 300 ms Verzögerung | `--ease-out` | gleitet aus einer Maske nach oben |
 | Landesumriss | 1800 ms, 350 ms Verzögerung | `--ease-inout` | erst als Linie gezeichnet (`stroke-dashoffset`), ab 70 % füllt er sich |
@@ -149,13 +155,14 @@ Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick d
 | Menü schließen | 200 ms | `--ease-smooth` | Blöcke 12 px nach unten ausblenden, je 15 ms Versatz in umgekehrter Reihenfolge |
 | Einstellungen | 350 ms | `--ease-smooth` | Höhe aufklappen, Zeilen je 40 ms versetzt einblenden und Plus um 45° zum × drehen |
 
-Die Menüblöcke sind die Kopfzeilen, Listenzeilen, Abschnittslabels und Aktionsflächen. Bei `prefers-reduced-motion: reduce` bleiben nur Ein- und Ausblendungen mit 150 ms ohne Versatz. Kartenflüge springen direkt. Länder und Marker bleiben ruhig.
+Die Menüblöcke sind die Kopfzeilen, Listenzeilen, Abschnittslabels und Aktionsflächen. Bei `prefers-reduced-motion: reduce` bleiben nur Ein- und Ausblendungen mit 150 ms ohne Versatz. Kartenflüge springen direkt. Länder und Marker bleiben ruhig. Beim Radar erscheinen der stehende Ring und das Namensschild direkt als Überblendung.
 
 ## 7. Spielablauf und Tastatur
 
-- **Richtig**. Urteils-Punkt grün, nach **1100 ms automatisch** zur nächsten Frage. Der Timerbalken am Primärbutton läuft mit.
-- **Falsch**. Urteils-Punkt rot. Die Karte zeigt das Länderfeedback gemäß Abschnitt 4. Weiter per Klick, Leertaste oder Enter.
-- **Übersprungen**. Grauer Punkt, kein Punktgewinn. Weiter wie bei falschen Antworten.
+- **Richtig**. Grüner Urteils-Punkt. Nach **5000 ms** (`AUTO_ADVANCE_MS`) beginnt automatisch die nächste Frage. Ein Klick oder Tipp auf den freien Kartenbereich geht sofort weiter.
+- **Falsch oder übersprungen**. Roter bzw. grauer Urteils-Punkt. Die Lösung bleibt zur Erkundung auf der Karte. Weiter geht es durch eine Aktion des Spielers.
+- Nach jedem Urteil führen ein Tipp auf das Antwort-Sheet oder das Weiter-Overlay sowie Leertaste oder Enter weiter.
+- Während einer Kartenbewegung oder solange die Maus über dem Antwort-Sheet steht, pausiert der Countdown einer richtigen Antwort. Das Feld zeigt „PAUSIERT“ und der Balken bleibt stehen. Sobald beide Interaktionen beendet sind, läuft die Restzeit weiter.
 - **Tastatur**. `1`–`4` wählen eine Option. `S` überspringt außerhalb von Textfeldern. Enter im Tippfeld prüft die Antwort, bei leerem Feld überspringt es. Leertaste und Enter gehen nach dem Urteil weiter oder starten eine neue Runde. Enter startet im Rundenaufbau. Escape geht im Menü eine Ebene zurück und schließt es auf der ersten Ebene.
 - Fokus für Tastaturnutzer ist als 3 px Kontur in `--ink` mit 2 px Abstand sichtbar (`:focus-visible`).
 

@@ -1,4 +1,6 @@
 export const worldWidth = 960;
+export const MIN_VIEW_SPAN_DEG = 50;
+const countryMargin = 0.15;
 
 export function wrapWorldX(x: number): number {
   return ((x % worldWidth) + worldWidth) % worldWidth;
@@ -13,11 +15,16 @@ export function clampMapY(y: number, scaledHeight: number, viewportHeight: numbe
   return verticalSpace >= 0 ? verticalSpace / 2 : Math.max(verticalSpace, Math.min(0, y));
 }
 
-type Bounds = [[number, number], [number, number]];
+export type Bounds = [[number, number], [number, number]];
 
 export interface MapFrame {
   top: number;
   bottom: number;
+}
+
+export function insetCountryFrame({ top, bottom }: MapFrame): MapFrame {
+  const margin = (bottom - top) * countryMargin;
+  return { top: top + margin, bottom: bottom - margin };
 }
 
 export function fitCountryBounds(countries: readonly Bounds[], width: number, frame: MapFrame, maximum: number) {
@@ -35,10 +42,31 @@ export function fitCountryBounds(countries: readonly Bounds[], width: number, fr
     top = Math.min(top, y0);
     bottom = Math.max(bottom, y1);
   }
-  const height = frame.bottom - frame.top;
-  const fit = Math.min(width * 0.76 / (right - left), height * 0.76 / (bottom - top), maximum);
+  const band = insetCountryFrame(frame);
+  const regionSpan = worldWidth * MIN_VIEW_SPAN_DEG / 360;
+  const scale = Math.min(width / regionSpan, width * (1 - 2 * countryMargin) / (right - left),
+    (band.bottom - band.top) / (bottom - top), maximum);
   return {
     center: [(left + right) / 2, (top + bottom) / 2] as [number, number],
-    scale: Math.max(width / (2 * worldWidth), fit),
+    scale,
+    bounds: [[left, top], [right, bottom]] as Bounds,
+  };
+}
+
+type ZoomView = [number, number, number];
+
+export function flightDuration(distance: number) {
+  return 700 + 700 * Math.min(1, distance / (worldWidth / 3));
+}
+
+export function interpolateFlight(from: ZoomView, to: ZoomView, peakSpan: number | undefined) {
+  const mix = (a: number, b: number, t: number) => a + (b - a) * t;
+  const smooth = (t: number) => t * t * (3 - 2 * t);
+  return (t: number): ZoomView => {
+    const apex = 0.45;
+    const span = peakSpan === undefined ? mix(from[2], to[2], t)
+      : t < apex ? mix(from[2], peakSpan, smooth(t / apex))
+        : mix(peakSpan, to[2], smooth((t - apex) / (1 - apex)));
+    return [mix(from[0], to[0], t), mix(from[1], to[1], t), span];
   };
 }
