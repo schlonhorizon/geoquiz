@@ -5,6 +5,7 @@ import './ui/tokens.css';
 import './style.css';
 import './ui/menu.css';
 import './ui/country.css';
+import './ui/mobile.css';
 
 const container = document.querySelector<HTMLElement>('#quiz');
 if (container) {

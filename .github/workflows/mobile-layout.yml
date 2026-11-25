@@ -1,0 +1,43 @@
+name: Mobile WebKit layout
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'scripts/check-mobile-layout.mjs'
+      - '.github/workflows/mobile-layout.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  webkit:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.60.0-noble
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm install --no-save --package-lock=false playwright@1.60.0
+      - name: Capture mobile layouts
+        shell: bash
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
+          trap 'kill $!' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/data/index.json -o /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/check-mobile-layout.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-webkit-screenshots
+          path: mobile-layout-screenshots/
+          if-no-files-found: warn

@@ -106,7 +106,7 @@ Vor den Kategorie-Segmenten steht „Alle / Keine“. Ein Tipp schaltet zwischen
 
 ### Üben
 
-Die Karte liegt im Vollbild. Über ihr stehen die kompakte Frage und unten, je nach Antwortart, das Antwort-Sheet oder das Eingabefeld. Bei Land → Lage stehen „Wo liegt“ (14 px) und der große Ländername im Fragepanel. Nach der Antwort zeigt das Sheet Fragenummer, Urteils-Punkt, Urteil und Erklärung. Oberhalb erscheint das Weiter-Overlay. Am Ende gibt es „RUNDE BEENDET“, Ergebnis, Zusammenfassung und „Neue Runde“.
+Die Karte liegt im Vollbild. Über ihr stehen die kompakte Frage und unten, je nach Antwortart, das Antwort-Sheet oder das Eingabefeld. Bei Land → Lage stehen „Wo liegt“ (14 px) und der große Ländername im Fragepanel. Nach der Antwort zeigt das Sheet Fragenummer, Urteils-Punkt, Urteil und Erklärung. Auf dem Desktop erscheint darüber das Weiter-Overlay. Am Ende gibt es „RUNDE BEENDET“, Ergebnis, Zusammenfassung und „Neue Runde“.
 
 Die Auflösung zeigt Textbuttons im Format „Ländername · Steckbrief“. Sie führen zum gesuchten und gegebenenfalls zum gewählten Land oder zu dessen eindeutig zuordenbarem Antwortwert. Der Atlas-Steckbrief öffnet als modales Bottom-Sheet über derselben Frage. Das Schließen-Feld, Escape und Wischen nach unten am oberen Ende des Sheets schließen es.
 
@@ -115,9 +115,17 @@ Die Auflösung zeigt Textbuttons im Format „Ländername · Steckbrief“. Sie 
 - **Land → Flagge**. Das Antwort-Sheet ist bis 560 px breit. Vier Flaggen-Kacheln bilden ein 2×2-Raster. Die Ziffer und die reservierte Namenszeile stehen unter jedem Bild.
 - **Flagge → Land**. Die gesuchte Flagge füllt im Format 4:3 die Innenbreite des Fragepanels. Darunter steht „Welches Land ist das?“. Das Antwort-Sheet ist bis 560 px breit und enthält vier Länderoptionen oder das Tippfeld.
 
+### Handy und Querformat
+
+- Die mobile Anordnung gilt unter 600 px Breite sowie auf flachen Touch-Viewports bis 500 px Höhe. Sie nutzt `100dvh`, `viewport-fit=cover`, alle vier Safe-Area-Inset-Werte und mindestens 44 px hohe Touch-Ziele. Menüs und der Länder-Modus scrollen innerhalb ihrer Ansicht. Im Tipp-Modus hält der `visualViewport` das Eingabefeld über der Bildschirmtastatur. Wenn der freie Bereich sehr niedrig wird, erhält das Eingabefeld vorübergehend Vorrang vor dem Fragepanel.
+- Nach der Antwort bleiben die Lösung und gegebenenfalls die falsch gewählte Option stehen. Andere Optionen und Flaggen-Kacheln blenden aus und klappen ein. Das Urteil ist 28 px groß. Erklärung und Steckbrief-Links stehen zusammen und dürfen auf schmalen Geräten umbrechen. Der schwarze Weiter-Balken bildet die 56 px hohe letzte Zeile des Antwort-Sheets. Links steht „Weiter“ oder „Pausiert“, rechts „Tippen“. Bei korrekter Antwort läuft der Timer am unteren Rand. Bei Platzmangel scrollt nur der Inhalt oberhalb des Balkens.
+- Bei **Flagge → Land** passt die Flagge innerhalb von 28 % der Viewporthöhe und höchstens 240 px. Nach dem Urteil zieht sie sich auf 96 px Breite zusammen und sitzt neben der Meta-Zeile. Bei **Land → Flagge** bleibt der Platz für die Namen von Anfang an reserviert. Auf kurzen Viewports stehen die vier Flaggen in einer Reihe. Kurze Querformate zeigen Textoptionen in zwei Spalten.
+
 ### Atlas
 
 Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick den Steckbrief mit dem Farbblock des Länderdesigns, Landesumriss, Hauptstadtpunkt, Flagge und Namen. Pro Zeile stehen links das Label und rechts der Wert. Zugehörige Hinweise für Hauptstadt, Kontinent, Zentralbank und Staatsform sowie der Leitindex-Status stehen beim jeweiligen Feld. Anklickbare Nachbarn öffnen ihren Steckbrief und rücken das Land ins Kartenfenster. „← Karte“ schließt den Steckbrief.
+
+Im mobilen Layout verwenden Atlas und Quiz-Steckbrief ein randbündiges Bottom-Sheet inklusive unterem Safe-Area-Inset. Es öffnet auf halber Höhe. Über den Griff lässt es sich bis knapp unter den oberen Sichtrand ziehen. Der Griff schaltet per Tipp zwischen beiden Höhen um. Ein Abwärtswisch aus der halben Höhe schließt das Sheet. Aus der großen Höhe rastet ein kurzer Zug auf halber Höhe ein. Ein stärkerer Abwärtswisch schließt direkt. Der Inhalt scrollt vertikal mit `overscroll-behavior: contain`, während die Karte unter dem Sheet stehen bleibt.
 
 ### Ein Land komplett und Atlas-Landesdesign
 
@@ -147,6 +155,9 @@ Oben stehen „ATLAS“ und „Land antippen“. Unten öffnet ein Kartenklick d
 | Option füllt sich | 420 ms | `--ease-inout` | Fläche wächst von links (`scaleX`), Textfarbe 120 ms verzögert |
 | Falsche Option wackelt | 420 ms | | ±6 px horizontal |
 | Weiter-Overlay | 300 ms | `--ease-smooth` | 8 px von unten einblenden |
+| Mobile Steckbrief-Rastpunkte | 300 ms | `--ease-smooth` | zur halben oder fast vollen Höhe einrasten |
+| Nicht beteiligte mobile Optionen | 350 ms | `--ease-smooth` | Höhe einklappen und ausblenden |
+| Mobile Frageflagge nach Auflösung | 400 ms | `--ease-smooth` | auf 96 px verkleinern und neben die Meta-Zeile bewegen |
 | Timerbalken (richtig) | 5000 ms | linear | 4 px, `--ok`, am unteren Rand des Weiter-Overlays. Läuft von voll auf leer und hält bei einer Pause an. |
 | Länderwechsel: Farbe | 800 ms | `--ease-inout` | neue Farbe schiebt sich von unten über die alte (`clip-path`) |
 | Ländername | 800 ms, 300 ms Verzögerung | `--ease-out` | gleitet aus einer Maske nach oben |

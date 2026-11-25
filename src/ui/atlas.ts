@@ -2,8 +2,9 @@ import type { QuizSet } from '../data/load';
 import type { Entity } from '../data/schema';
 import type { CountryMap } from '../map/country-map';
 import { renderCountryHero } from './country-hero';
+import { createProfileSheet } from './profile-sheet';
 
-const disposeHero = new WeakMap<HTMLElement, () => void>();
+const sheets = new WeakMap<HTMLElement, ReturnType<typeof createProfileSheet> & { dispose?: () => void }>();
 
 export function renderProfile(
   sheet: HTMLElement,
@@ -14,10 +15,15 @@ export function renderProfile(
   onClose: () => void,
   overlay = false,
 ) {
-  const previousColor = sheet.querySelector<HTMLElement>('.country-hero')?.style.getPropertyValue('--country-color');
-  disposeHero.get(sheet)?.();
+  let profile = sheets.get(sheet);
+  if (!profile) {
+    profile = createProfileSheet(sheet);
+    sheets.set(sheet, profile);
+  }
+  const previousColor = profile.content.querySelector<HTMLElement>('.country-hero')?.style.getPropertyValue('--country-color');
+  profile.dispose?.();
   const { header, dispose } = renderCountryHero({ entity, definition, map, onBack: onClose, previousColor, overlay });
-  disposeHero.set(sheet, dispose);
+  profile.dispose = dispose;
 
   const names = new Map(entities.map(({ id, name }) => [id, name]));
   const fields = document.createElement('dl');
@@ -66,7 +72,8 @@ export function renderProfile(
     row.append(term, description);
     fields.append(row);
   }
-  sheet.replaceChildren(header, fields);
+  profile.content.replaceChildren(header, fields);
+  profile.open(onClose, sheet.hidden || (sheet instanceof HTMLDialogElement && !sheet.open));
   sheet.hidden = false;
 }
 
@@ -76,7 +83,6 @@ export function createQuizProfile(
   onChange: (open: boolean) => void,
 ) {
   let source: HTMLButtonElement | undefined;
-  let swipe: Touch | undefined;
   const close = () => dialog.close();
 
   function show(id: string) {
@@ -85,7 +91,6 @@ export function createQuizProfile(
       onChange(true);
       dialog.showModal();
     }
-    dialog.scrollTop = 0;
     dialog.querySelector<HTMLElement>('.country-back')?.focus({ preventScroll: true });
   }
 
@@ -97,20 +102,7 @@ export function createQuizProfile(
     onChange(false);
     source?.focus({ preventScroll: true });
     source = undefined;
-    swipe = undefined;
   });
-  dialog.addEventListener('touchstart', (event) => {
-    swipe = event.touches.length === 1 && dialog.scrollTop <= 0 ? event.touches[0] : undefined;
-  }, { passive: true });
-  dialog.addEventListener('touchend', (event) => {
-    if (!swipe) return;
-    const start = swipe;
-    swipe = undefined;
-    const end = Array.from(event.changedTouches).find(({ identifier }) => identifier === start.identifier);
-    if (end && dialog.scrollTop <= 0 && end.clientY - start.clientY > 72
-      && end.clientY - start.clientY > Math.abs(end.clientX - start.clientX)) close();
-  }, { passive: true });
-  dialog.addEventListener('touchcancel', () => { swipe = undefined; });
 
   return {
     open(id: string, trigger: HTMLButtonElement) {
