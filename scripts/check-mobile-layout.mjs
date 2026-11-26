@@ -128,12 +128,14 @@ async function verify([device, width, height]) {
     await page.locator('svg.world-map > g[transform]').waitFor({ state: 'attached' });
     await page.evaluate(() => document.fonts.ready);
     await snap('atlas-map');
+    const scene = page.locator('svg.world-map > g[transform]');
+    const overview = await scene.getAttribute('transform');
     await page.locator('.world-map [data-country-id="DEU"][tabindex="0"]').focus();
     await page.keyboard.press('Enter');
     await atlas.waitFor();
     await assertSheet(atlas, false);
+    await page.waitForFunction(before => document.querySelector('svg.world-map > g[transform]').getAttribute('transform') !== before, overview);
     await snap('atlas-half');
-    const scene = page.locator('svg.world-map > g[transform]');
     const before = await scene.getAttribute('transform');
     const scroller = atlas.locator('.profile-content');
     assert.ok(await scroller.evaluate(el => {

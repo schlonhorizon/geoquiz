@@ -88,10 +88,10 @@ export function createProfileSheet(sheet: HTMLElement) {
 
   return {
     content,
-    open(onClose: () => void, reset: boolean) {
+    prepareContent(onClose: () => void, reset: boolean) {
       close = onClose;
+      if (!reset) content.scrollTop = 0;
       if (reset) setExpanded(false);
-      content.scrollTop = 0;
     },
   };
 }

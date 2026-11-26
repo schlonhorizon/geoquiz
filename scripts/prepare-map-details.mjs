@@ -1,4 +1,8 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { parse } from 'csv-parse/sync';
 import { geoArea, geoContains } from 'd3-geo';
 import { feature, quantize } from 'topojson-client';
@@ -10,6 +14,7 @@ const sourceRoot = new URL(`../data/raw/natural-earth-${sourceVersion}/`, import
 const world = new URL('../data/sets/world/', import.meta.url);
 const earthRadiusKm = 6371;
 const minLakeAreaKm2 = .01;
+const mapshaperVersion = '0.8.10';
 const names = {
   countries: 'ne_10m_admin_0_countries',
   atlasUnits: 'ne_10m_admin_0_map_units',
@@ -120,13 +125,43 @@ const overviewWater = compact({
   lakes: water(lakes.filter(({ properties }) => properties.min_zoom <= 3)),
   rivers: water(rivers.filter(({ properties }) => properties.scalerank <= 4)),
 }, .00004);
-const details = compact({
+async function simplifyDetail(detail) {
+  const directory = await mkdtemp(join(tmpdir(), 'geoquiz-mapshaper-'));
+  const input = join(directory, 'detail.topojson');
+  const output = join(directory, 'simplified.topojson');
+  try {
+    await writeFile(input, JSON.stringify(detail));
+    await promisify(execFile)('npm', ['exec', '--yes', `--package=mapshaper@${mapshaperVersion}`, '--',
+      'mapshaper', input, '-simplify', '50%', 'keep-shapes', '-o', 'format=topojson', 'quantization=1000000', output]);
+    const result = JSON.parse(await readFile(output, 'utf8'));
+    const repaired = {};
+    for (const [key, object] of Object.entries(result.objects)) {
+      const current = feature(result, object).features;
+      const original = feature(detail, detail.objects[key]).features;
+      repaired[key] = asCollection(current.flatMap((item, index) => {
+        const capital = key === definition.map.object ? capitals.get(item.id) : undefined;
+        const polygon = key === definition.map.object || key === 'land' || key === 'lakes';
+        if (!polygon) return item.geometry?.coordinates.length ? [item] : [];
+        // Keep the validated ring when simplification loses a coastal capital or reverses a small lake.
+        if (!item.geometry || geoArea(item) > 2 * Math.PI || (capital && !geoContains(item, capital))) {
+          return [original[index]];
+        }
+        return [item];
+      }));
+    }
+    return topology(repaired, 1e6);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+const details = await simplifyDetail(compact({
   [definition.map.object]: refine(definition.map.object),
   land: refine('land'),
   lakes: water(detailLakes),
   rivers: water(detailRivers.filter(({ properties }) => properties.scalerank <= 6)),
   minorRivers: water(detailRivers.filter(({ properties }) => properties.scalerank > 6)),
-}, .0002);
+}, .0002));
 
 for (const [file, data] of [[definition.map.waterFile, overviewWater], [definition.map.detailFile, details]]) {
   const json = JSON.stringify(data);

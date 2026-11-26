@@ -57,8 +57,7 @@ async function verify(mobile) {
     const origin = await camera.getAttribute('transform');
     assert.equal(await svg.getAttribute('data-map-detail'), 'overview');
     assert.equal(requests, 0);
-    assert.equal(await svg.locator('.map-overview .map-lake').count(), 3);
-    assert.equal(await svg.locator('.map-overview .map-river').first().evaluate(el => getComputedStyle(el).strokeWidth), '0.6px');
+    await page.locator('.world-raster[data-raster-level="overview"][data-raster-water]').waitFor();
     assert.equal(await svg.locator('.map-water text').count(), 0);
     await photograph('atlas-overview');
 
@@ -80,13 +79,12 @@ async function verify(mobile) {
     assert.notEqual(zoomed, origin);
     release();
     await page.waitForFunction(() => document.querySelector('.world-map').dataset.mapDetail === 'detail');
+    await page.locator('.world-raster[data-raster-level="detail"]').waitFor();
     assert.equal(await camera.getAttribute('transform'), zoomed);
-    assert.equal(await svg.locator('.map-detail').first().evaluate(el => getComputedStyle(el).transitionDuration), '0.2s');
+    assert.equal(await page.locator('.world-raster-fade').last().evaluate(el => getComputedStyle(el).animationDuration), '0.2s');
     assert.equal(await svg.getAttribute('data-minor-rivers'), null);
-    assert.ok(await svg.locator('.map-detail .map-river-minor').first().isHidden());
-    const overviewPath = await svg.locator('.map-overview [data-country-id="DEU"]').first().getAttribute('d');
-    const detailPath = await svg.locator('.map-detail [data-country-id="DEU"]').first().getAttribute('d');
-    assert.ok(detailPath !== overviewPath && detailPath.length > overviewPath.length);
+    assert.equal(await page.locator('.world-raster').getAttribute('data-raster-minor'), null);
+    assert.equal(await svg.locator('.world-map-controls [data-country-id="DEU"][tabindex="0"]').count(), 1);
     await marker.waitFor();
     assert.equal(await measure(), 6);
     const cityLabel = svg.locator(`.map-capital[data-capital-country="${id}"][data-visible] text[data-visible]`);
@@ -102,8 +100,8 @@ async function verify(mobile) {
 
     await zoomAt(position, -630);
     await page.waitForFunction(() => document.querySelector('.world-map').hasAttribute('data-minor-rivers'));
-    await page.waitForTimeout(220);
-    assert.ok(await svg.locator('.map-detail .map-river-minor').first().isVisible());
+    await page.locator('.world-raster[data-raster-minor]').waitFor();
+    await page.locator('.world-raster-rivers').last().waitFor({ state: 'visible' });
     assert.equal(await measure(), 6);
     await photograph('atlas-minor-rivers');
 
@@ -120,7 +118,7 @@ async function verify(mobile) {
     await input(water);
     await choose('Menü schließen');
     await menu.waitFor({ state: 'hidden' });
-    assert.ok(await svg.locator('.map-detail .map-water').first().isHidden());
+    await page.locator('.world-raster:not([data-raster-water])').waitFor();
     await photograph('water-off');
 
     await input(page.getByRole('button', { name: 'Menü öffnen' }));
@@ -135,6 +133,31 @@ async function verify(mobile) {
     assert.equal(await svg.locator('.atlas-capitals text').count(), 0);
     await page.locator('.point-stage .country-map[data-map-detail="detail"] .map-detail .map-lake').waitFor();
     await photograph('quiz-capital-water');
+    const countryMap = page.locator('.point-stage .country-map');
+    await countryMap.press('Enter');
+    const line = countryMap.locator('.capital-line');
+    assert.equal(await line.getAttribute('pathLength'), '1');
+    const originalTransform = await line.evaluate(async (path) => {
+      while (Number.parseFloat(getComputedStyle(path).strokeDashoffset) >= 1 && !path.hasAttribute('data-complete')) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      }
+      const dash = Number.parseFloat(getComputedStyle(path).strokeDashoffset);
+      if (dash <= 0 || dash >= 1) throw new Error('The distance line must be tracing when the test starts to zoom');
+      const svg = path.ownerSVGElement;
+      const { left, top, width, height } = svg.getBoundingClientRect();
+      const before = path.parentElement.getAttribute('transform');
+      svg.dispatchEvent(new WheelEvent('wheel', { clientX: left + width / 2, clientY: top + height / 2, deltaY: -280,
+        bubbles: true, cancelable: true }));
+      return before;
+    });
+    await line.locator('xpath=..').evaluate(async (scene, previous) => {
+      while (scene.getAttribute('transform') === previous) await new Promise(resolve => requestAnimationFrame(resolve));
+    }, originalTransform);
+    assert.deepEqual(await line.evaluate(path => {
+      const css = getComputedStyle(path);
+      return [css.strokeDasharray, Number.parseFloat(css.strokeDashoffset), path.getTotalLength() > 0];
+    }), ['none', 0, true]);
+    await photograph('quiz-capital-complete-line');
 
     if (!mobile) {
       // This checks hit detection after the switch. The atlas checks the animated transition above.
@@ -154,11 +177,7 @@ async function verify(mobile) {
       const target = await mapCoordinate(germany);
       assert.ok(target);
       assert.equal(await svg.locator('.atlas-capitals text').count(), 0);
-      const hit = await page.evaluate(({ x, y }) => {
-        const country = document.elementFromPoint(x, y);
-        return [country?.dataset.countryId, Boolean(country?.closest('.map-detail'))];
-      }, target);
-      assert.deepEqual(hit, ['DEU', true]);
+      assert.equal(await svg.getAttribute('data-canvas-map'), '');
       await page.mouse.click(target.x, target.y);
       assert.equal(await page.locator('.verdict-title').textContent(), 'Richtig.');
     }

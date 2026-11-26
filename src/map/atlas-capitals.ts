@@ -29,6 +29,8 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
   layer.setAttribute('aria-hidden', 'true');
   svg.append(layer);
   const ordered = [...capitals].sort((a, b) => b.diagonal - a.diagonal || a.id.localeCompare(b.id));
+  const measurement = document.createElement('canvas').getContext('2d')!;
+  const fontFamily = getComputedStyle(svg).fontFamily;
   type View = ReturnType<typeof makeView>;
   const views = new Map<string, View>();
   const widths = new Map<string, number>();
@@ -52,6 +54,7 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
   }
 
   function draw(transform: ZoomTransform, { width, height }: { width: number; height: number }) {
+    if (!layer.isConnected) svg.append(layer);
     const tileWidth = worldWidth * transform.k;
     const occupied: LabelBounds[] = [];
     for (const view of views.values()) view.show = view.labelVisible = false;
@@ -76,7 +79,8 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
         if (size < ATLAS_CAPITAL_LABEL_MIN_PX) continue;
         let labelWidth = widths.get(id);
         if (labelWidth === undefined) {
-          labelWidth = view.label.getComputedTextLength();
+          measurement.font = `600 11px ${fontFamily}`;
+          labelWidth = Math.ceil(measurement.measureText(name).width);
           widths.set(id, labelWidth);
         }
         for (const side of [1, -1]) {
@@ -115,5 +119,7 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
     views.clear();
   }
 
-  return { draw, clear };
+  void document.fonts?.ready.then(() => widths.clear());
+
+  return { draw, clear, pause() { cancelAnimationFrame(transitionFrame); layer.remove(); } };
 }

@@ -17,6 +17,7 @@ export interface ProjectedCountry {
   id: string | undefined;
   path: string;
   bounds: [Point, Point];
+  outlineBounds: [Point, Point];
   marker: Point | null;
 }
 
@@ -52,11 +53,14 @@ function worldProjection(config: SetDefinition['map']) {
 
 export function projectMapDetails(topology: Topology, config: SetDefinition['map']) {
   const path = geoPath(worldProjection(config).projection);
+  const project = (key: string) => polygonFeatures(topology, key).flatMap((country) => {
+    const d = path(country);
+    return d ? [{ id: getMapEntityId(country, config.idProperty), d, bounds: path.bounds(country) }] : [];
+  });
   return {
-    land: topology.objects.land ? path(feature(topology, topology.objects.land)) : null,
-    countries: new Map(polygonFeatures(topology, config.object)
-      .map((country) => [getMapEntityId(country, config.idProperty), path(country)])),
-    water: projectWater(topology, path),
+    land: project('land'),
+    countries: new Map(project(config.object).map((country) => [country.id, country])),
+    water: projectWater(topology, path, true),
   };
 }
 
@@ -95,6 +99,7 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
       id,
       path: outline,
       bounds: [[left + offset, top], [right + offset, bottom]],
+      outlineBounds: path.bounds(geometry),
       marker,
     });
   }
