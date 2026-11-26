@@ -18,6 +18,7 @@ import { appendWater, MINOR_RIVER_ZOOM, WORLD_DETAIL_ZOOM } from './water';
 import { createMapMotion } from './map-motion';
 import { createCountryHitIndex } from './country-hit-index';
 import { createWorldRaster } from './world-raster';
+import type { TerrainCountry } from './world-raster-types';
 
 export type MapInteraction = 'gesture' | 'wheel';
 
@@ -34,6 +35,7 @@ let nextTileId = 0;
 interface CountryView {
   shape: SVGPathElement;
   marker: SVGCircleElement | null;
+  ring?: SVGCircleElement;
   hitArea: SVGElement;
   detail?: SVGPathElement;
   overlay?: SVGPathElement;
@@ -43,6 +45,7 @@ interface CountryLayer {
   geometry: ProjectedCountry;
   views: CountryView[];
   center: [number, number];
+  marker: [number, number] | null;
   keyboardTarget?: SVGElement;
   name: string;
   outline: Path2D;
@@ -79,7 +82,8 @@ export function renderWorldMap(
 ) {
   const projected = projectWorldMap(topology, config, resources.water);
   const overviewUrl = resources.renderUrl?.('overview');
-  const raster = overviewUrl ? createWorldRaster(svg, toggleCanvas, drawOverlay) : undefined;
+  const detailUrl = resources.renderUrl?.('detail');
+  const raster = overviewUrl ? createWorldRaster(svg, toggleCanvas, prepareTerrain, presentTerrain) : undefined;
   if (overviewUrl) raster?.load('overview', overviewUrl);
   const entityNames = new Map(entities.map(({ id, name }) => [id, name]));
   const layers = new Map<string, CountryLayer>();
@@ -132,12 +136,13 @@ export function renderWorldMap(
       hitArea.dataset.countryId = id;
       const marker = makeCircle(position, 'map-marker');
       const ring = makeCircle(position, 'map-marker-ring');
+      ring.dataset.countryId = id;
       markers.append(ring, hitArea, marker);
-      return { shape, marker, hitArea };
+      return { shape, marker, ring, hitArea };
     });
     const outline = new Path2D(path);
-    layers.set(id, { geometry, views, center: position ?? countryCenter(geometry.bounds), name, outline, state: '', pulse: false });
-    overviewHits.add(id, outline, geometry.outlineBounds);
+    layers.set(id, { geometry, views, center: countryCenter(geometry.bounds), marker: position, name, outline, state: '', pulse: false });
+    overviewHits.add(id, () => outline, geometry.outlineBounds);
   }
   for (const { overview } of copies) appendWater(overview, projected.water);
 
@@ -199,13 +204,17 @@ export function renderWorldMap(
   let hovered: CountryLayer | undefined;
   let keyboardFocus: CountryLayer | undefined;
   let canvasActive = false;
+  type Terrain = ReturnType<typeof buildTerrain>;
+  const terrains = new Map<number, Terrain>();
+  let activeTerrain: Terrain | undefined;
+  let rasterDetailRequested = false;
   const hitContext = document.createElement('canvas').getContext('2d');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const selection = select(svg);
 
   function updateKeyboardTargets() {
     for (const layer of layers.values()) {
-      const [centerX] = layer.center;
+      const [centerX] = layer.marker ?? layer.center;
       const copy = 1 + Math.round((displayCenterX - centerX) / worldWidth);
       const view = picking ? layer.views[copies[copy].visible ? copy : 1] : undefined;
       const current = canvasActive ? (picking ? layer.control : undefined) : view && (detailed && !view.marker && view.detail && view.detail.style.display !== 'none'
@@ -250,11 +259,15 @@ export function renderWorldMap(
         updateCanvasOverlay(layer);
       }
     } else {
+      activeTerrain = undefined;
+      delete svg.dataset.mapTier;
+      svg.dataset.mapDetail = detailed ? 'detail' : 'overview';
       controls.replaceChildren();
       for (const { tile, grid, overview, detail, overlays } of copies) {
         tile.prepend(grid, overview, detail);
         overlays.replaceChildren();
       }
+      for (const layer of layers.values()) moveMarker(layer, layer.geometry.marker);
     }
     updateKeyboardTargets();
     if (focused) layers.get(focused)?.keyboardTarget?.focus({ preventScroll: true });
@@ -264,21 +277,70 @@ export function renderWorldMap(
     if (!canvasActive) return;
     const focused = layer === keyboardFocus;
     const over = layer === hovered;
+    const id = layer.geometry.id!;
+    const outline = activeTerrain?.countries.get(id)?.d;
     for (const [index, view] of layer.views.entries()) {
       view.marker?.toggleAttribute('data-keyboard-focus', focused);
-      if (!layer.state && !focused && !over) {
+      if (!outline || (!layer.state && !focused && !over)) {
         view.overlay?.remove();
         view.overlay = undefined;
         continue;
       }
-      const outline = (detailed ? view.detail?.getAttribute('d') : undefined) ?? layer.geometry.path;
       const shape = view.overlay ??= appendPath(copies[index].overlays, outline, 'map-country');
+      shape.dataset.countryId = id;
       if (shape.getAttribute('d') !== outline) shape.setAttribute('d', outline);
       shape.dataset.state = layer.state;
       shape.toggleAttribute('data-hover', over);
       shape.toggleAttribute('data-keyboard-focus', focused);
       shape.classList.toggle('map-target-pulse', layer.pulse);
     }
+  }
+
+  function moveMarker(layer: CountryLayer, position: CountryLayer['marker']) {
+    if (!position || (position[0] === layer.marker?.[0] && position[1] === layer.marker[1])) return;
+    layer.marker = position;
+    for (const { marker, hitArea, ring } of layer.views) {
+      if (!marker || !ring) continue;
+      for (const circle of [marker, hitArea, ring]) {
+        circle.setAttribute('cx', String(position[0]));
+        circle.setAttribute('cy', String(position[1]));
+      }
+    }
+  }
+
+  function buildTerrain(countries: TerrainCountry[]) {
+    const index = createCountryHitIndex();
+    const byCountry = new Map(countries.flatMap(({ id, d, bounds, anchor }) => {
+      if (!layers.has(id)) return [];
+      let outline: Path2D | undefined;
+      const path = () => outline ??= new Path2D(d);
+      index.add(id, path, bounds);
+      return [[id, { d, path, anchor }] as const];
+    }));
+    return { countries: byCountry, index };
+  }
+
+  function prepareTerrain(tier: number, countries: TerrainCountry[]) {
+    terrains.set(tier, buildTerrain(countries));
+  }
+
+  function presentTerrain(transform: ZoomTransform, tier?: number, minor?: boolean) {
+    if (tier === undefined) updateDetails(transform.k);
+    else {
+      svg.toggleAttribute('data-minor-rivers', Boolean(minor));
+      const terrain = terrains.get(tier)!;
+      if (terrain !== activeTerrain) {
+        activeTerrain = terrain;
+        svg.dataset.mapTier = String(tier);
+        svg.dataset.mapDetail = tier ? 'detail' : 'overview';
+        for (const [id, layer] of layers) {
+          if (layer.geometry.marker) moveMarker(layer, terrain.countries.get(id)?.anchor ?? layer.geometry.marker);
+          if (layer.state || layer === hovered || layer === keyboardFocus) updateCanvasOverlay(layer);
+        }
+        overlayTransform = undefined;
+      }
+    }
+    drawOverlay(transform);
   }
 
   function installDetail(topology: Topology) {
@@ -290,7 +352,7 @@ export function renderWorldMap(
       const projected = geometry.countries.get(id);
       const outline = projected?.d ?? layer.geometry.path;
       layer.detailOutline = new Path2D(outline);
-      detailHits.add(id, layer.detailOutline, projected?.bounds ?? layer.geometry.outlineBounds);
+      detailHits.add(id, () => layer.detailOutline!, projected?.bounds ?? layer.geometry.outlineBounds);
       copies.forEach(({ detail, paths }, index) => {
         const view = layer.views[index];
         const shape = appendPath(detail, outline, 'map-country');
@@ -304,8 +366,6 @@ export function renderWorldMap(
       for (const { shape, bounds } of appendWater(detail, geometry.water)) if (bounds) paths.push({ shape, bounds });
     }
     detailReady = true;
-    // Give the transparent layer a computed style before starting the crossfade.
-    if (!canvasActive) getComputedStyle(copies[1].detail).opacity;
   }
 
   function zoomLevel(scale: number) {
@@ -315,11 +375,16 @@ export function renderWorldMap(
   function updateDetails(scale: number) {
     const level = zoomLevel(scale);
     const eligible = level >= WORLD_DETAIL_ZOOM;
+    if (raster?.available) {
+      if (eligible && detailUrl && !rasterDetailRequested) {
+        rasterDetailRequested = true;
+        raster.load('detail', detailUrl);
+      }
+      return;
+    }
     if (!eligible) detailRequested = false;
     else if (!detailRequested && !detailReady && resources.loadDetail) {
       detailRequested = true;
-      const url = resources.renderUrl?.('detail');
-      if (url) raster?.load('detail', url);
       void resources.loadDetail().then((topology) => {
         receivedDetail = topology;
         if (!camera.moving) settle(zoomTransform(svg));
@@ -335,9 +400,6 @@ export function renderWorldMap(
     if (detailed !== next) {
       detailed = next;
       svg.dataset.mapDetail = detailed ? 'detail' : 'overview';
-      if (canvasActive) for (const layer of layers.values()) {
-        if (layer.state || layer === hovered || layer === keyboardFocus) updateCanvasOverlay(layer);
-      }
     }
     svg.toggleAttribute('data-minor-rivers', level >= MINOR_RIVER_ZOOM);
   }
@@ -352,7 +414,7 @@ export function renderWorldMap(
   }
 
   function placeRadar(transform: ZoomTransform) {
-    const point = radarCountry?.geometry.marker;
+    const point = radarCountry?.marker;
     if (!point || !frame) return;
     const x = viewport.width / 2 + (nearestWorldX(point[0], displayCenterX) - displayCenterX) * transform.k;
     const y = transform.applyY(point[1]);
@@ -412,7 +474,7 @@ export function renderWorldMap(
 
   function draw(transform: ZoomTransform) {
     const level = zoomLevel(transform.k);
-    const visible = raster?.draw(transform, viewport, level, detailed, level >= MINOR_RIVER_ZOOM) ?? transform;
+    const visible = raster?.draw(transform, viewport, level, rasterDetailRequested, level >= MINOR_RIVER_ZOOM) ?? transform;
     drawOverlay(visible);
   }
 
@@ -604,7 +666,7 @@ export function renderWorldMap(
   }
 
   function hitCountry({ x, y }: { x: number; y: number }) {
-    return hitContext && (detailed ? detailHits : overviewHits).hit(hitContext, wrapWorldX(x), y) || undefined;
+    return hitContext && (activeTerrain?.index ?? (detailed ? detailHits : overviewHits)).hit(hitContext, wrapWorldX(x), y) || undefined;
   }
 
   function setHover(id?: string) {
@@ -637,14 +699,15 @@ export function renderWorldMap(
   svg.addEventListener('pointerleave', () => setHover());
 
   function isNearCountry(country: CountryLayer, { x, y, scale }: { x: number; y: number; scale: number }): boolean {
-    const marker = country.geometry.marker;
+    const marker = country.marker;
     if (marker && isNearMarker(x, y, marker, scale)) return true;
     if (!hitContext) return false;
 
     hitContext.lineWidth = (boundaryTolerancePx * 2) / scale;
     hitContext.lineJoin = 'round';
     const wrapped = wrapWorldX(x);
-    const outline = detailed ? country.detailOutline ?? country.outline : country.outline;
+    const outline = activeTerrain?.countries.get(country.geometry.id!)?.path()
+      ?? (detailed ? country.detailOutline ?? country.outline : country.outline);
     return copyOffsets.some((offset) => hitContext.isPointInStroke(outline, wrapped + offset, y));
   }
 
@@ -659,9 +722,9 @@ export function renderWorldMap(
     if ((clickedMarker || onExtraMap) && point) {
       // The circles can overlap at world scale. Use distance instead of SVG paint order.
       let shortest = markerHitRadiusPx;
-      for (const [id, { geometry }] of layers) {
-        if (!geometry.marker) continue;
-        const distance = markerDistance(point.x, point.y, geometry.marker, point.scale);
+      for (const [id, { marker }] of layers) {
+        if (!marker) continue;
+        const distance = markerDistance(point.x, point.y, marker, point.scale);
         if (distance < shortest) {
           shortest = distance;
           clickedId = id;
@@ -674,7 +737,7 @@ export function renderWorldMap(
       clickedId,
       clickedMarker,
       assistedId,
-      Boolean(target.geometry.marker),
+      Boolean(target.marker),
       () => Boolean(point && isNearCountry(target, point)),
     ) : clickedId;
     if (id) onCountrySelected(id);
@@ -730,7 +793,7 @@ export function renderWorldMap(
       const panOnly = Boolean(previousFrame && currentScale <= view.scale + 0.0001
         && isInFrame(view.bounds, frame, view.center[0]));
       const solution = solutionId ? layers.get(solutionId) : undefined;
-      radarCountry = solution?.geometry.marker ? solution : undefined;
+      radarCountry = solution?.marker ? solution : undefined;
       if (!radarCountry) radar.clear();
       const scale = atlas ? Math.max(minAtlasScale(), view.scale) : panOnly ? currentScale : view.scale;
       zoomBehavior.scaleExtent([atlas ? minAtlasScale() : Math.min(viewport.width / worldWidth, scale), maximum]);

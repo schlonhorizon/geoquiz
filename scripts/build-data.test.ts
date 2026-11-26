@@ -8,14 +8,14 @@ import { feature } from 'topojson-client';
 import type { GeometryCollection, Topology } from 'topojson-specification';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Entity, SetDefinition } from '../src/data/schema';
-import { projectWorldMap } from '../src/map/geometry';
+import { projectWorldMap, worldProjection } from '../src/map/geometry';
 import { createCountryMaps, MIN_CAPITAL_VIEW_SPAN_DEG } from '../src/map/country-map';
 import { addCoreOutlines } from './data/core-outline';
 import { createPracticeEngine } from '../src/quiz/practice';
 import type { PresetLibrary } from '../src/quiz/round-settings';
 import { buildData } from './build-data';
 import { DETAIL_RENDER_ZOOMS } from '../src/map/world-raster-types';
-import type { TerrainTier } from '../src/map/world-raster-types';
+import type { TerrainShape, TerrainTier } from '../src/map/world-raster-types';
 
 const attributes: SetDefinition['attributes'] = [
   { key: 'region', label: 'Region', type: 'enum', values: ['Europa'] },
@@ -75,6 +75,25 @@ async function emitted(file: string) {
   return JSON.parse(await readFile(join(output, file), 'utf8'));
 }
 
+function borderVertices(shapes: TerrainShape[], id: string, start: number[], end: number[]) {
+  for (const { d } of shapes.filter(shape => shape.id === id)) {
+    for (const subpath of d.split('M').slice(1)) {
+      const points = subpath.replace(/Z$/, '').split('L').map(point => point.split(',').map(Number));
+      const locate = ([targetX, targetY]: number[]) => points.findIndex(([x, y]) =>
+        Math.abs(x - targetX) < .24 && Math.abs(y - targetY) < .015);
+      const west = locate(start);
+      const east = locate(end);
+      if (west < 0 || east < 0) continue;
+      const first = Math.min(west, east);
+      const last = Math.max(west, east);
+      const direct = points.slice(first, last + 1);
+      const aroundClosure = points.slice(last).concat(points.slice(0, first + 1));
+      return direct.length <= aroundClosure.length ? direct : aroundClosure;
+    }
+  }
+  return [];
+}
+
 describe('buildData', () => {
   it('builds the complete world set and joins quiz countries to their geometries', async () => {
     const sample = fileURLToPath(new URL('../data/sets', import.meta.url));
@@ -130,14 +149,28 @@ describe('buildData', () => {
       .toEqual(entities.map(({ id }) => id).sort());
     expect(details.objects).toHaveProperty('minorRivers');
     const renderSizes = [];
-    for (const minZoom of DETAIL_RENDER_ZOOMS) {
-      const bytes = await readFile(join(output, `sets/world/map-detail.topojson.render-${minZoom}.json.gz`));
+    const { projection } = worldProjection({ file: 'map.topojson', object: 'countries', idProperty: 'id', projection: 'miller' });
+    // Natural Earth's straight section ends at the Salish Sea and Lake of the Woods.
+    const start = projection([-122.76, 48.993])!;
+    const end = projection([-95.17, 48.993])!;
+    for (const minZoom of [0, ...DETAIL_RENDER_ZOOMS]) {
+      const name = minZoom ? 'map-detail.topojson' : 'map.topojson';
+      const bytes = await readFile(join(output, `sets/world/${name}.render-${minZoom}.json.gz`));
       const tier: TerrainTier = JSON.parse(gunzipSync(bytes).toString());
       expect(tier.minZoom).toBe(minZoom);
       expect(new Set(tier.shapes.map(({ name }) => name))).toEqual(new Set([
-        'map-grid', 'map-land', 'map-country', 'map-river', 'map-river-minor', 'map-lake',
+        'map-grid', 'map-land', 'map-country', 'map-river', ...(minZoom ? ['map-river-minor'] : []), 'map-lake',
       ]));
-      renderSizes.push(tier.shapes.reduce((length, { d }) => length + d.length, 0));
+      expect(new Set(tier.shapes.flatMap(({ id }) => id ? [id] : []))).toEqual(new Set(entities.map(({ id }) => id)));
+      for (const id of ['USA', 'CAN']) {
+        const points = borderVertices(tier.shapes, id, start, end);
+        const tag = `${id} on the 49th parallel, tier ${minZoom}`;
+        expect(points.length, tag).toBeGreaterThanOrEqual(2);
+        expect(Math.abs(points[0][0] - points.at(-1)![0]), tag).toBeGreaterThan(73);
+        const heights = points.map(([, y]) => y);
+        expect(Math.max(...heights) - Math.min(...heights), tag).toBeLessThanOrEqual(.02);
+      }
+      if (minZoom) renderSizes.push(tier.shapes.reduce((length, { d }) => length + d.length, 0));
     }
     expect(renderSizes).toEqual([...renderSizes].sort((a, b) => a - b));
     expect(water.objects.lakes.geometries.length).toBeGreaterThan(0);

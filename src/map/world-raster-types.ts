@@ -4,6 +4,16 @@ export interface TerrainShape {
   name: string;
   d: string;
   bounds: Bounds;
+  id?: string;
+  area?: number;
+  anchor?: [number, number];
+}
+
+export interface TerrainCountry {
+  id: string;
+  d: string;
+  bounds: Bounds;
+  anchor?: [number, number];
 }
 
 export interface TerrainTier {
@@ -29,6 +39,6 @@ export type TerrainRequest =
   | { type: 'view'; minZoom: number; water: boolean; minor: boolean; view: TerrainView; id: number };
 
 export type TerrainResponse =
-  | { type: 'ready'; minZoom: number }
+  | { type: 'ready'; minZoom: number; countries: TerrainCountry[] }
   | { type: 'error'; minZoom: number; message: string }
   | { type: 'view'; id: number; base: ImageBitmap; minZoom: number };

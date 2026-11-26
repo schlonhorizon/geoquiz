@@ -1,5 +1,5 @@
 import type { ZoomTransform } from 'd3-zoom';
-import type { TerrainColors, TerrainLevel, TerrainRequest, TerrainResponse, TerrainView } from './world-raster-types';
+import type { TerrainColors, TerrainCountry, TerrainLevel, TerrainRequest, TerrainResponse, TerrainView } from './world-raster-types';
 import { DETAIL_RENDER_ZOOMS } from './world-raster-types';
 
 type Size = { width: number; height: number };
@@ -11,7 +11,8 @@ const cacheMargin = .25;
 export function createWorldRaster(
   svg: SVGSVGElement,
   onActive: (active: boolean) => void,
-  onPresent: (transform: ZoomTransform) => void,
+  onTierReady: (tier: number, countries: TerrainCountry[]) => void,
+  onPresent: (transform: ZoomTransform, tier?: number, minor?: boolean) => void,
 ) {
   if (!('Worker' in window) || !('OffscreenCanvas' in window) || !('DecompressionStream' in window)) return;
   let worker: Worker;
@@ -30,8 +31,7 @@ export function createWorldRaster(
   const colors = Object.fromEntries(tokens.map(token => [token, style.getPropertyValue(`--${token}`).trim()])) as TerrainColors;
   const urls = new Map<TerrainLevel, string>();
   const tiers = new Map<number, 'pending' | 'ready' | 'failed'>();
-  let front = makeSurface();
-  let outgoing: HTMLCanvasElement | undefined;
+  const front = makeSurface();
   let presented: Frame | undefined;
   let pending: Frame | undefined;
   let camera: Camera | undefined;
@@ -80,7 +80,7 @@ export function createWorldRaster(
     if (detail) {
       let wanted = 0;
       for (const minZoom of DETAIL_RENDER_ZOOMS) {
-        if (zoom < minZoom) break;
+        if (zoom + 1e-9 < minZoom) break;
         wanted = minZoom;
         if (tiers.get(minZoom) === 'ready') tier = minZoom;
       }
@@ -115,13 +115,15 @@ export function createWorldRaster(
       && top + view.height * factor >= camera!.viewport.height;
     const visible = bridge ? target : transform;
     const scale = visible.k / view.k;
-    // Snap the temporary surface to the physical grid. At 1× this makes a pan a pixel copy.
-    const snap = (value: number) => Math.round(value * view.pixelRatio) / view.pixelRatio;
-    const x = snap(visible.x - view.x * scale);
-    const y = snap(visible.y - view.y * scale);
+    // Move the cached bitmap and its overlay by the same whole physical pixels.
+    const snap = (value: number) => bridge ? Math.round(value * view.pixelRatio) / view.pixelRatio : value;
+    const shiftX = visible.x - view.x * scale;
+    const shiftY = visible.y - view.y * scale;
+    const x = snap(shiftX);
+    const y = snap(shiftY);
     front.canvas.style.transform = `translate3d(${x}px,${y}px,0) scale(${scale})`;
     host.toggleAttribute('data-raster-bridge', bridge);
-    return visible;
+    return bridge ? visible.translate((x - shiftX) / visible.k, (y - shiftY) / visible.k) : visible;
   }
 
   function fail() {
@@ -135,6 +137,7 @@ export function createWorldRaster(
 
   worker.onmessage = ({ data }: MessageEvent<TerrainResponse>) => {
     if (data.type === 'ready') {
+      onTierReady(data.minZoom, data.countries);
       tiers.set(data.minZoom, 'ready');
       request();
       return;
@@ -151,18 +154,6 @@ export function createWorldRaster(
     }
     const next = pending;
     pending = undefined;
-    const crossfade = presented && Boolean(presented.tier) !== Boolean(next.tier) && !moving
-      && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (crossfade) {
-      outgoing?.remove();
-      const old = outgoing = front.canvas;
-      front = makeSurface();
-      front.canvas.classList.add('world-raster-fade');
-      window.setTimeout(() => {
-        old.remove();
-        if (outgoing === old) outgoing = undefined;
-      }, 200);
-    }
     presented = next;
     front.paint(data.base, next.view);
     if (!front.canvas.isConnected) host.append(front.canvas);
@@ -176,12 +167,13 @@ export function createWorldRaster(
       svg.setAttribute('data-canvas-map', '');
       onActive(true);
     }
-    onPresent(visible);
+    onPresent(visible, next.tier, next.minor);
     request();
   };
   worker.onerror = fail;
 
   return {
+    get available() { return alive; },
     draw(transform: ZoomTransform, viewport: Size, zoom: number, detail: boolean, minor: boolean) {
       const changed = !camera || camera.zoom !== zoom || camera.detail !== detail || camera.minor !== minor
         || camera.transform.x !== transform.x || camera.transform.y !== transform.y

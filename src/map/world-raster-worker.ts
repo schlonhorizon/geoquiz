@@ -1,4 +1,4 @@
-import type { TerrainColors, TerrainRequest, TerrainResponse, TerrainShape, TerrainTier, TerrainView } from './world-raster-types';
+import type { TerrainColors, TerrainCountry, TerrainRequest, TerrainResponse, TerrainShape, TerrainTier, TerrainView } from './world-raster-types';
 import { worldWidth } from './viewport';
 import { loadTerrainTier } from './terrain-data';
 
@@ -13,6 +13,28 @@ const scope = self as unknown as {
 };
 const canvas = new OffscreenCanvas(1, 1);
 const context = canvas.getContext('2d', { alpha: false })!;
+
+function countryOutlines(shapes: TerrainShape[]): TerrainCountry[] {
+  const countries = new Map<string, TerrainCountry & { area: number }>();
+  for (const { id, d, bounds, area = 0, anchor } of shapes) {
+    if (!id) continue;
+    const country = countries.get(id);
+    if (!country) {
+      const [[left, top], [right, bottom]] = bounds;
+      countries.set(id, { id, d, bounds: [[left, top], [right, bottom]], area, anchor });
+      continue;
+    }
+    country.d += d;
+    const [[left, top], [right, bottom]] = country.bounds;
+    const [[l, t], [r, b]] = bounds;
+    country.bounds = [[Math.min(left, l), Math.min(top, t)], [Math.max(right, r), Math.max(bottom, b)]];
+    if (area > country.area) {
+      country.area = area;
+      country.anchor = anchor;
+    }
+  }
+  return [...countries.values()];
+}
 
 function index({ minZoom, shapes }: TerrainTier): Tier {
   const cells = new Map<number, Shape[]>();
@@ -93,7 +115,7 @@ scope.onmessage = ({ data }) => {
   if (data.type === 'load') {
     void loadTerrainTier(data.url).then(tier => {
       tiers.set(data.minZoom, { tier: index(tier), colors: data.colors });
-      scope.postMessage({ type: 'ready', minZoom: data.minZoom });
+      scope.postMessage({ type: 'ready', minZoom: data.minZoom, countries: countryOutlines(tier.shapes) });
     }).catch((error: unknown) => {
       scope.postMessage({ type: 'error', minZoom: data.minZoom, message: String(error) });
     });
