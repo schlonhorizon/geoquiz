@@ -73,6 +73,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  contain: strict;
 }
 .world-raster-global, .world-raster-view {
   position: absolute;
@@ -345,6 +346,7 @@ svg:not([data-map-moving]) .map-river { animation: fade-in 150ms ease both; }
 .atlas-sheet {
   position: fixed;
   z-index: 2;
+  contain: layout paint;
   inset: auto var(--right) var(--bottom) var(--left);
   max-width: 560px;
   max-height: calc(100dvh - var(--quiz-top, 190px) - var(--bottom) - 92px);

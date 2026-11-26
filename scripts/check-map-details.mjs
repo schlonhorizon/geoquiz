@@ -83,7 +83,7 @@ async function verify(mobile) {
     assert.equal(await camera.getAttribute('transform'), zoomed);
     assert.equal(await page.locator('.world-raster-fade').last().evaluate(el => getComputedStyle(el).animationDuration), '0.2s');
     assert.equal(await svg.getAttribute('data-minor-rivers'), null);
-    assert.ok(await svg.locator('.map-detail .map-river-minor').first().isHidden());
+    assert.equal(await page.locator('.world-raster').getAttribute('data-raster-minor'), null);
     assert.equal(await svg.locator('.world-map-controls [data-country-id="DEU"][tabindex="0"]').count(), 1);
     await marker.waitFor();
     assert.equal(await measure(), 6);
@@ -101,7 +101,7 @@ async function verify(mobile) {
     await zoomAt(position, -630);
     await page.waitForFunction(() => document.querySelector('.world-map').hasAttribute('data-minor-rivers'));
     await page.locator('.world-raster[data-raster-minor]').waitFor();
-    assert.ok(await page.locator('.world-raster-rivers').last().isVisible());
+    await page.locator('.world-raster-rivers').last().waitFor({ state: 'visible' });
     assert.equal(await measure(), 6);
     await photograph('atlas-minor-rivers');
 
