@@ -17,6 +17,8 @@ type Color = [number, number, number, number];
 type Capital = { id: string; name: string; point: Coordinate; diagonal: number };
 type Label = Capital & { side: number };
 type Geometry = { polygons: Polygon[]; lines: Ring[] };
+type Tile = { copy: number; left: number; top: number; right: number; bottom: number };
+const cell = 48;
 const square = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="6" height="6"%3E%3Cpath fill="white" d="M0 0h6v6H0z"/%3E%3C/svg%3E';
 
 function signedArea(ring: Ring) {
@@ -102,7 +104,8 @@ export function createDeckMap(
   const fontFamily = css.fontFamily.split(',')[0].replace(/['"]/g, '').trim();
   const measure = document.createElement('canvas').getContext('2d')!;
   const urls = new Map<TerrainLevel, string>();
-  const loaded = new Map<number, ReturnType<typeof prepareGeometry>>();
+  const loaded = new Map<number, TerrainShape[]>();
+  const regions = new Map<string, ReturnType<typeof prepareGeometry>>();
   const requested = new Set<number>();
   let capitals: Capital[] = [];
   let pins: Capital[] = [];
@@ -153,7 +156,7 @@ export function createDeckMap(
     if (!url || requested.has(minZoom)) return;
     requested.add(minZoom);
     void loadTerrainTier(`${url}.render-${minZoom}.json.gz`).then(({ shapes }) => {
-      loaded.set(minZoom, prepareGeometry(shapes));
+      loaded.set(minZoom, shapes);
       render();
     }).catch(error => console.error('Deck.gl-Kartenebene konnte nicht geladen werden.', error));
   }
@@ -189,20 +192,35 @@ export function createDeckMap(
     }
   }
 
-  function createLayers(geometry: ReturnType<typeof prepareGeometry>, first: number, last: number, minor: boolean) {
+  function regionKey({ left, top, right, bottom }: Tile) {
+    return `${left}:${top}:${right}:${bottom}`;
+  }
+
+  function createLayers(tier: number, tiles: Tile[], minor: boolean) {
     const layers: Layer[] = [];
-    for (let copy = first; copy < last; copy++) {
+    const shapes = loaded.get(tier)!;
+    for (const tile of tiles) {
+      const { copy, left, top, right, bottom } = tile;
+      const key = `${tier}:${regionKey(tile)}`;
+      let geometry = regions.get(key);
+      if (!geometry) {
+        geometry = prepareGeometry(shapes.filter(({ bounds: [[l, t], [r, b]] }) =>
+          l <= right && r >= left && t <= bottom && b >= top));
+        if (regions.size >= 12) regions.delete(regions.keys().next().value!);
+        regions.set(key, geometry);
+      }
+      const visible = geometry;
       const modelMatrix = new Matrix4().translate([copy * worldWidth, 0, 0]);
       const common = { modelMatrix, coordinateSystem: COORDINATE_SYSTEM.CARTESIAN, pickable: false };
       function paths(key: string, tint: Color, width: number) {
-        const data = geometry.get(key)?.lines;
+        const data = visible.get(key)?.lines;
         if (data?.length) layers.push(new PathLayer<Ring>({
           ...common, id: `${copy}-${key}-line`, data, getPath: item => item,
           getColor: tint, widthUnits: 'pixels', getWidth: width, capRounded: true, jointRounded: true,
         }));
       }
       function area(key: string, tint: Color) {
-        const data = geometry.get(key)?.polygons;
+        const data = visible.get(key)?.polygons;
         if (data?.length) layers.push(new SolidPolygonLayer<Polygon>({
           ...common, id: `${copy}-${key}-fill`, data, getPolygon: item => item, getFillColor: tint,
         }));
@@ -248,15 +266,26 @@ export function createDeckMap(
     if (wanted) loadTier(wanted);
     const center = wrapWorldX(transform.invertX(viewport.width / 2));
     const x = viewport.width / 2 - center * transform.k;
-    const first = Math.floor(-x / (transform.k * worldWidth));
-    const last = Math.ceil((viewport.width - x) / (transform.k * worldWidth));
+    const { k, y } = transform;
+    const first = Math.floor(-x / (k * worldWidth));
+    const last = Math.ceil((viewport.width - x) / (k * worldWidth));
+    const low = (value: number) => Math.floor((value - 1) / cell) * cell;
+    const high = (value: number) => Math.ceil((value + 1) / cell) * cell;
+    const tiles = Array.from({ length: last - first }, (_, i) => {
+      const copy = first + i;
+      const origin = x + copy * worldWidth * k;
+      return {
+        copy, left: Math.max(0, low(-origin / k)), top: Math.max(0, low(-y / k)),
+        right: Math.min(worldWidth, high((viewport.width - origin) / k)), bottom: high((viewport.height - y) / k),
+      };
+    });
     const nextLayoutKey = `${atlas}:${x}:${transform.y}:${transform.k}:${viewport.width}:${viewport.height}`;
     if (!moving && nextLayoutKey !== layoutKey) {
       layoutKey = nextLayoutKey;
       placeCities(transform, viewport, x);
     }
-    const nextLayerKey = `${tier}:${first}:${last}:${water}:${minor}:${atlas}:${cityRevision}`;
-    const layers = layerKey === nextLayerKey ? undefined : createLayers(loaded.get(tier)!, first, last, minor);
+    const nextLayerKey = `${tier}:${first}:${tiles.map(regionKey).join(',')}:${water}:${minor}:${atlas}:${cityRevision}`;
+    const layers = layerKey === nextLayerKey ? undefined : createLayers(tier, tiles, minor);
     layerKey = nextLayerKey;
     const viewState: OrthographicViewState = { target: [center, transform.invertY(viewport.height / 2), 0], zoom: Math.log2(transform.k) };
     host.dataset.rasterLevel = tier ? 'detail' : 'overview';

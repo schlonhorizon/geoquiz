@@ -81,7 +81,8 @@ try {
           requestAnimationFrame(move);
           while (performance.now() - start < 6500) {
             await new Promise(resolve => requestAnimationFrame(resolve));
-            const canvas = layer.querySelector('.world-raster-base:last-child');
+            const canvases = layer.querySelectorAll('canvas.world-raster-base');
+            const canvas = canvases.item(canvases.length - 1);
             const labels = Number(layer.getAttribute('data-map-labels'))
               || document.querySelectorAll('.map-capital[data-visible] text[data-visible]').length;
             if (!map.hasAttribute('data-map-moving') || (action === 'zoom' && layer.hasAttribute('data-raster-bridge'))
