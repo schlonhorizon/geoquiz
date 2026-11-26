@@ -52,6 +52,7 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
   }
 
   function draw(transform: ZoomTransform, { width, height }: { width: number; height: number }) {
+    if (!layer.isConnected) svg.append(layer);
     const tileWidth = worldWidth * transform.k;
     const occupied: LabelBounds[] = [];
     for (const view of views.values()) view.show = view.labelVisible = false;
@@ -115,5 +116,5 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
     views.clear();
   }
 
-  return { draw, clear };
+  return { draw, clear, pause() { cancelAnimationFrame(transitionFrame); layer.remove(); } };
 }

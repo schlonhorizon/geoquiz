@@ -1,0 +1,66 @@
+name: Map performance traces
+
+on:
+  pull_request:
+    paths:
+      - 'src/map/**'
+      - 'src/ui/country-map.ts'
+      - 'src/style.css'
+      - 'data/sets/**'
+      - 'scripts/measure-map-performance.mjs'
+      - '.github/workflows/map-performance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  traces:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: mcr.microsoft.com/playwright:v1.60.0-noble
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit]
+    env:
+      GEOQUIZ_BROWSER: ${{ matrix.engine }}
+      BASE_REVISION: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Build the base revision
+        shell: bash
+        run: |
+          git worktree add --detach /tmp/geoquiz-before "$BASE_REVISION"
+          npm --prefix /tmp/geoquiz-before ci
+          npm --prefix /tmp/geoquiz-before run build
+      - run: npm install --no-save --package-lock=false playwright@1.60.0
+      - name: Measure movement, zoom and camera flight
+        shell: bash
+        run: |
+          npm --prefix /tmp/geoquiz-before run preview -- --host 127.0.0.1 --port 4174 --strictPort &
+          before=$!
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
+          after=$!
+          trap 'kill "$before" "$after"' EXIT
+          for port in 4174 4173; do
+            for attempt in {1..30}; do
+              if curl --fail --silent "http://127.0.0.1:$port/data/index.json" -o /dev/null; then break; fi
+              sleep 1
+            done
+          done
+          node scripts/measure-map-performance.mjs before http://127.0.0.1:4174/
+          GEOQUIZ_EXPECT_CANVAS=1 node scripts/measure-map-performance.mjs after http://127.0.0.1:4173/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: map-performance-${{ matrix.engine }}
+          path: map-performance-traces/
+          if-no-files-found: warn

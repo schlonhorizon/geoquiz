@@ -6,8 +6,8 @@
   background: var(--sea);
 }
 
-#quiz:has(.point-stage:not([hidden])) .world-map,
-[data-country-round] .world-map { visibility: hidden; }
+#quiz:has(.point-stage:not([hidden])) :is(.world-map, .world-raster),
+[data-country-round] :is(.world-map, .world-raster) { visibility: hidden; }
 
 .country-map {
   display: block;
@@ -23,25 +23,28 @@
 .country-map[data-selecting] { cursor: crosshair; }
 .country-map[data-explorable]:active { cursor: grabbing; }
 .country-map[data-selecting]:focus { outline: none; }
-.country-map[data-selecting]:focus-visible .local-outline { stroke-width: 3px; }
-.country-map path { stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.local-outline { fill: var(--paper); stroke: var(--ink); stroke-width: 1px; }
-.local-neighbor { fill: var(--land-off); stroke: var(--ink); stroke-width: .8px; }
-.country-map .map-lake { stroke-width: 1px; }
+.country-map[data-selecting]:focus-visible .local-outline { stroke-width: calc(3 * var(--map-unit, 1px)); }
+.country-map path { stroke-linejoin: round; }
+.local-outline { fill: var(--paper); stroke: var(--ink); stroke-width: var(--map-unit, 1px); }
+.local-neighbor { fill: var(--land-off); stroke: var(--ink); stroke-width: calc(.8 * var(--map-unit, 1px)); }
+.country-map .map-lake { stroke-width: var(--map-unit, 1px); }
 
-.country-map :is(line, circle) { display: none; vector-effect: non-scaling-stroke; pointer-events: none; }
+.country-map :is(.capital-line, circle) { display: none; pointer-events: none; }
 .country-silhouette[data-solution] .capital-answer,
 .country-map[data-guess] .capital-line,
 .country-map[data-cursor] .capital-cursor { display: block; }
-.capital-answer, .capital-cursor { stroke-width: 10px; }
+.capital-answer, .capital-cursor { stroke-width: calc(10 * var(--map-unit, 1px)); }
 .capital-answer { fill: var(--ok); stroke: var(--ok); }
 .capital-cursor { fill: var(--highlight); stroke: var(--highlight); }
 .capital-line {
   stroke: var(--ink);
-  stroke-width: 2px;
+  fill: none;
+  stroke-width: calc(2 * var(--map-unit, 1px));
   stroke-dasharray: 1;
+  stroke-dashoffset: 0;
   animation: capital-trace var(--capital-travel-duration) var(--ease-inout) var(--capital-travel-delay) both;
 }
+.capital-line[data-complete] { animation: none; stroke-dasharray: none; stroke-dashoffset: 0; }
 
 .capital-feedback {
   position: absolute;
@@ -179,12 +182,12 @@
   fill: currentColor;
   fill-opacity: .9;
   stroke: currentColor;
-  stroke-width: 1.2px;
+  stroke-width: calc(1.2 * var(--map-unit, 1px));
   stroke-dasharray: 1;
   animation: country-outline-in 1800ms 350ms var(--ease-inout) both;
 }
 
-.country-silhouette .capital-answer { stroke-width: 9px; }
+.country-silhouette .capital-answer { stroke-width: calc(9 * var(--map-unit, 1px)); }
 .country-identity {
   grid-area: 1 / 1;
   align-self: end;
@@ -219,13 +222,6 @@
   font-weight: 800;
   letter-spacing: -.045em;
   line-height: .92;
-}
-.country-name-measure {
-  position: absolute;
-  inline-size: max-content;
-  visibility: hidden;
-  white-space: nowrap;
-  pointer-events: none;
 }
 .country-title {
   color: inherit;

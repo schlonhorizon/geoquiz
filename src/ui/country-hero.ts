@@ -9,14 +9,16 @@ const nameMaxSize = 60;
 const nameMinSize = 36;
 const nameSizeStep = 2;
 
-function fitCountryName(art: HTMLElement, measure: HTMLElement, name: string, wide: boolean) {
+function fitCountryName(art: HTMLElement, title: HTMLElement, name: string, wide: boolean) {
   const width = art.clientWidth - 32;
   if (width <= 0) return;
+  const measurement = document.createElement('canvas').getContext('2d')!;
+  const { fontFamily, fontWeight } = getComputedStyle(title);
 
   function measureAt(text: string, size: number) {
-    measure.style.fontSize = `${size}px`;
-    measure.textContent = text;
-    return Math.ceil(measure.getBoundingClientRect().width);
+    measurement.font = `${fontWeight} ${size}px ${fontFamily}`;
+    // Match the negative tracking from .country-name-type.
+    return Math.ceil(measurement.measureText(text).width - Array.from(text).length * size * .045);
   }
 
   const sideWidth = Math.floor(width * .66);
@@ -108,25 +110,23 @@ export function renderCountryHero(options: {
   mapSlot.className = 'country-hero-point';
   const art = document.createElement('div');
   art.className = 'country-hero-art';
+  let silhouette: ReturnType<typeof renderCountryMap> | undefined;
   if (map) {
     const pointAttribute = definition.attributes.find(({ point }) => point);
     const point = profile && pointAttribute ? attributePoint(entity, pointAttribute) : undefined;
-    const outline = renderCountryMap(map, point ? `Umriss von ${entity.name} mit Hauptstadtpunkt` : `Umriss von ${entity.name}`, { answer: point });
-    outline.svg.classList.add('country-silhouette');
-    art.append(outline.svg);
+    silhouette = renderCountryMap(map, point ? `Umriss von ${entity.name} mit Hauptstadtpunkt` : `Umriss von ${entity.name}`, { answer: point });
+    silhouette.svg.classList.add('country-silhouette');
+    art.append(silhouette.svg);
   }
   art.append(mapSlot, identity);
-  const measure = document.createElement('span');
-  measure.className = 'country-name-type country-name-measure';
-  measure.setAttribute('aria-hidden', 'true');
-  header.append(background, bar, art, measure);
+  header.append(background, bar, art);
 
   let measuredWidth = 0;
   let disposed = false;
   const fit = (force = false) => {
     if (disposed || !header.isConnected) return;
     const width = art.clientWidth;
-    if (force || measuredWidth !== width) fitCountryName(art, measure, entity.name, wide || header.hasAttribute('data-point'));
+    if (force || measuredWidth !== width) fitCountryName(art, title, entity.name, wide || header.hasAttribute('data-point'));
     measuredWidth = width;
   };
   const sizes = new ResizeObserver(() => fit());
@@ -151,6 +151,7 @@ export function renderCountryHero(options: {
   function dispose() {
     disposed = true;
     sizes.disconnect();
+    silhouette?.dispose();
   }
   return { header, bar, color, setPointMap, revealFlag, dispose };
 }

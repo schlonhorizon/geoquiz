@@ -66,19 +66,44 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   cursor: grabbing;
 }
 
+.world-map-camera, .country-map-scene { will-change: transform; }
+
+.world-raster {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.world-raster-global, .world-raster-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.world-raster-global img { position: absolute; top: 0; display: block; }
+.world-raster-view canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.world-raster-fade { animation: fade-in 200ms ease both; }
+.world-raster[data-map-moving] .world-raster-rivers, .world-raster[data-water-hidden] .world-raster-rivers { display: none; }
+.world-raster:not([data-map-moving]) .world-raster-rivers { animation: fade-in 150ms ease both; }
+.world-map[data-canvas-map] { background: transparent; }
+.world-map[data-canvas-map] :is(.map-grid, .map-land, .map-water) { display: none; }
+.world-map[data-canvas-map] .map-country { opacity: 0; pointer-events: none; }
+.world-map[data-canvas-map] .map-country:is([data-state]:not([data-state=""]), [data-hover], [data-keyboard-focus], :focus-visible) { opacity: 1; }
+.world-map-controls { opacity: 0; pointer-events: none; }
+.map-country[data-hover]:not([data-state]:not([data-state=""])) { fill: var(--land-hover); }
+
 .map-grid {
   fill: none;
   stroke: var(--grid);
-  stroke-width: 1px;
-  vector-effect: non-scaling-stroke;
+  stroke-width: var(--map-unit, 1px);
   pointer-events: none;
 }
 
 .map-land, .map-country, .map-marker, .map-lake {
   stroke: var(--ink);
-  stroke-width: .8px;
+  stroke-width: calc(.8 * var(--map-unit, 1px));
   stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
 }
 
 .map-overview, .map-detail { transition: opacity 200ms ease; }
@@ -90,7 +115,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .map-water, .map-water *, .atlas-capitals { pointer-events: none; }
 .hide-map-water .map-water, svg:not([data-minor-rivers]) .map-river-minor { display: none; }
 .map-lake { fill: var(--sea); }
-.map-river { fill: none; stroke: var(--river); stroke-width: .6px; vector-effect: non-scaling-stroke; }
+.map-river { fill: none; stroke: var(--river); stroke-width: calc(.6 * var(--map-unit, 1px)); }
+[data-map-moving] .map-river, [data-map-moving] .atlas-capitals { display: none; }
+svg:not([data-map-moving]) .map-river { animation: fade-in 150ms ease both; }
 .map-capital, .map-capital text { opacity: 0; transition: opacity 150ms ease; }
 .map-capital[data-visible], .map-capital text[data-visible] { opacity: 1; }
 .map-capital rect, .map-capital text { fill: var(--ink); }
@@ -116,11 +143,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   outline: none;
 }
 
-.map-country:focus-visible, .map-marker-hit:focus-visible + .map-marker {
+.map-country:focus-visible, .map-marker-hit:focus-visible + .map-marker, [data-keyboard-focus] {
   --pulse-stroke: var(--ink);
-  --pulse-stroke-width: 3px;
+  --pulse-stroke-width: calc(3 * var(--map-unit, 1px));
   stroke: var(--ink);
-  stroke-width: 3px;
+  stroke-width: var(--pulse-stroke-width);
 }
 
 .map-marker, .map-marker-hit {
@@ -131,8 +158,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   display: none;
   fill: none;
   stroke: var(--highlight);
-  stroke-width: 2px;
-  vector-effect: non-scaling-stroke;
+  stroke-width: calc(2 * var(--map-unit, 1px));
+  r: calc(var(--marker-ring-radius) * var(--map-unit, 1px));
   pointer-events: none;
   transform-box: fill-box;
   transform-origin: center;
@@ -145,7 +172,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 
 .map-marker-hit {
   fill: transparent;
+  r: calc(var(--marker-hit-radius) * var(--map-unit, 1px));
 }
+.map-marker { r: calc(var(--marker-radius) * var(--map-unit, 1px)); }
 
 .is-answerable .map-country, .is-answerable .map-marker-hit {
   pointer-events: auto;
@@ -671,7 +700,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   fill: none;
   stroke: var(--highlight);
   stroke-width: 2px;
-  vector-effect: non-scaling-stroke;
 }
 
 .radar-pulse {
@@ -749,7 +777,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 @keyframes target-pulse {
-  50% { fill-opacity: .5; stroke: var(--pulse-stroke, var(--highlight)); stroke-width: var(--pulse-stroke-width, 2.5px); }
+  50% { fill-opacity: .5; stroke: var(--pulse-stroke, var(--highlight)); stroke-width: var(--pulse-stroke-width, calc(2.5 * var(--map-unit, 1px))); }
 }
 
 @keyframes target-marker-pulse {

@@ -3,6 +3,7 @@ import type { Coordinate } from '../data/map';
 
 const travelDelay = 300;
 const travelDuration = 600;
+export const CAPITAL_TRAVEL_MS = travelDelay + travelDuration;
 const travelEase = BezierEasing(.65, 0, .35, 1);
 const labelGap = 14;
 const edgeGap = 4;
@@ -79,7 +80,7 @@ export function createCapitalFeedback(frame: HTMLElement, scene: SVGGElement) {
 
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const sizes = new ResizeObserver(() => layout());
-  let data: { title: string; solution: Coordinate; chosen?: Coordinate; started: number } | undefined;
+  let data: { title: string; solution: Coordinate; chosen?: Coordinate; started: number; settled?: boolean } | undefined;
   let animation = 0;
 
   function layout(now = performance.now()) {
@@ -105,7 +106,7 @@ export function createCapitalFeedback(frame: HTMLElement, scene: SVGGElement) {
     const target = toPixels(data.solution);
     const from = data.chosen ? toPixels(data.chosen) : target;
     const time = (now - data.started - travelDelay) / travelDuration;
-    const settled = !data.chosen || motion.matches || time >= 1;
+    const settled = data.settled || !data.chosen || motion.matches || time >= 1;
     const progress = settled ? 1 : travelEase(Math.max(0, time));
     const point: Coordinate = [from[0] + (target[0] - from[0]) * progress, from[1] + (target[1] - from[1]) * progress];
     anchor(guess, from);
@@ -134,9 +135,16 @@ export function createCapitalFeedback(frame: HTMLElement, scene: SVGGElement) {
     if (!chosen || motion.matches) return;
     const tick = (now: number) => {
       layout(now);
-      if (now - started < travelDelay + travelDuration && !motion.matches) animation = requestAnimationFrame(tick);
+      if (now - started < CAPITAL_TRAVEL_MS && !motion.matches) animation = requestAnimationFrame(tick);
     };
     animation = requestAnimationFrame(tick);
+  }
+
+  function finishTravel() {
+    if (!data || data.settled) return;
+    data.settled = true;
+    cancelAnimationFrame(animation);
+    layout();
   }
 
   function dispose() {
@@ -145,5 +153,5 @@ export function createCapitalFeedback(frame: HTMLElement, scene: SVGGElement) {
     window.removeEventListener('scroll', onScroll, true);
   }
 
-  return { reveal, layout, dispose };
+  return { reveal, layout, finishTravel, dispose };
 }

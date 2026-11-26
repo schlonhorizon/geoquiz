@@ -34,7 +34,7 @@ const library: PresetLibrary = {
     { id: 'capital', label: 'Hauptstädte', settings: { categories: ['capital'], direction: 'forward', format: 'typed' } },
   ],
 };
-const map = { resetView: vi.fn(), setAtlas: vi.fn(), clear: vi.fn(), setPicking: vi.fn(), mark: vi.fn(), focusCountries: vi.fn() };
+const map = { resetView: vi.fn(), setAtlas: vi.fn(), clear: vi.fn(), setPicking: vi.fn(), mark: vi.fn(), focusCountries: vi.fn(), setWaterVisible: vi.fn() };
 let chooseCountry: (id: string) => void;
 let moveMap: (source: MapInteraction, active: boolean) => void;
 let container: HTMLElement;
@@ -69,7 +69,7 @@ async function start(presetId: string) {
   await vi.advanceTimersByTimeAsync(0);
 }
 
-it('starts in Atlas, shows populated fields and opens a neighbor profile', () => {
+it('starts in Atlas, shows populated fields and opens a neighbor profile', async () => {
   expect(find('.question').textContent).toBe('Land antippen');
   expect(map.setPicking).toHaveBeenLastCalledWith(true);
   chooseCountry('NGA');
@@ -79,6 +79,7 @@ it('starts in Atlas, shows populated fields and opens a neighbor profile', () =>
   expect(find('#profile-title').textContent).toBe('Niger');
   expect(find('.atlas-fields').textContent).toContain('Niamey');
   expect(find('.atlas-fields').textContent).not.toContain('Nachbarländer');
+  await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   expect(map.focusCountries).toHaveBeenLastCalledWith(['NER'], expect.anything(), true, undefined);
 });
 

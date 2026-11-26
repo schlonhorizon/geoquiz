@@ -91,11 +91,11 @@ Vor den Kategorie-Segmenten steht „Alle / Keine“. Ein Tipp schaltet zwischen
 ## 4. Karte
 
 - Projektion Miller, horizontal endlos (wie umgesetzt), Antarktis entfernt.
-- Meer `--sea`, Land `--paper`, Grenzen `--ink` 0,8 px mit `vector-effect: non-scaling-stroke`.
+- Meer `--sea`, Land `--paper`, Grenzen `--ink` 0,8 px. SVG-Striche bekommen am Ende der Bewegung eine gemeinsame Breite relativ zum Zoom. Canvas zeichnet die Striche in der gewünschten Bildschirmbreite.
 - Gradnetz alle 30° Länge und 20° Breite, 1 px `--grid`.
-- Die Weltkarte wechselt bei 3-fachem Zoom von 1:50 Mio. auf 1:10 Mio. Beide Ebenen teilen sich die Miller-Projektion und blenden in 200 ms über. Mit reduzierter Bewegung wechselt die Auflösung direkt.
+- Die Weltkarte wechselt ab 3-fachem Zoom nach Ende der Bewegung von 1:50 Mio. auf 1:10 Mio. Beide Ebenen teilen sich die Miller-Projektion und blenden in 200 ms über. Mit reduzierter Bewegung wechselt die Auflösung direkt. Ein Worker zeichnet Länder, Gewässer und Gradnetz bei der Bildschirm-Pixeldichte. Während der Bewegung folgt das vorhandene Kartenbild der Kamera. Markierungen und Lösungen bleiben als animierbare SVG-Ebene darüber.
 - Seen sind in `--sea` gefüllt und haben die gleiche Kontur wie die Küsten. Flüsse erscheinen mit 0,6 px in `--river` und behalten ihre Strichstärke beim Zoomen. Kleine Flüsse kommen bei 7-fachem Zoom hinzu. Gewässer haben keine Beschriftung.
-- Im Atlas erscheint bei 60 px Diagonale des Kerngebiets ein festes 6-px-Quadrat in `--ink`. Ab 140 px erscheint der Hauptstadtname mit 11 px/600 und weißer Kontur. Größere Länder haben Vorrang, sobald sich die Namensflächen überschneiden. Quadrate und Namen blenden getrennt in 150 ms ein und aus. Quizkarten zeigen diese Atlas-Ebene nicht.
+- Im Atlas erscheint bei 60 px Diagonale des Kerngebiets ein festes 6-px-Quadrat in `--ink`. Ab 140 px erscheint der Hauptstadtname mit 11 px/600 und weißer Kontur. Größere Länder haben Vorrang, sobald sich die Namensflächen überschneiden. Beim Ziehen, Zoomen und bei Kartenflügen verschwinden Flüsse und die Atlas-Hauptstadtebene. 150 ms nach Bewegungsende erscheinen sie wieder. Quizkarten zeigen diese Atlas-Ebene nicht.
 - Hover bei freier Auswahl und in Kartenfragen verwendet `--land-hover`. Gebiete ohne Quiz bleiben grau (`--land-off`).
 - **Land → Kategorie**. Die Karte fliegt zum Land und markiert es blau (`--highlight`). Beim Urteil wird das Land grün (`--ok`) oder rot (`--accent`). Beim Überspringen bleibt es blau. Die Lage-Frage per Kartenklick hält das gesuchte Land bis zur Antwort verdeckt.
 - **Kategorie → Land**. Bei Lage → Land beginnt die Frage mit dem hervorgehobenen Land. Bei den übrigen Kategorien erscheint die Lösung erst beim Urteil. Dann fliegt die Karte zur grünen Lösung. Eine falsch gewählte Entität erscheint rot und wird gemeinsam mit der Lösung eingerahmt. Welche Antwort bei mehreren passenden Ländern richtig ist, bestimmt die Übungs-Engine.
@@ -170,7 +170,7 @@ Im mobilen Layout verwenden Atlas und Quiz-Steckbrief ein randbündiges Bottom-S
 | Landeskarte im freien Kartenbereich | 650 ms | `--ease-smooth` | auf den eingepassten Ausschnitt vergrößern |
 | Hauptstadt-Tipp | 2 × 500 ms | `--ease-out` | zwei auslaufende und verblassende Ringe, 100 ms versetzt |
 | Eigenes Hauptstadt-Quadrat | 300 ms | `--ease-pop` | am Tipp auf volle Größe bringen. Bei Ankunft am Ziel wird die weiße Innenfläche transparent. |
-| Linie mit Hauptstadtname | 600 ms, 300 ms Verzögerung | `--ease-inout` | Linie per `stroke-dashoffset` vom Tipp zum Ziel zeichnen. Das Namensschild folgt der Linie. |
+| Linie mit Hauptstadtname | 600 ms, 300 ms Verzögerung | `--ease-inout` | Den Pfad mit `pathLength="1"` und `stroke-dasharray: 1` zeichnen. Das Namensschild folgt der Linie. Nach dem Zeichnen sowie bei Zoom, Ziehen oder Weitergehen bleibt der volle Pfad sichtbar. |
 | Richtiger Hauptstadtpunkt | 300 ms und einmal 500 ms | `--ease-pop`, dann `--ease-out` | bei Ankunft erscheinen und einmal pulsieren |
 | Distanzschild | 150 ms | ease | nach der Linie einblenden |
 | Flagge fällt in den Farbblock | 600 ms | `--ease-pop` | von oben, −8°, 70 % Größe |

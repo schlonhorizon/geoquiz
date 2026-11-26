@@ -168,10 +168,12 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   }, (source, active) => countdown.setPaused(source, active), {
     ...resources, capital: definition.attributes.find(({ key, point }) => key === 'capital' && point),
   });
+  if (!waterVisible) map.setWaterVisible(false);
   const optionButtons = new Map<string, HTMLButtonElement>();
   let round: { questions: PracticeQuestion[]; settings: RoundSettings; label: string; countryCount: number } | undefined;
   let focusIds: string[] = [];
   let radarId: string | undefined;
+  let atlasProfileRevision = 0;
   let animateZoom = true;
   let index = 0;
   let score = 0;
@@ -432,6 +434,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   }
 
   function showAtlas() {
+    atlasProfileRevision++;
     clearContinue();
     stopResult?.();
     resetPointMap();
@@ -456,12 +459,14 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   function showProfile(id: string) {
     const entity = byId.get(id);
     if (!entity) return;
+    const revision = ++atlasProfileRevision;
     renderProfile(atlas, set, entity, countryMaps.get(id), (neighbor) => {
       showProfile(neighbor);
       const title = atlas.querySelector<HTMLElement>('#profile-title')!;
       title.tabIndex = -1;
       title.focus({ preventScroll: true });
     }, () => {
+      atlasProfileRevision++;
       atlas.hidden = true;
       map.clear();
       focusMap([]);
@@ -470,7 +475,10 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     dock.scrollTop = 0;
     map.clear();
     map.mark(id, 'highlighted', true);
-    focusMap([id]);
+    // Let the profile lay itself out once before measuring the free camera frame.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (revision === atlasProfileRevision && !round && !atlas.hidden) focusMap([id]);
+    }));
     feedback.textContent = `Steckbrief: ${entity.name}`;
   }
 
@@ -638,6 +646,7 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
     setWaterVisibility: (show) => {
       container.classList.toggle('hide-map-water', !show);
       settings.saveWaterVisibility(show);
+      map.setWaterVisible(show);
       activePointMap?.refreshWater();
     },
     resetMap: () => { focusMap([]); map.resetView(); },

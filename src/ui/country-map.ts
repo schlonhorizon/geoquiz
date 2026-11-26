@@ -1,11 +1,12 @@
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
-import type { D3ZoomEvent } from 'd3-zoom';
+import type { D3ZoomEvent, ZoomTransform } from 'd3-zoom';
 import type { Topology } from 'topojson-specification';
 import type { Coordinate } from '../data/map';
 import type { CountryMap } from '../map/country-map';
+import { createMapMotion } from '../map/map-motion';
 import { appendWater, MINOR_RIVER_ZOOM, WORLD_DETAIL_ZOOM } from '../map/water';
-import { createCapitalFeedback } from './capital-feedback';
+import { CAPITAL_TRAVEL_MS, createCapitalFeedback } from './capital-feedback';
 import type { CapitalAttempt } from './capital-feedback';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
@@ -15,13 +16,6 @@ function element<K extends keyof SVGElementTagNameMap>(tag: K, className: string
   const node = document.createElementNS(svgNamespace, tag);
   node.setAttribute('class', className);
   return node;
-}
-
-function endpoints(line: SVGLineElement, [x, y]: Coordinate, [toX, toY] = [x, y]) {
-  line.setAttribute('x1', String(x));
-  line.setAttribute('y1', String(y));
-  line.setAttribute('x2', String(toX));
-  line.setAttribute('y2', String(toY));
 }
 
 function pin(className: string) {
@@ -69,7 +63,7 @@ export function renderCountryMap(
     scene.append(overview, detail);
     svg.dataset.mapDetail = 'overview';
   }
-  const line = element('line', 'capital-line');
+  const line = element('path', 'capital-line');
   line.setAttribute('pathLength', '1');
   const answerPin = pin('capital-answer');
   const cursorPin = pin('capital-cursor');
@@ -83,8 +77,11 @@ export function renderCountryMap(
   let selecting = Boolean(options.onPick);
   let active = false;
   let detailReady = false;
+  let receivedWater: Topology | undefined;
   let requested = false;
   let disposed = false;
+  let finishTimer = 0;
+  let scale = 0;
   const selection = select(svg);
 
   function extent(): [Coordinate, Coordinate] {
@@ -98,36 +95,71 @@ export function renderCountryMap(
   }
 
   function refreshWater() {
-    if (!options.onPick || disposed || !svg.isConnected || svg.closest('.hide-map-water')) return;
+    if (!options.onPick || disposed || camera.moving || !svg.isConnected || svg.closest('.hide-map-water')) return;
     const [[left, top], [right, bottom]] = extent();
     const level = 2 * Math.PI * model.projectionScale * zoomTransform(svg).k / Math.max(right - left, bottom - top);
     const eligible = level >= WORLD_DETAIL_ZOOM;
-    svg.toggleAttribute('data-minor-rivers', level >= MINOR_RIVER_ZOOM);
-    svg.dataset.mapDetail = eligible && detailReady ? 'detail' : 'overview';
     if (!eligible) requested = false;
     else if (!requested && !detailReady && options.loadDetail) {
       requested = true;
       void options.loadDetail().then((topology) => {
-        if (disposed) return;
-        appendWater(detail, model.projectWater(topology));
-        detailReady = true;
-        getComputedStyle(detail).opacity;
+        receivedWater = topology;
         refreshWater();
       }).catch((error: unknown) => {
         console.warn('Die detaillierten Gewässer konnten nicht geladen werden.', error);
       });
     }
+    if (eligible && receivedWater && !detailReady) {
+      appendWater(detail, model.projectWater(receivedWater));
+      receivedWater = undefined;
+      detailReady = true;
+      getComputedStyle(detail).opacity;
+    }
+    svg.toggleAttribute('data-minor-rivers', level >= MINOR_RIVER_ZOOM);
+    svg.dataset.mapDetail = eligible && detailReady ? 'detail' : 'overview';
   }
+
+  function finishTrace() {
+    if (!svg.hasAttribute('data-guess') || line.hasAttribute('data-complete')) return;
+    window.clearTimeout(finishTimer);
+    line.setAttribute('data-complete', '');
+    feedback?.finishTravel();
+  }
+
+  const onTraceEnd = (event: AnimationEvent) => {
+    if (event.animationName === 'capital-trace') finishTrace();
+  };
+  line.addEventListener('animationend', onTraceEnd);
+  line.addEventListener('animationcancel', onTraceEnd);
+
+  function settle(transform: ZoomTransform) {
+    const screenScale = svg.getScreenCTM()?.a ?? 0;
+    const next = screenScale * transform.k;
+    if (next && scale !== next) {
+      svg.style.setProperty('--map-unit', `${1 / next}px`);
+      cursorPin.style.setProperty('--map-unit', `${1 / screenScale}px`);
+      scale = next;
+    }
+    refreshWater();
+  }
+
+  const camera = createMapMotion(svg, (transform) => {
+    scene.setAttribute('transform', transform.toString());
+    feedback?.layout();
+  }, settle);
 
   const behavior = zoom<SVGSVGElement, unknown>().extent(extent).translateExtent(model.world)
     .scaleExtent([.35, 24]).clickDistance(dragThreshold)
     .on('zoom', ({ sourceEvent, transform }: D3ZoomEvent<SVGSVGElement, unknown>) => {
       if (sourceEvent && !active) options.onInteraction?.(active = true);
-      scene.setAttribute('transform', transform.toString());
-      refreshWater();
-      feedback?.layout();
+      if (sourceEvent) {
+        finishTrace();
+        camera.start();
+      }
+      camera.draw(transform);
     })
     .on('end', () => {
+      camera.end(zoomTransform(svg));
       if (active) options.onInteraction?.(active = false);
     });
 
@@ -164,8 +196,9 @@ export function renderCountryMap(
     }
     const chosen = attempt ? model.project(attempt.guess) : undefined;
     if (chosen) {
-      endpoints(line, chosen, solution);
+      line.setAttribute('d', `M${chosen[0]},${chosen[1]}L${solution[0]},${solution[1]}`);
       svg.setAttribute('data-guess', '');
+      finishTimer = window.setTimeout(finishTrace, CAPITAL_TRAVEL_MS + 100);
     }
     showMarkers(chosen ? [solution, chosen] : [solution]);
     feedback.reveal(options.capitalName ?? label, solution, chosen, attempt);
@@ -232,11 +265,13 @@ export function renderCountryMap(
       }
     });
   }
-  const size = options.onPick ? new ResizeObserver(refreshWater) : undefined;
-  size?.observe(svg);
+  const size = new ResizeObserver(() => { if (!camera.moving) settle(zoomTransform(svg)); });
+  size.observe(svg);
   return { svg, frame, reveal, refreshWater, dispose: () => {
+    finishTrace();
     disposed = true;
-    size?.disconnect();
+    camera.dispose();
+    size.disconnect();
     feedback?.dispose();
   } };
 }

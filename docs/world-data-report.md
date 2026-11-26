@@ -38,6 +38,8 @@ Beide Auflösungen enthalten 197 Spielentitäten und verwenden dieselben Länder
 
 Die Gewässer kommen aus Natural Earth 5.1.2. Die Übersicht nutzt die Seen bis Natural-Earth-Zoomstufe 3 und die Flussränge bis 4. Die Detailstufe übernimmt Seen ab 0,01 km². Kleinere Flächen sind in der TopoJSON-Auflösung kaum darstellbar. Flüsse der Ränge über 6 stehen als eigene Ebene für höheren Zoom bereit. [Natural Earth 5.1.2](https://github.com/nvkelso/natural-earth-vector/tree/v5.1.2/geojson)
 
+Die Nachbearbeitung der Detailkarte mit Mapshaper behält 50 % der vereinfachbaren Punkte. Wenn dabei ein Hauptstadtpunkt außerhalb seiner Fläche landet oder sich ein kleiner Ring umkehrt, übernimmt der Export für diese Geometrie den zuvor validierten Ring. Die reguläre Datenvalidierung prüft das fertige Ergebnis. [Mapshaper](https://github.com/mbloch/mapshaper)
+
 ## Kerngebiete
 
 Der Build schließt **101 Teilflächen in 15 Ländern** aus dem Kerngebiet aus. Automatisch entfallen Teilflächen, deren kürzester geografischer Abstand zum äußeren Rand der größten Teilfläche über 1.500 km liegt und deren Fläche unter 20 % der größten Teilfläche beträgt. Die vollständigen Landesflächen bleiben auf der Karte sichtbar und anklickbar.
