@@ -1,15 +1,58 @@
 import { geoArea, geoGraticule, geoPath } from 'd3-geo';
-import type { Geometry, Polygon } from 'geojson';
-import { feature } from 'topojson-client';
-import { presimplify, quantile, simplify } from 'topojson-simplify';
-import type { Objects, Topology } from 'topojson-specification';
+import type { Geometry, Polygon, Position } from 'geojson';
+import { feature, transform } from 'topojson-client';
+import type { Topology } from 'topojson-specification';
 import { worldProjection } from '../../src/map/geometry';
 import type { SetDefinition } from '../../src/data/schema';
 import type { TerrainShape, TerrainTier } from '../../src/map/world-raster-types';
 import { DETAIL_RENDER_ZOOMS } from '../../src/map/world-raster-types';
+import { worldWidth } from '../../src/map/viewport';
 
-// The fractions below describe how many weighted interior points to remove.
-const detailWeights = [.94, .79, .52, 0];
+// Projected error budgets shrink with the magnification of the next tier.
+const detailTolerance = [.05, .025, .012, 0];
+const overviewTolerance = .15;
+
+function squaredDistance([x, y]: Position, [left, top]: Position, [right, bottom]: Position) {
+  const dx = right - left, dy = bottom - top;
+  const length = dx * dx + dy * dy;
+  const t = length ? Math.max(0, Math.min(1, ((x - left) * dx + (y - top) * dy) / length)) : 0;
+  return (x - left - t * dx) ** 2 + (y - top - t * dy) ** 2;
+}
+
+function simplifyArc(arc: Position[], projected: Position[], tolerance: number) {
+  if (!tolerance || arc.length <= 2) return arc;
+  // Preserve arcs that cross the antimeridian. They are split by the map projection.
+  if (projected.some(([x], i) => i > 0 && Math.abs(x - projected[i - 1][0]) > worldWidth / 2)) return arc;
+  const keep = new Set([0, arc.length - 1]);
+  const segments = [[0, arc.length - 1]];
+  const squareTolerance = tolerance ** 2;
+  while (segments.length) {
+    const [left, right] = segments.pop()!;
+    let furthest = -1;
+    let maxDistance = squareTolerance;
+    for (let i = left + 1; i < right; i++) {
+      const distance = squaredDistance(projected[i], projected[left], projected[right]);
+      if (distance <= maxDistance) continue;
+      maxDistance = distance;
+      furthest = i;
+    }
+    if (furthest >= 0) {
+      keep.add(furthest);
+      segments.push([left, furthest], [furthest, right]);
+    }
+  }
+  return arc.filter((_, i) => keep.has(i));
+}
+
+function prepareArcs(source: Topology, projection: ReturnType<typeof worldProjection>['projection']) {
+  const decode = source.transform ? transform(source.transform) : undefined;
+  const arcs = source.arcs.map(arc => decode ? arc.map((point, i) => decode(point, i > 0)) : arc);
+  const projected = arcs.map(arc => arc.map(([lon, lat]) => projection([lon, lat])!));
+  return (tolerance: number): Topology => ({
+    ...source, transform: undefined,
+    arcs: arcs.map((arc, i) => simplifyArc(arc, projected[i], tolerance)),
+  });
+}
 
 function features(topology: Topology, key: string) {
   const object = topology.objects[key];
@@ -21,19 +64,18 @@ function features(topology: Topology, key: string) {
 export function buildRenderLevels(
   map: SetDefinition['map'], mapJson: string, waterJson: string | undefined, detailed: boolean,
 ): TerrainTier[] {
-  const source: Topology<Objects<object>> = JSON.parse(mapJson);
-  const water: Topology<Objects<object>> | undefined = waterJson ? JSON.parse(waterJson) : undefined;
-  const weighted = presimplify(source);
-  const weightedWater = water ? presimplify(water) : undefined;
+  const source: Topology = JSON.parse(mapJson);
+  const water: Topology | undefined = waterJson ? JSON.parse(waterJson) : undefined;
   const { projection } = worldProjection(map);
   const path = geoPath(projection).digits(2);
-  const threshold = (data: ReturnType<typeof presimplify>, weight: number) => weight ? quantile(data, 1 - weight) ?? 0 : 0;
+  const simplify = prepareArcs(source, projection);
+  const simplifyWater = water ? prepareArcs(water, projection) : undefined;
   const zooms = detailed ? DETAIL_RENDER_ZOOMS : [0];
   return zooms.map((minZoom, index) => {
-    const weight = detailed ? detailWeights[index] : .87;
-    const stage = simplify(weighted, threshold(weighted, weight));
+    const tolerance = detailed ? detailTolerance[index] : overviewTolerance;
+    const stage = simplify(tolerance);
     const waterSource = water ?? source;
-    const wet = weightedWater ? simplify(weightedWater, threshold(weightedWater, weight)) : stage;
+    const wet = simplifyWater?.(tolerance) ?? stage;
     const shapes: TerrainShape[] = [];
     function append(geometry: Geometry, name: string) {
       const d = path(geometry);
