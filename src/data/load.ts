@@ -34,6 +34,7 @@ export function loadMap({ id, map }: SetDefinition): Promise<Topology> {
 export interface MapResources {
   water?: Topology;
   loadDetail?: () => Promise<Topology>;
+  renderUrl?: (level: 'overview' | 'detail') => string | undefined;
 }
 
 export async function loadMapResources({ id, map }: SetDefinition): Promise<MapResources> {
@@ -45,6 +46,11 @@ export async function loadMapResources({ id, map }: SetDefinition): Promise<MapR
   let detail: Promise<Topology> | undefined;
   return {
     water,
+    renderUrl: (level) => {
+      if (map.projection !== 'miller') return;
+      const file = level === 'overview' ? map.file : detailFile;
+      return file ? new URL(`${import.meta.env.BASE_URL}data/sets/${id}/${file}`, window.location.href).href : undefined;
+    },
     loadDetail: detailFile ? () => detail ??= fetchJson<Topology>(`sets/${id}/${detailFile}`).catch((error: unknown) => {
       detail = undefined;
       throw error;

@@ -78,13 +78,9 @@ export function renderWorldMap(
   resources: MapResources & { capital?: AttributeDefinition } = {},
 ) {
   const projected = projectWorldMap(topology, config, resources.water);
-  const raster = createWorldRaster(svg, projected.height, toggleCanvas);
-  raster?.load('overview', [
-    { name: 'map-grid', d: projected.grid },
-    ...projected.land ? [{ name: 'map-land', d: projected.land }] : [],
-    ...projected.countries.map(({ path, outlineBounds, id }) => ({ name: id ? 'map-country' : 'map-land', d: path, bounds: outlineBounds })),
-    ...projected.water,
-  ]);
+  const overviewUrl = resources.renderUrl?.('overview');
+  const raster = overviewUrl ? createWorldRaster(svg, toggleCanvas, drawOverlay) : undefined;
+  if (overviewUrl) raster?.load('overview', overviewUrl);
   const entityNames = new Map(entities.map(({ id, name }) => [id, name]));
   const layers = new Map<string, CountryLayer>();
   const overviewHits = createCountryHitIndex();
@@ -198,6 +194,7 @@ export function renderWorldMap(
   let receivedDetail: Topology | undefined;
   let detailWindow: Bounds | undefined;
   let rendered = zoomIdentity;
+  let overlayTransform: ZoomTransform | undefined;
   let origin = [0, 0];
   let hovered: CountryLayer | undefined;
   let keyboardFocus: CountryLayer | undefined;
@@ -234,6 +231,9 @@ export function renderWorldMap(
     if (canvasActive === active) return;
     const focused = document.activeElement instanceof SVGElement ? document.activeElement.dataset.countryId : undefined;
     canvasActive = active;
+    settledScale = 0;
+    overlayTransform = undefined;
+    if (active) group.style.removeProperty('--map-unit');
     if (active) {
       for (const { grid, overview, detail } of copies) {
         grid.remove();
@@ -300,10 +300,6 @@ export function renderWorldMap(
         if (projected) paths.push({ shape, bounds: projected.bounds });
       });
     }
-    raster?.load('detail', [{ name: 'map-grid', d: projected.grid },
-      ...geometry.land.map(path => ({ ...path, name: 'map-land' })),
-      ...[...geometry.countries.values()].map(path => ({ ...path, name: 'map-country' })),
-      ...geometry.water]);
     for (const { detail, paths } of copies) {
       for (const { shape, bounds } of appendWater(detail, geometry.water)) if (bounds) paths.push({ shape, bounds });
     }
@@ -312,12 +308,18 @@ export function renderWorldMap(
     if (!canvasActive) getComputedStyle(copies[1].detail).opacity;
   }
 
+  function zoomLevel(scale: number) {
+    return scale / Math.max(viewport.width / worldWidth, minAtlasScale());
+  }
+
   function updateDetails(scale: number) {
-    const level = scale / Math.max(viewport.width / worldWidth, minAtlasScale());
+    const level = zoomLevel(scale);
     const eligible = level >= WORLD_DETAIL_ZOOM;
     if (!eligible) detailRequested = false;
     else if (!detailRequested && !detailReady && resources.loadDetail) {
       detailRequested = true;
+      const url = resources.renderUrl?.('detail');
+      if (url) raster?.load('detail', url);
       void resources.loadDetail().then((topology) => {
         receivedDetail = topology;
         if (!camera.moving) settle(zoomTransform(svg));
@@ -373,19 +375,27 @@ export function renderWorldMap(
     }
   }
 
-  function draw(transform: ZoomTransform) {
+  function drawOverlay(transform: ZoomTransform) {
+    if (overlayTransform && overlayTransform.x === transform.x && overlayTransform.y === transform.y
+      && overlayTransform.k === transform.k) return;
+    overlayTransform = transform;
     const { k } = transform;
+    const scaleChanged = settledScale !== k;
+    if (scaleChanged && !canvasActive) {
+      group.style.setProperty('--map-unit', `${1 / k}px`);
+    }
+    settledScale = k;
     displayCenterX = wrapWorldX(transform.invertX(viewport.width / 2));
     const x = viewport.width / 2 - displayCenterX * k;
     const y = transform.y;
     rendered = zoomIdentity.translate(x, y).scale(k);
     group.setAttribute('transform', `translate(${x},${y}) scale(${k})`);
-    raster?.draw(transform, viewport);
     const halfWidth = viewport.width / (2 * k);
     const left = displayCenterX - halfWidth;
     const right = displayCenterX + halfWidth;
     for (const copy of copies) {
       const visible = right >= copy.offset && left <= copy.offset + worldWidth;
+      if (canvasActive && visible && (!copy.visible || scaleChanged)) copy.markers.style.setProperty('--map-unit', `${1 / k}px`);
       if (visible === copy.visible) continue;
       copy.tile.style.display = visible ? '' : 'none';
       copy.visible = visible;
@@ -396,22 +406,25 @@ export function renderWorldMap(
     if (leftWidth) extraMap[0].setAttribute('x', String(left));
     if (rightWidth || extraMap[1].getAttribute('width') !== '0') extraMap[1].setAttribute('width', String(rightWidth));
     if (detailed && !canvasActive) cullDetail([[left, -y / k], [right, (viewport.height - y) / k]]);
+    if (atlas) capitals.draw(transform, viewport, !camera.moving);
     placeRadar(transform);
+  }
+
+  function draw(transform: ZoomTransform) {
+    const level = zoomLevel(transform.k);
+    const visible = raster?.draw(transform, viewport, level, detailed, level >= MINOR_RIVER_ZOOM) ?? transform;
+    drawOverlay(visible);
   }
 
   function settle(transform: ZoomTransform) {
     raster?.setMoving(false);
     const { k, y } = transform;
-    if (settledScale !== k) {
-      group.style.setProperty('--map-unit', `${1 / k}px`);
-      settledScale = k;
-    }
     updateDetails(k);
     if (detailed && !canvasActive) cullDetail([[displayCenterX - viewport.width / (2 * k), -y / k],
       [displayCenterX + viewport.width / (2 * k), (viewport.height - y) / k]]);
-    raster?.settle(transform, viewport, detailed ? 'detail' : 'overview', svg.hasAttribute('data-minor-rivers'));
+    draw(transform);
     updateKeyboardTargets();
-    if (atlas) capitals.draw(transform, viewport);
+    if (atlas) capitals.draw(overlayTransform ?? transform, viewport);
   }
 
   extraMap[1].setAttribute('x', String(2 * worldWidth));
@@ -419,7 +432,6 @@ export function renderWorldMap(
   function startMovement() {
     if (!camera.moving) {
       setHover();
-      capitals.pause();
       raster?.setMoving(true);
     }
     camera.start();
@@ -547,6 +559,7 @@ export function renderWorldMap(
     const before = viewport;
     const transform = zoomTransform(svg);
     viewport = { width, height };
+    overlayTransform = undefined;
     frame = undefined;
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     const minimum = atlas ? minAtlasScale() : width / worldWidth;

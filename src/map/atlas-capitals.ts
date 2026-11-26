@@ -34,7 +34,6 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
   type View = ReturnType<typeof makeView>;
   const views = new Map<string, View>();
   const widths = new Map<string, number>();
-  let transitionFrame = 0;
 
   function makeView(id: string, name: string) {
     const group = document.createElementNS(svgNamespace, 'g');
@@ -50,14 +49,13 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
     label.setAttribute('y', '4');
     group.append(pin, label);
     layer.append(group);
-    return { group, label, show: false, labelVisible: false, removal: 0 };
+    return { group, label, show: false, side: 0, removal: 0 };
   }
 
-  function draw(transform: ZoomTransform, { width, height }: { width: number; height: number }) {
-    if (!layer.isConnected) svg.append(layer);
+  function draw(transform: ZoomTransform, { width, height }: { width: number; height: number }, reflow = true) {
     const tileWidth = worldWidth * transform.k;
     const occupied: LabelBounds[] = [];
-    for (const view of views.values()) view.show = view.labelVisible = false;
+    for (const view of views.values()) view.show = false;
     for (const { id, name, point, diagonal } of ordered) {
       const size = diagonal * transform.k;
       if (size < ATLAS_CAPITAL_MARKER_MIN_PX) break;
@@ -76,6 +74,8 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
         const x = origin + copy * tileWidth;
         view.show = true;
         view.group.setAttribute('transform', `translate(${x},${y})`);
+        if (!reflow) continue;
+        view.side = 0;
         if (size < ATLAS_CAPITAL_LABEL_MIN_PX) continue;
         let labelWidth = widths.get(id);
         if (labelWidth === undefined) {
@@ -91,29 +91,25 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
           occupied.push(bounds);
           view.label.setAttribute('x', String(side * labelDistance));
           view.label.setAttribute('text-anchor', side > 0 ? 'start' : 'end');
-          view.labelVisible = true;
+          view.side = side;
           break;
         }
       }
     }
 
-    cancelAnimationFrame(transitionFrame);
-    transitionFrame = requestAnimationFrame(() => {
-      for (const [key, view] of views) {
-        view.group.toggleAttribute('data-visible', view.show);
-        view.label.toggleAttribute('data-visible', view.labelVisible);
-        if (!view.show && !view.removal) view.removal = window.setTimeout(() => {
-          view.removal = 0;
-          if (view.show || views.get(key) !== view) return;
-          view.group.remove();
-          views.delete(key);
-        }, 150);
-      }
-    });
+    for (const [key, view] of views) {
+      view.group.toggleAttribute('data-visible', view.show);
+      view.label.toggleAttribute('data-visible', !!view.side);
+      if (reflow && !view.show && !view.removal) view.removal = window.setTimeout(() => {
+        view.removal = 0;
+        if (view.show || views.get(key) !== view) return;
+        view.group.remove();
+        views.delete(key);
+      }, 150);
+    }
   }
 
   function clear() {
-    cancelAnimationFrame(transitionFrame);
     for (const view of views.values()) window.clearTimeout(view.removal);
     layer.replaceChildren();
     views.clear();
@@ -121,5 +117,5 @@ export function renderAtlasCapitals(svg: SVGSVGElement, capitals: Capital[]) {
 
   void document.fonts?.ready.then(() => widths.clear());
 
-  return { draw, clear, pause() { cancelAnimationFrame(transitionFrame); layer.remove(); } };
+  return { draw, clear };
 }

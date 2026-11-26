@@ -43,6 +43,7 @@ for (const [device, viewport] of Object.entries(viewportSizes)) {
       const phases = await page.evaluate(async () => {
         const phases = {};
         const svg = document.querySelector('.world-map');
+        const raster = document.querySelector('.world-raster');
         const x = innerWidth * .47, y = innerHeight * .48;
         const waitFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
         const pause = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -53,16 +54,25 @@ for (const [device, viewport] of Object.entries(viewportSizes)) {
           const start = now;
           let last = now;
           const frames = [];
+          let revision = raster?.getAttribute('data-raster-frame');
+          const measuresMap = revision !== null && revision !== undefined;
+          let rasterFrames = 0, bridgeFrames = 0;
           performance.mark(`map-${name}-start`);
           while (now - start < duration) {
             step(now - start);
             now = await waitFrame();
             frames.push(now - last);
+            if (measuresMap) {
+              const next = raster.getAttribute('data-raster-frame');
+              if (next !== revision) rasterFrames++;
+              if (raster.hasAttribute('data-raster-bridge')) bridgeFrames++;
+              revision = next;
+            }
             last = now;
           }
           finish();
           performance.mark(`map-${name}-end`);
-          phases[name] = frames;
+          phases[name] = { frames, ...(measuresMap && { rasterFrames, bridgeFrames }) };
           await pause(550);
         }
 
@@ -106,7 +116,7 @@ for (const [device, viewport] of Object.entries(viewportSizes)) {
       }
       await context.tracing.stop({ path: `${prefix}.playwright.zip` });
       const row = { label, engine, device, cpu, run };
-      for (const [name, frames] of Object.entries(phases)) {
+      for (const [name, { frames, rasterFrames, bridgeFrames }] of Object.entries(phases)) {
         const sorted = [...frames].sort((a, b) => a - b);
         const round = n => Math.round(n * 10) / 10;
         row[name] = {
@@ -114,6 +124,7 @@ for (const [device, viewport] of Object.entries(viewportSizes)) {
           p95: round(sorted[Math.ceil(sorted.length * .95) - 1]),
           max: round(sorted.at(-1)),
           over50: frames.filter(time => time > 50).length,
+          ...(rasterFrames !== undefined && { rasterFrames, bridgeFrames }),
           ...(trace && summarizeTrace(trace.traceEvents, name)),
         };
       }

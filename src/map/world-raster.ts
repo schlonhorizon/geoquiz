@@ -1,220 +1,204 @@
 import type { ZoomTransform } from 'd3-zoom';
-import type { TerrainColors, TerrainLevel, TerrainRequest, TerrainResponse, TerrainShape, TerrainView } from './world-raster-types';
-import { worldWidth } from './viewport';
+import type { TerrainColors, TerrainLevel, TerrainRequest, TerrainResponse, TerrainView } from './world-raster-types';
+import { DETAIL_RENDER_ZOOMS } from './world-raster-types';
 
 type Size = { width: number; height: number };
-type Capture = { id: number; level: TerrainLevel; water: boolean; minor: boolean; view: TerrainView };
-const maxSurfacePixels = 2_500_000;
+type Camera = { transform: ZoomTransform; viewport: Size; zoom: number; detail: boolean; minor: boolean; revision: number };
+type Frame = Camera & { id: number; view: TerrainView; tier: number; water: boolean };
+const bridgeFrames = 2;
+const cacheMargin = .25;
 
-export function createWorldRaster(svg: SVGSVGElement, worldHeight: number, onActive: (active: boolean) => void) {
-  if (!('Worker' in window) || !('OffscreenCanvas' in window)) return;
+export function createWorldRaster(
+  svg: SVGSVGElement,
+  onActive: (active: boolean) => void,
+  onPresent: (transform: ZoomTransform) => void,
+) {
+  if (!('Worker' in window) || !('OffscreenCanvas' in window) || !('DecompressionStream' in window)) return;
   let worker: Worker;
   try {
     worker = new Worker(new URL('./world-raster-worker.ts', import.meta.url), { type: 'module' });
   } catch {
     return;
   }
+
   const host = document.createElement('div');
   host.className = 'world-raster';
   host.setAttribute('aria-hidden', 'true');
-  const global = document.createElement('div');
-  global.className = 'world-raster-global';
-  const tiles: HTMLImageElement[] = [];
-  host.append(global);
   svg.before(host);
-
   const style = getComputedStyle(svg);
   const tokens = ['ink', 'paper', 'sea', 'land-off', 'grid', 'river'] as const;
   const colors = Object.fromEntries(tokens.map(token => [token, style.getPropertyValue(`--${token}`).trim()])) as TerrainColors;
-  const globals = new Map<string, string>();
-  const requested = new Set<string>();
-  const levels = new Set<TerrainLevel>();
-  let current: ReturnType<typeof createSurface> | undefined;
-  let departing: ReturnType<typeof createSurface> | undefined;
-  let pending: Capture | undefined;
-  let camera: { transform: ZoomTransform; viewport: Size } | undefined;
-  let level: TerrainLevel = 'overview';
+  const urls = new Map<TerrainLevel, string>();
+  const tiers = new Map<number, 'pending' | 'ready' | 'failed'>();
+  let front = makeSurface();
+  let outgoing: HTMLCanvasElement | undefined;
+  let presented: Frame | undefined;
+  let pending: Frame | undefined;
+  let camera: Camera | undefined;
   let water = true;
-  let sequence = 0;
   let moving = false;
-  let failed = false;
-  let background = '';
-  let transition = 0;
+  let alive = true;
+  let sequence = 0;
 
-  const post = (request: TerrainRequest) => worker.postMessage(request);
-  const keyFor = (level: TerrainLevel) => `${level}:${water}`;
-  function requestGlobal(level: TerrainLevel) {
-    const key = keyFor(level);
-    if (requested.has(key) || !levels.has(level)) return;
-    requested.add(key);
-    post({ type: 'global', level, water, height: worldHeight, key });
-  }
-
-  function createSurface(capture: Capture, base: ImageBitmap, rivers?: ImageBitmap) {
-    const layer = document.createElement('div');
-    layer.className = 'world-raster-view';
-    layer.style.width = `${capture.view.width}px`;
-    layer.style.height = `${capture.view.height}px`;
-    const append = (image: ImageBitmap, marker: string) => {
-      const canvas = document.createElement('canvas');
-      canvas.className = marker;
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const renderer = canvas.getContext('bitmaprenderer');
-      if (renderer) renderer.transferFromImageBitmap(image);
-      else {
-        canvas.getContext('2d')!.drawImage(image, 0, 0);
-        image.close();
+  function makeSurface() {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'world-raster-base';
+    const bitmap = canvas.getContext('bitmaprenderer', { alpha: false });
+    const context = bitmap ? undefined : canvas.getContext('2d', { alpha: false });
+    function paint(base: ImageBitmap, view: TerrainView) {
+      if (canvas.width !== base.width || canvas.height !== base.height) {
+        canvas.width = base.width;
+        canvas.height = base.height;
       }
-      layer.append(canvas);
-    };
-    append(base, 'world-raster-base');
-    if (rivers) {
-      // Let the compositor present the new ground image before uploading the river layer.
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (layer.isConnected) append(rivers, 'world-raster-rivers');
-        else rivers.close();
-      }));
+      if (parseFloat(canvas.style.width) !== view.width) canvas.style.width = `${view.width}px`;
+      if (parseFloat(canvas.style.height) !== view.height) canvas.style.height = `${view.height}px`;
+      if (bitmap) bitmap.transferFromImageBitmap(base);
+      else {
+        context!.drawImage(base, 0, 0);
+        base.close();
+      }
     }
-    return { capture, layer };
+    return { canvas, paint };
   }
 
-  function draw(transform: ZoomTransform, viewport: Size) {
-    camera = { transform, viewport };
-    if (failed || !svg.hasAttribute('data-canvas-map')) return;
-    const option = globals.get(keyFor(current?.capture.level ?? level)) ?? globals.get(keyFor(level))
-      ?? globals.get(keyFor('overview')) ?? globals.values().next().value;
-    let covered = false;
-    for (const surface of [departing, current]) {
-      if (!surface) continue;
-      const { view } = surface.capture;
-      const scale = transform.k / view.k;
-      const left = transform.x - view.x * scale;
-      const top = transform.y - view.y * scale;
-      const right = left + view.width * scale;
-      const bottom = top + view.height * scale;
-      const intersects = right > 0 && left < viewport.width && bottom > 0 && top < viewport.height;
-      const coversViewport = left <= 0 && top <= 0 && right >= viewport.width && bottom >= viewport.height;
-      // Use one terrain image during motion so the browser does not blend a partial second surface.
-      const visible = intersects && (!moving || coversViewport || !option || Boolean(departing));
-      surface.layer.hidden = !visible;
-      if (visible) surface.layer.style.transform = `translate3d(${left}px,${top}px,0) scale(${scale})`;
-      covered ||= coversViewport;
-    }
-    global.hidden = covered && !departing;
-    if (global.hidden) return;
-    if (!option) return;
-    const tile = transform.k * worldWidth;
-    const x = transform.x - Math.ceil(transform.x / tile) * tile;
-    const count = Math.ceil((viewport.width - x) / tile);
-    while (tiles.length < count) {
-      const image = document.createElement('img');
-      image.alt = '';
-      image.width = worldWidth;
-      image.style.height = `${worldHeight}px`;
-      image.style.left = `${tiles.length * worldWidth}px`;
-      image.src = option;
-      tiles.push(image);
-      global.append(image);
-    }
-    tiles.forEach((image, index) => {
-      image.hidden = index >= count;
-      if (option !== background) image.src = option;
-    });
-    background = option;
-    global.style.transform = `translate3d(${x}px,${transform.y}px,0) scale(${transform.k})`;
+  function post(request: TerrainRequest) {
+    worker.postMessage(request);
   }
 
-  function settle(transform: ZoomTransform, viewport: Size, nextLevel: TerrainLevel, minor: boolean) {
-    if (failed || !viewport.width || !viewport.height || !levels.has(nextLevel)) return;
-    level = nextLevel;
-    requestGlobal(level);
-    const old = pending ?? current?.capture;
-    if (old?.level === level && old.water === water && old.minor === minor && old.view.pixelRatio === devicePixelRatio) {
-      const scale = transform.k / old.view.k;
-      const left = transform.x - old.view.x * scale;
-      const top = transform.y - old.view.y * scale;
-      if (scale > .93 && scale < 1.07 && left <= 0 && top <= 0
-        && left + old.view.width * scale >= viewport.width && top + old.view.height * scale >= viewport.height) return;
-    }
-    const ratio = devicePixelRatio || 1;
-    // Keep the screen at native DPR, using available memory for extra coverage around it.
-    const overscan = Math.max(1, Math.min(1.6, Math.sqrt(maxSurfacePixels / (viewport.width * viewport.height * ratio ** 2))));
-    const width = Math.ceil(viewport.width * overscan);
-    const height = Math.ceil(viewport.height * overscan);
-    const x = transform.x + (width - viewport.width) / 2;
-    const y = transform.y + (height - viewport.height) / 2;
-    if (old?.level === level && old.water === water && old.minor === minor
-      && old.view.k === transform.k && old.view.width === width && old.view.height === height
-      && Math.abs(x - old.view.x) < .5 && Math.abs(y - old.view.y) < .5) return;
-    const view = { x, y, k: transform.k, width, height, pixelRatio: ratio };
-    pending = { level, minor, water, view, id: ++sequence };
-    post({ type: 'view', ...pending });
+  function loadTier(minZoom: number) {
+    const url = urls.get(minZoom ? 'detail' : 'overview');
+    if (!url || tiers.has(minZoom)) return;
+    tiers.set(minZoom, 'pending');
+    post({ type: 'load', minZoom, url: `${url}.render-${minZoom}.json.gz`, colors });
   }
 
-  function setMoving(active: boolean) {
-    moving = active;
-    host.toggleAttribute('data-map-moving', active);
+  function request() {
+    if (!alive || pending || !camera || tiers.get(0) !== 'ready') return;
+    const { transform, viewport, detail, zoom, ...rest } = camera;
+    if (!viewport.width || !viewport.height) return;
+    let tier = 0;
+    if (detail) {
+      let wanted = 0;
+      for (const minZoom of DETAIL_RENDER_ZOOMS) {
+        if (zoom < minZoom) break;
+        wanted = minZoom;
+        if (tiers.get(minZoom) === 'ready') tier = minZoom;
+      }
+      if (wanted) loadTier(wanted);
+    }
+    const pixelRatio = devicePixelRatio || 1;
+    const { k } = transform;
+    // Refresh the 1.5× bridge buffer at rest. Live frames paint the screen itself.
+    const margin = moving ? 0 : cacheMargin;
+    const marginX = Math.round(viewport.width * margin * pixelRatio) / pixelRatio;
+    const marginY = Math.round(viewport.height * margin * pixelRatio) / pixelRatio;
+    const width = Math.round(viewport.width * pixelRatio) / pixelRatio + 2 * marginX;
+    const height = Math.round(viewport.height * pixelRatio) / pixelRatio + 2 * marginY;
+    if (presented?.revision === camera.revision && presented.tier === tier && presented.water === water
+      && presented.view.pixelRatio === pixelRatio && presented.view.width === width && presented.view.height === height) return;
+    const view = { x: transform.x + marginX, y: transform.y + marginY, k, width, height, pixelRatio };
+    pending = { ...rest, transform, viewport, tier, detail, zoom, water, view, id: ++sequence };
+    post({ type: 'view', id: pending.id, minZoom: tier, water, minor: pending.minor, view });
+  }
+
+  function position(): ZoomTransform {
+    const target = camera!.transform;
+    if (!presented) return target;
+    const { transform, view } = presented;
+    const factor = target.k / view.k;
+    const left = target.x - view.x * factor;
+    const top = target.y - view.y * factor;
+    const age = camera!.revision - presented.revision;
+    // A zoom always waits for a new raster. Only panning can reuse pixels without resampling.
+    const bridge = age > 0 && age <= bridgeFrames && factor === 1
+      && left <= 0 && top <= 0 && left + view.width * factor >= camera!.viewport.width
+      && top + view.height * factor >= camera!.viewport.height;
+    const visible = bridge ? target : transform;
+    const scale = visible.k / view.k;
+    // Snap the temporary surface to the physical grid. At 1× this makes a pan a pixel copy.
+    const snap = (value: number) => Math.round(value * view.pixelRatio) / view.pixelRatio;
+    const x = snap(visible.x - view.x * scale);
+    const y = snap(visible.y - view.y * scale);
+    front.canvas.style.transform = `translate3d(${x}px,${y}px,0) scale(${scale})`;
+    host.toggleAttribute('data-raster-bridge', bridge);
+    return visible;
+  }
+
+  function fail() {
+    alive = false;
+    worker.terminate();
+    host.remove();
+    svg.removeAttribute('data-canvas-map');
+    onActive(false);
+    if (camera) onPresent(camera.transform);
   }
 
   worker.onmessage = ({ data }: MessageEvent<TerrainResponse>) => {
-    if (data.type === 'global') {
-      globals.set(data.key, URL.createObjectURL(data.image));
-      if (camera) draw(camera.transform, camera.viewport);
+    if (data.type === 'ready') {
+      tiers.set(data.minZoom, 'ready');
+      request();
       return;
     }
-    if (!pending || pending.id !== data.id || moving) {
-      if (pending?.id === data.id) pending = undefined;
+    if (data.type === 'error') {
+      console.warn('Die Kartengeometrie konnte nicht geladen werden.', data.message);
+      tiers.set(data.minZoom, 'failed');
+      if (!data.minZoom) fail();
+      return;
+    }
+    if (!pending || pending.id !== data.id) {
       data.base.close();
-      data.rivers?.close();
       return;
     }
-    const next = createSurface(pending, data.base, data.rivers);
+    const next = pending;
     pending = undefined;
-    window.clearTimeout(transition);
-    departing?.layer.remove();
-    departing = undefined;
-    const previous = current;
-    current = next;
-    host.append(next.layer);
-    host.dataset.rasterLevel = next.capture.level;
-    host.toggleAttribute('data-raster-water', next.capture.water);
-    host.toggleAttribute('data-raster-minor', next.capture.minor);
+    const crossfade = presented && Boolean(presented.tier) !== Boolean(next.tier) && !moving
+      && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (crossfade) {
+      outgoing?.remove();
+      const old = outgoing = front.canvas;
+      front = makeSurface();
+      front.canvas.classList.add('world-raster-fade');
+      window.setTimeout(() => {
+        old.remove();
+        if (outgoing === old) outgoing = undefined;
+      }, 200);
+    }
+    presented = next;
+    front.paint(data.base, next.view);
+    if (!front.canvas.isConnected) host.append(front.canvas);
+    host.dataset.rasterLevel = next.tier ? 'detail' : 'overview';
+    host.dataset.rasterTier = String(data.minZoom);
+    host.dataset.rasterFrame = String(next.id);
+    host.toggleAttribute('data-raster-water', next.water);
+    host.toggleAttribute('data-raster-minor', next.water && next.minor);
+    const visible = position();
     if (!svg.hasAttribute('data-canvas-map')) {
       svg.setAttribute('data-canvas-map', '');
       onActive(true);
     }
-    if (previous && previous.capture.level !== next.capture.level
-      && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      departing = previous;
-      next.layer.classList.add('world-raster-fade');
-      transition = window.setTimeout(() => {
-        previous.layer.remove();
-        if (departing === previous) departing = undefined;
-        if (camera) draw(camera.transform, camera.viewport);
-      }, 200);
-    } else previous?.layer.remove();
-    if (camera) draw(camera.transform, camera.viewport);
+    onPresent(visible);
+    request();
   };
-  worker.onerror = () => {
-    failed = true;
-    host.remove();
-    svg.removeAttribute('data-canvas-map');
-    onActive(false);
-    worker.terminate();
-  };
+  worker.onerror = fail;
 
   return {
-    draw, settle, setMoving,
-    load(level: TerrainLevel, shapes: TerrainShape[]) {
-      if (failed) return;
-      levels.add(level);
-      post({ type: 'load', level, shapes, colors });
+    draw(transform: ZoomTransform, viewport: Size, zoom: number, detail: boolean, minor: boolean) {
+      const changed = !camera || camera.zoom !== zoom || camera.detail !== detail || camera.minor !== minor
+        || camera.transform.x !== transform.x || camera.transform.y !== transform.y
+        || camera.viewport.width !== viewport.width || camera.viewport.height !== viewport.height;
+      camera = { transform, viewport, zoom, detail, minor, revision: (camera?.revision ?? 0) + Number(changed) };
+      request();
+      return alive ? position() : transform;
+    },
+    setMoving(active: boolean) { moving = active; },
+    load(level: TerrainLevel, url: string) {
+      if (!alive) return;
+      urls.set(level, url);
+      loadTier(level === 'overview' ? 0 : DETAIL_RENDER_ZOOMS[0]);
     },
     setWaterVisible(show: boolean) {
       water = show;
-      host.toggleAttribute('data-water-hidden', !show);
-      if (camera) settle(camera.transform, camera.viewport, level, (pending ?? current?.capture)?.minor ?? false);
+      request();
     },
   };
 }

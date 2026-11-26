@@ -38,7 +38,7 @@ function largestPolygon(geometry: Polygon | MultiPolygon): Polygon {
   return main;
 }
 
-function worldProjection(config: SetDefinition['map']) {
+export function worldProjection(config: SetDefinition['map']) {
   if (config.projection !== 'miller') {
     throw new Error(`Unsupported map projection: ${config.projection}`);
   }
