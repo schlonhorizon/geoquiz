@@ -43,7 +43,7 @@ export function worldProjection(config: SetDefinition['map']) {
     throw new Error(`Unsupported map projection: ${config.projection}`);
   }
   // Clip the background and all country paths at the same latitude south of Cape Horn.
-  const projection = geoMiller().scale(worldWidth / (2 * Math.PI)).translate([worldWidth / 2, 0]);
+  const projection = geoMiller().precision(0).scale(worldWidth / (2 * Math.PI)).translate([worldWidth / 2, 0]);
   const [, north] = projection([0, 85])!;
   const [, south] = projection([0, -60])!;
   const height = south - north;
@@ -84,7 +84,7 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
     // Measure around the country itself so a polygon split at 180° still has local bounds.
     const [longitude] = geoCentroid(main);
     const [referenceX] = projection([longitude, 0])!;
-    const localPath = geoPath(geoMiller().scale(projection.scale())
+    const localPath = geoPath(geoMiller().precision(0).scale(projection.scale())
       .rotate([-longitude, 0]).translate([referenceX, -north])
       .clipExtent([[referenceX - worldWidth / 2, 0], [referenceX + worldWidth / 2, height]]));
     const [[left, top], [right, bottom]] = localPath.bounds(footprint);

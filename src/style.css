@@ -83,7 +83,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   will-change: transform;
   display: block;
 }
-.world-raster-fade { animation: fade-in 200ms ease both; }
 .world-map[data-canvas-map] { background: transparent; }
 .world-map[data-canvas-map] :is(.map-grid, .map-land, .map-water) { display: none; }
 .world-map[data-canvas-map] .map-country { opacity: 0; pointer-events: none; vector-effect: non-scaling-stroke; }
@@ -105,6 +104,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 .map-overview, .map-detail { transition: opacity 200ms ease; }
+.world-map :is(.map-overview, .map-detail) { transition: none; }
 .map-detail, [data-map-detail="detail"] .map-overview { opacity: 0; }
 [data-map-detail="detail"] .map-detail { opacity: 1; }
 .world-map[data-map-detail="detail"] .map-overview .map-country,

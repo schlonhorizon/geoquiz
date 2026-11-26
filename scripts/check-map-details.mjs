@@ -37,26 +37,40 @@ async function verify(mobile) {
     clientX: point.x, clientY: point.y, deltaY, bubbles: true, cancelable: true,
   });
 
-  let requests = 0;
-  let release;
-  const available = new Promise((resolve) => { release = resolve; });
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.addInitScript(() => { Math.random = () => .999999; });
+  await page.addInitScript(() => {
+    Math.random = () => .999999;
+    const queued = [];
+    const gate = window.detailGate = {
+      requests: 0, released: false,
+      release() {
+        this.released = true;
+        for (const send of queued.splice(0)) send();
+      },
+    };
+    window.Worker = class extends Worker {
+      postMessage(message, ...args) {
+        if (message.type === 'load' && message.minZoom === 3) {
+          gate.requests++;
+          if (!gate.released) {
+            queued.push(() => super.postMessage(message, ...args));
+            return;
+          }
+        }
+        super.postMessage(message, ...args);
+      }
+    };
+  });
   await page.route('**/entities.json', (route) => route.fulfill({
     json: [entities.find(({ id }) => id === 'DEU'), ...entities.filter(({ id }) => id !== 'DEU')],
   }));
-  await page.route('**/map-detail.topojson', async (route) => {
-    requests++;
-    await available;
-    await route.continue();
-  });
 
   try {
     await page.goto(app);
     await camera.waitFor({ state: 'attached' });
     const origin = await camera.getAttribute('transform');
     assert.equal(await svg.getAttribute('data-map-detail'), 'overview');
-    assert.equal(requests, 0);
+    assert.equal(await page.evaluate(() => window.detailGate.requests), 0);
     await page.locator('.world-raster[data-raster-level="overview"][data-raster-water]').waitFor();
     assert.equal(await svg.locator('.map-water text').count(), 0);
     await photograph('atlas-overview');
@@ -69,19 +83,18 @@ async function verify(mobile) {
     const measure = () => marker.evaluate(el => el.getBoundingClientRect().width);
     if (await marker.count()) assert.equal(await measure(), 6);
 
-    const pending = page.waitForRequest('**/map-detail.topojson');
     await zoomAt(position, -900);
-    await pending;
-    await page.waitForTimeout(240);
-    assert.equal(requests, 1);
+    await page.waitForFunction(() => window.detailGate.requests === 1);
+    await page.locator('.world-map:not([data-map-moving])').waitFor();
     assert.equal(await svg.getAttribute('data-map-detail'), 'overview');
     const zoomed = await camera.getAttribute('transform');
     assert.notEqual(zoomed, origin);
-    release();
+    await page.evaluate(() => window.detailGate.release());
     await page.waitForFunction(() => document.querySelector('.world-map').dataset.mapDetail === 'detail');
     await page.locator('.world-raster[data-raster-level="detail"]').waitFor();
     assert.equal(await camera.getAttribute('transform'), zoomed);
-    assert.equal(await page.locator('.world-raster-fade').last().evaluate(el => getComputedStyle(el).animationDuration), '0.2s');
+    assert.equal(await svg.getAttribute('data-map-tier'), await page.locator('.world-raster').getAttribute('data-raster-tier'));
+    assert.equal(await page.locator('.world-raster-base').count(), 1);
     assert.equal(await svg.getAttribute('data-minor-rivers'), null);
     assert.equal(await page.locator('.world-raster').getAttribute('data-raster-minor'), null);
     assert.equal(await svg.locator('.world-map-controls [data-country-id="DEU"][tabindex="0"]').count(), 1);
@@ -109,7 +122,7 @@ async function verify(mobile) {
     await page.waitForFunction(() => document.querySelector('.world-map').dataset.mapDetail === 'overview');
     await zoomAt(position, -900);
     await page.waitForFunction(() => document.querySelector('.world-map').dataset.mapDetail === 'detail');
-    assert.equal(requests, 1);
+    assert.equal(await page.evaluate(() => window.detailGate.requests), 1);
     await input(page.getByRole('button', { name: 'Menü öffnen' }));
     await settledMenu();
     await choose('Einstellungen');
@@ -160,7 +173,7 @@ async function verify(mobile) {
     await photograph('quiz-capital-complete-line');
 
     if (!mobile) {
-      // This checks hit detection after the switch. The atlas checks the animated transition above.
+      // Hit detection uses the displayed tier, including on the highlighted quiz map.
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await input(page.getByRole('button', { name: 'Menü öffnen' }));
       await settledMenu();
@@ -188,7 +201,6 @@ async function verify(mobile) {
     await photograph('failure').catch(() => {});
     throw error;
   } finally {
-    release();
     await page.close();
   }
 }
