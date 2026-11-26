@@ -78,7 +78,7 @@ try {
             await new Promise(resolve => requestAnimationFrame(resolve));
             const canvas = layer.querySelector('.world-raster-base:last-child');
             const labels = document.querySelectorAll('.map-capital[data-visible] text[data-visible]');
-            if (!map.hasAttribute('data-map-moving') || layer.hasAttribute('data-raster-bridge')
+            if (!map.hasAttribute('data-map-moving') || (action === 'zoom' && layer.hasAttribute('data-raster-bridge'))
               || !layer.hasAttribute('data-raster-water') || !labels.length
               || layer.getAttribute('data-raster-frame') === before || camera.getAttribute('transform') === previous
               || !canvas) continue;

@@ -37,6 +37,7 @@ export function createWorldRaster(
   let camera: Camera | undefined;
   let water = true;
   let moving = false;
+  let zooming = false;
   let alive = true;
   let sequence = 0;
 
@@ -87,14 +88,15 @@ export function createWorldRaster(
       if (wanted) loadTier(wanted);
     }
     const pixelRatio = devicePixelRatio || 1;
-    if (presented?.revision === camera.revision && presented.tier === tier
-      && presented.water === water && presented.view.pixelRatio === pixelRatio) return;
-
     const { k } = transform;
-    const marginX = Math.round(viewport.width * cacheMargin * pixelRatio) / pixelRatio;
-    const marginY = Math.round(viewport.height * cacheMargin * pixelRatio) / pixelRatio;
+    // Only an unscaled image can bridge. Zoom frames need no overscan until the camera rests.
+    const margin = zooming ? 0 : cacheMargin;
+    const marginX = Math.round(viewport.width * margin * pixelRatio) / pixelRatio;
+    const marginY = Math.round(viewport.height * margin * pixelRatio) / pixelRatio;
     const width = Math.round(viewport.width * pixelRatio) / pixelRatio + 2 * marginX;
     const height = Math.round(viewport.height * pixelRatio) / pixelRatio + 2 * marginY;
+    if (presented?.revision === camera.revision && presented.tier === tier && presented.water === water
+      && presented.view.pixelRatio === pixelRatio && presented.view.width === width && presented.view.height === height) return;
     const view = { x: transform.x + marginX, y: transform.y + marginY, k, width, height, pixelRatio };
     pending = { ...rest, transform, viewport, tier, detail, zoom, water, view, id: ++sequence };
     post({ type: 'view', id: pending.id, minZoom: tier, water, minor: pending.minor, view });
@@ -182,6 +184,7 @@ export function createWorldRaster(
 
   return {
     draw(transform: ZoomTransform, viewport: Size, zoom: number, detail: boolean, minor: boolean) {
+      if (moving && camera && camera.transform.k !== transform.k) zooming = true;
       const changed = !camera || camera.zoom !== zoom || camera.detail !== detail || camera.minor !== minor
         || camera.transform.x !== transform.x || camera.transform.y !== transform.y
         || camera.viewport.width !== viewport.width || camera.viewport.height !== viewport.height;
@@ -189,7 +192,10 @@ export function createWorldRaster(
       request();
       return alive ? position() : transform;
     },
-    setMoving(active: boolean) { moving = active; },
+    setMoving(active: boolean) {
+      moving = active;
+      if (!active) zooming = false;
+    },
     load(level: TerrainLevel, url: string) {
       if (!alive) return;
       urls.set(level, url);
