@@ -1,5 +1,6 @@
 import type { TerrainColors, TerrainRequest, TerrainResponse, TerrainShape, TerrainTier, TerrainView } from './world-raster-types';
 import { worldWidth } from './viewport';
+import { loadTerrainTier } from './terrain-data';
 
 const cellSize = 32;
 const columns = Math.ceil(worldWidth / cellSize) + 2;
@@ -90,12 +91,7 @@ function draw(tier: Tier, { pixelRatio, k, x, y, width, height }: TerrainView, c
 
 scope.onmessage = ({ data }) => {
   if (data.type === 'load') {
-    void fetch(data.url).then(async response => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const body = response.body!;
-      const decoded = body.pipeThrough(new DecompressionStream('gzip'));
-      return new Response(decoded).json() as Promise<TerrainTier>;
-    }).then(tier => {
+    void loadTerrainTier(data.url).then(tier => {
       tiers.set(data.minZoom, { tier: index(tier), colors: data.colors });
       scope.postMessage({ type: 'ready', minZoom: data.minZoom });
     }).catch((error: unknown) => {
