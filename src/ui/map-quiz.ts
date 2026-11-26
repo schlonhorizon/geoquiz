@@ -189,18 +189,22 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
   const pad = (number: number) => String(number).padStart(2, '0');
 
   function measureFrame() {
-    if (round?.settings.countryRound) return { top: 0, bottom: svg.clientHeight };
+    const height = svg.clientHeight;
+    if (round?.settings.countryRound) return { top: 0, bottom: height };
     const top = (questionBar.parentElement?.offsetTop ?? 0) + questionBar.offsetHeight;
+    let bottom = !atlas.hidden ? atlas.offsetTop : dock.offsetHeight ? dock.offsetTop : height;
+    const floatingContinue = !next.hidden && !mobile.matches;
+    const continueLeft = floatingContinue ? dock.offsetLeft + dock.offsetWidth / 2 : 0;
+    const continueTop = bottom - continueGap;
+    if (floatingContinue) {
+      bottom -= next.offsetHeight + continueGap;
+      next.style.left = `${continueLeft}px`;
+      next.style.top = `${continueTop}px`;
+    }
     dock.style.setProperty('--quiz-top', `${top}px`);
     atlas.style.setProperty('--quiz-top', `${top}px`);
-    let bottom = !atlas.hidden ? atlas.offsetTop : dock.offsetHeight ? dock.offsetTop : svg.clientHeight;
-    if (!next.hidden && !mobile.matches) {
-      next.style.left = `${dock.offsetLeft + dock.offsetWidth / 2}px`;
-      next.style.top = `${bottom - continueGap}px`;
-      bottom -= next.offsetHeight + continueGap;
-    }
     pointStage.style.top = `${top}px`;
-    pointStage.style.bottom = `${Math.max(0, svg.clientHeight - bottom)}px`;
+    pointStage.style.bottom = `${Math.max(0, height - bottom)}px`;
     return { top, bottom };
   }
 
@@ -472,7 +476,6 @@ export function renderMapQuiz(container: HTMLElement, set: QuizSet, topology: To
       focusMap([]);
       prompt.focus({ preventScroll: true });
     });
-    dock.scrollTop = 0;
     map.clear();
     map.mark(id, 'highlighted', true);
     // Let the profile lay itself out once before measuring the free camera frame.

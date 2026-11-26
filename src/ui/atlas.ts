@@ -72,8 +72,8 @@ export function renderProfile(
     row.append(term, description);
     fields.append(row);
   }
+  profile.prepareContent(onClose, sheet.hidden || (sheet instanceof HTMLDialogElement && !sheet.open));
   profile.content.replaceChildren(header, fields);
-  profile.open(onClose, sheet.hidden || (sheet instanceof HTMLDialogElement && !sheet.open));
   sheet.hidden = false;
 }
 

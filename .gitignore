@@ -161,3 +161,4 @@ vite.config.ts.timestamp-*
 /public/.data-*/
 /data/raw/
 /data/sets/*/entities.seed.csv
+/map-performance-traces/

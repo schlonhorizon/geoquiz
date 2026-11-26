@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - 'src/map/**'
-      - 'src/ui/country-map.ts'
+      - 'src/ui/**'
       - 'src/style.css'
       - 'data/sets/**'
       - 'scripts/measure-map-performance.mjs'
@@ -38,7 +38,8 @@ jobs:
       - name: Build the base revision
         shell: bash
         run: |
-          git worktree add --detach /tmp/geoquiz-before "$BASE_REVISION"
+          mkdir /tmp/geoquiz-before
+          git -c safe.directory="$GITHUB_WORKSPACE" archive "$BASE_REVISION" | tar -x -C /tmp/geoquiz-before
           npm --prefix /tmp/geoquiz-before ci
           npm --prefix /tmp/geoquiz-before run build
       - run: npm install --no-save --package-lock=false playwright@1.60.0
