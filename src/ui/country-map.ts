@@ -82,6 +82,7 @@ export function renderCountryMap(
   let disposed = false;
   let finishTimer = 0;
   let scale = 0;
+  let screenScale = 0;
   const selection = select(svg);
 
   function extent(): [Coordinate, Coordinate] {
@@ -132,18 +133,23 @@ export function renderCountryMap(
   line.addEventListener('animationend', onTraceEnd);
   line.addEventListener('animationcancel', onTraceEnd);
 
-  function settle(transform: ZoomTransform) {
-    const screenScale = svg.getScreenCTM()?.a ?? 0;
+  function setStrokeWidth(transform: ZoomTransform) {
     const next = screenScale * transform.k;
     if (next && scale !== next) {
       svg.style.setProperty('--map-unit', `${1 / next}px`);
-      cursorPin.style.setProperty('--map-unit', `${1 / screenScale}px`);
       scale = next;
     }
+  }
+
+  function settle(transform: ZoomTransform) {
+    screenScale = svg.getScreenCTM()?.a ?? 0;
+    if (screenScale) cursorPin.style.setProperty('--map-unit', `${1 / screenScale}px`);
+    setStrokeWidth(transform);
     refreshWater();
   }
 
   const camera = createMapMotion(svg, (transform) => {
+    setStrokeWidth(transform);
     scene.setAttribute('transform', transform.toString());
     feedback?.layout();
   }, settle);

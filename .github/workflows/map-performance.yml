@@ -8,6 +8,8 @@ on:
       - 'src/style.css'
       - 'data/sets/**'
       - 'scripts/measure-map-performance.mjs'
+      - 'scripts/capture-map-motion.mjs'
+      - 'scripts/data/**'
       - '.github/workflows/map-performance.yml'
 
 permissions:
@@ -59,6 +61,7 @@ jobs:
           done
           node scripts/measure-map-performance.mjs before http://127.0.0.1:4174/
           GEOQUIZ_EXPECT_CANVAS=1 node scripts/measure-map-performance.mjs after http://127.0.0.1:4173/
+          node scripts/capture-map-motion.mjs http://127.0.0.1:4173/
       - uses: actions/upload-artifact@v4
         if: always()
         with:

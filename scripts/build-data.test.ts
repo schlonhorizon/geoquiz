@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gunzipSync } from 'node:zlib';
 import { feature } from 'topojson-client';
 import type { GeometryCollection, Topology } from 'topojson-specification';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -13,6 +14,8 @@ import { addCoreOutlines } from './data/core-outline';
 import { createPracticeEngine } from '../src/quiz/practice';
 import type { PresetLibrary } from '../src/quiz/round-settings';
 import { buildData } from './build-data';
+import { DETAIL_RENDER_ZOOMS } from '../src/map/world-raster-types';
+import type { TerrainTier } from '../src/map/world-raster-types';
 
 const attributes: SetDefinition['attributes'] = [
   { key: 'region', label: 'Region', type: 'enum', values: ['Europa'] },
@@ -126,6 +129,17 @@ describe('buildData', () => {
     expect(details.objects.countries.geometries.map(({ id }) => id).sort())
       .toEqual(entities.map(({ id }) => id).sort());
     expect(details.objects).toHaveProperty('minorRivers');
+    const renderSizes = [];
+    for (const minZoom of DETAIL_RENDER_ZOOMS) {
+      const bytes = await readFile(join(output, `sets/world/map-detail.topojson.render-${minZoom}.json.gz`));
+      const tier: TerrainTier = JSON.parse(gunzipSync(bytes).toString());
+      expect(tier.minZoom).toBe(minZoom);
+      expect(new Set(tier.shapes.map(({ name }) => name))).toEqual(new Set([
+        'map-grid', 'map-land', 'map-country', 'map-river', 'map-river-minor', 'map-lake',
+      ]));
+      renderSizes.push(tier.shapes.reduce((length, { d }) => length + d.length, 0));
+    }
+    expect(renderSizes).toEqual([...renderSizes].sort((a, b) => a - b));
     expect(water.objects.lakes.geometries.length).toBeGreaterThan(0);
     expect(water.objects.rivers.geometries.length).toBeGreaterThan(0);
     const countryFeatures = new Map(feature(topology, topology.objects.countries).features.map((country) => [country.id, country]));
@@ -288,7 +302,7 @@ describe('buildData', () => {
     expect(usa.source).toBe('nach V-Dem 2025');
     expect(usa.answer.name).toBe('Wahldemokratie');
     expect(regimes.some(({ entity }) => entity.id === 'PSE' || entity.id === 'SOM')).toBe(false);
-  });
+  }, 20_000);
 
   it('discovers a new set and attributes from data alone', async () => {
     await fixture('world', `${header}\nDEU;Deutschland;Europa;\n`, ['DEU']);

@@ -75,21 +75,18 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   pointer-events: none;
   contain: strict;
 }
-.world-raster-global, .world-raster-view {
+.world-raster-base {
   position: absolute;
   top: 0;
   left: 0;
   transform-origin: 0 0;
   will-change: transform;
+  display: block;
 }
-.world-raster-global img { position: absolute; top: 0; display: block; }
-.world-raster-view canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .world-raster-fade { animation: fade-in 200ms ease both; }
-.world-raster[data-map-moving] .world-raster-rivers, .world-raster[data-water-hidden] .world-raster-rivers { display: none; }
-.world-raster:not([data-map-moving]) .world-raster-rivers { animation: fade-in 150ms ease both; }
 .world-map[data-canvas-map] { background: transparent; }
 .world-map[data-canvas-map] :is(.map-grid, .map-land, .map-water) { display: none; }
-.world-map[data-canvas-map] .map-country { opacity: 0; pointer-events: none; }
+.world-map[data-canvas-map] .map-country { opacity: 0; pointer-events: none; vector-effect: non-scaling-stroke; }
 .world-map[data-canvas-map] .map-country:is([data-state]:not([data-state=""]), [data-hover], [data-keyboard-focus], :focus-visible) { opacity: 1; }
 .world-map-controls { opacity: 0; pointer-events: none; }
 .map-country[data-hover]:not([data-state]:not([data-state=""])) { fill: var(--land-hover); }
@@ -117,8 +114,6 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .hide-map-water .map-water, svg:not([data-minor-rivers]) .map-river-minor { display: none; }
 .map-lake { fill: var(--sea); }
 .map-river { fill: none; stroke: var(--river); stroke-width: calc(.6 * var(--map-unit, 1px)); }
-[data-map-moving] .map-river, [data-map-moving] .atlas-capitals { display: none; }
-svg:not([data-map-moving]) .map-river { animation: fade-in 150ms ease both; }
 .map-capital, .map-capital text { opacity: 0; transition: opacity 150ms ease; }
 .map-capital[data-visible], .map-capital text[data-visible] { opacity: 1; }
 .map-capital rect, .map-capital text { fill: var(--ink); }

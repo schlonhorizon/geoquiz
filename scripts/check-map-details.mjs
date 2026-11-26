@@ -101,7 +101,7 @@ async function verify(mobile) {
     await zoomAt(position, -630);
     await page.waitForFunction(() => document.querySelector('.world-map').hasAttribute('data-minor-rivers'));
     await page.locator('.world-raster[data-raster-minor]').waitFor();
-    await page.locator('.world-raster-rivers').last().waitFor({ state: 'visible' });
+    await page.locator('.world-raster[data-raster-water] .world-raster-base').last().waitFor({ state: 'visible' });
     assert.equal(await measure(), 6);
     await photograph('atlas-minor-rivers');
 

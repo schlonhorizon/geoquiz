@@ -3,10 +3,16 @@ import type { Bounds } from './viewport';
 export interface TerrainShape {
   name: string;
   d: string;
-  bounds?: Bounds;
+  bounds: Bounds;
+}
+
+export interface TerrainTier {
+  minZoom: number;
+  shapes: TerrainShape[];
 }
 
 export type TerrainLevel = 'overview' | 'detail';
+export const DETAIL_RENDER_ZOOMS = [3, 6, 12, 24] as const;
 export type TerrainColors = Record<'ink' | 'paper' | 'sea' | 'land-off' | 'grid' | 'river', string>;
 
 export interface TerrainView {
@@ -19,10 +25,10 @@ export interface TerrainView {
 }
 
 export type TerrainRequest =
-  | { type: 'load'; level: TerrainLevel; shapes: TerrainShape[]; colors: TerrainColors }
-  | { type: 'global'; level: TerrainLevel; water: boolean; height: number; key: string }
-  | { type: 'view'; level: TerrainLevel; water: boolean; minor: boolean; view: TerrainView; id: number };
+  | { type: 'load'; minZoom: number; url: string; colors: TerrainColors }
+  | { type: 'view'; minZoom: number; water: boolean; minor: boolean; view: TerrainView; id: number };
 
 export type TerrainResponse =
-  | { type: 'global'; key: string; image: Blob }
-  | { type: 'view'; id: number; base: ImageBitmap; rivers?: ImageBitmap };
+  | { type: 'ready'; minZoom: number }
+  | { type: 'error'; minZoom: number; message: string }
+  | { type: 'view'; id: number; base: ImageBitmap; minZoom: number };

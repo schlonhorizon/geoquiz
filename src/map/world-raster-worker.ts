@@ -1,70 +1,109 @@
-import type { TerrainColors, TerrainLevel, TerrainRequest, TerrainResponse, TerrainShape, TerrainView } from './world-raster-types';
+import type { TerrainColors, TerrainRequest, TerrainResponse, TerrainShape, TerrainTier, TerrainView } from './world-raster-types';
 import { worldWidth } from './viewport';
 
-type Path = Omit<TerrainShape, 'd'> & { path: Path2D };
-const layers = new Map<TerrainLevel, { paths: Path[]; colors: TerrainColors }>();
+const cellSize = 32;
+const columns = Math.ceil(worldWidth / cellSize) + 2;
+type Shape = TerrainShape & { path?: Path2D };
+type Tier = { minZoom: number; cells: Map<number, Shape[]> };
+const tiers = new Map<number, { tier: Tier; colors: TerrainColors }>();
 const scope = self as unknown as {
   onmessage: (event: MessageEvent<TerrainRequest>) => void;
   postMessage(response: TerrainResponse, transfer?: Transferable[]): void;
 };
+const canvas = new OffscreenCanvas(1, 1);
+const context = canvas.getContext('2d', { alpha: false })!;
 
-function draw(level: TerrainLevel, view: TerrainView, water: boolean, minor = false, rivers = false) {
-  const { paths, colors } = layers.get(level)!;
-  const { pixelRatio, k, x, y, width, height } = view;
-  const canvas = new OffscreenCanvas(Math.ceil(width * pixelRatio), Math.ceil(height * pixelRatio));
-  const ctx = canvas.getContext('2d')!;
-  if (!rivers) {
-    ctx.fillStyle = colors.sea;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+function index({ minZoom, shapes }: TerrainTier): Tier {
+  const cells = new Map<number, Shape[]>();
+  for (const shape of shapes) {
+    const [[left, top], [right, bottom]] = shape.bounds;
+    for (let row = Math.floor(top / cellSize); row <= Math.floor(bottom / cellSize); row++) {
+      for (let column = Math.floor(left / cellSize); column <= Math.floor(right / cellSize); column++) {
+        const key = row * columns + column;
+        const cell = cells.get(key);
+        if (cell) cell.push(shape);
+        else cells.set(key, [shape]);
+      }
+    }
   }
+  return { minZoom, cells };
+}
+
+function draw(tier: Tier, { pixelRatio, k, x, y, width, height }: TerrainView, colors: TerrainColors, water: boolean, minor: boolean) {
+  const wide = Math.round(width * pixelRatio);
+  const tall = Math.round(height * pixelRatio);
+  if (canvas.width !== wide) canvas.width = wide;
+  if (canvas.height !== tall) canvas.height = tall;
+  const ctx = context;
+  ctx.resetTransform();
+  ctx.fillStyle = colors.sea;
+  ctx.fillRect(0, 0, wide, tall);
   ctx.lineJoin = 'round';
+
   const tileWidth = k * worldWidth;
+  const top = (-y - 2) / k;
+  const bottom = (height - y + 2) / k;
   const first = Math.floor(-x / tileWidth);
   const last = Math.ceil((width - x) / tileWidth);
   for (let tile = first; tile < last; tile++) {
     const origin = x + tile * tileWidth;
-    const left = -origin / k, right = (width - origin) / k, top = -y / k, bottom = (height - y) / k;
+    const left = Math.max(0, (-origin - 2) / k);
+    const right = Math.min(worldWidth, (width - origin + 2) / k);
+    const shapes = new Set<Shape>();
+    for (let row = Math.max(0, Math.floor(top / cellSize)); row <= Math.floor(bottom / cellSize); row++) {
+      for (let column = Math.floor(left / cellSize); column <= Math.floor(right / cellSize); column++) {
+        for (const shape of tier.cells.get(row * columns + column) ?? []) shapes.add(shape);
+      }
+    }
+
+    const paths = new Map<string, Path2D>();
+    for (const shape of shapes) {
+      const { name, bounds: [[l, t], [r, b]] } = shape;
+      if ((l > right || r < left || t > bottom || b < top)
+        || (!water && (name === 'map-lake' || name.startsWith('map-river')))
+        || (!minor && name === 'map-river-minor')) continue;
+      const key = name === 'map-river-minor' ? 'map-river' : name;
+      let batch = paths.get(key);
+      if (!batch) paths.set(key, batch = new Path2D());
+      batch.addPath(shape.path ??= new Path2D(shape.d));
+    }
     ctx.setTransform(k * pixelRatio, 0, 0, k * pixelRatio, origin * pixelRatio, y * pixelRatio);
-    for (const { name, path, bounds } of paths) {
-      const lake = name === 'map-lake';
-      const river = name.startsWith('map-river');
-      if ((!water && (lake || river))
-        || (river && (!rivers || (name.includes('minor') && !minor))) || (rivers && !river && !lake)) continue;
-      if (bounds && (bounds[0][0] > right || bounds[1][0] < left || bounds[0][1] > bottom || bounds[1][1] < top)) continue;
-      if (lake && rivers) {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.fill(path);
-        ctx.globalCompositeOperation = 'source-over';
-        continue;
-      }
-      if (name !== 'map-grid' && !river) {
-        ctx.fillStyle = lake ? colors.sea : name === 'map-land' ? colors['land-off'] : colors.paper;
+    function paint(name: string, stroke: string, width: number, fill?: string) {
+      const path = paths.get(name);
+      if (!path) return;
+      if (fill) {
+        ctx.fillStyle = fill;
         ctx.fill(path);
       }
-      ctx.strokeStyle = river ? colors.river : name === 'map-grid' ? colors.grid : colors.ink;
-      ctx.lineWidth = (river ? .6 : name === 'map-grid' ? 1 : .8) / k;
+      ctx.lineWidth = width / k;
+      ctx.strokeStyle = stroke;
       ctx.stroke(path);
     }
+    paint('map-grid', colors.grid, 1);
+    paint('map-land', colors.ink, .8, colors['land-off']);
+    paint('map-country', colors.ink, .8, colors.paper);
+    paint('map-river', colors.river, .6);
+    paint('map-lake', colors.ink, .8, colors.sea);
   }
-  return canvas;
+  return canvas.transferToImageBitmap();
 }
 
 scope.onmessage = ({ data }) => {
-  switch (data.type) {
-    case 'load':
-      layers.set(data.level, { colors: data.colors,
-        paths: data.shapes.map(({ d, ...shape }) => ({ ...shape, path: new Path2D(d) })) });
-      break;
-    case 'global': {
-      const canvas = draw(data.level, { x: 0, y: 0, width: worldWidth, height: data.height, k: 1, pixelRatio: 2 }, data.water);
-      void canvas.convertToBlob().then(image => scope.postMessage({ type: 'global', key: data.key, image }));
-      break;
-    }
-    case 'view': {
-      const base = draw(data.level, data.view, data.water).transferToImageBitmap();
-      const rivers = data.water ? draw(data.level, data.view, true, data.minor, true).transferToImageBitmap() : undefined;
-      scope.postMessage({ type: 'view', id: data.id, base, rivers }, rivers ? [base, rivers] : [base]);
-      break;
-    }
+  if (data.type === 'load') {
+    void fetch(data.url).then(async response => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const body = response.body!;
+      const decoded = body.pipeThrough(new DecompressionStream('gzip'));
+      return new Response(decoded).json() as Promise<TerrainTier>;
+    }).then(tier => {
+      tiers.set(data.minZoom, { tier: index(tier), colors: data.colors });
+      scope.postMessage({ type: 'ready', minZoom: data.minZoom });
+    }).catch((error: unknown) => {
+      scope.postMessage({ type: 'error', minZoom: data.minZoom, message: String(error) });
+    });
+    return;
   }
+  const { tier, colors } = tiers.get(data.minZoom)!;
+  const base = draw(tier, data.view, colors, data.water, data.minor);
+  scope.postMessage({ type: 'view', id: data.id, base, minZoom: tier.minZoom }, [base]);
 };
