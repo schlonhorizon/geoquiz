@@ -26,6 +26,7 @@ jobs:
         engine: [chromium, webkit]
     env:
       GEOQUIZ_BROWSER: ${{ matrix.engine }}
+      GEOQUIZ_WEBGL_SOFTWARE: '1'
       BASE_REVISION: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v6
@@ -60,8 +61,8 @@ jobs:
             done
           done
           node scripts/measure-map-performance.mjs before http://127.0.0.1:4174/
-          GEOQUIZ_EXPECT_CANVAS=1 node scripts/measure-map-performance.mjs after http://127.0.0.1:4173/
-          node scripts/capture-map-motion.mjs http://127.0.0.1:4173/
+          GEOQUIZ_EXPECT_CANVAS=1 GEOQUIZ_EXPECT_RENDERER=deck node scripts/measure-map-performance.mjs after 'http://127.0.0.1:4173/?renderer=deck'
+          node scripts/capture-map-motion.mjs 'http://127.0.0.1:4173/?renderer=deck'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

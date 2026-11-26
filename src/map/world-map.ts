@@ -18,6 +18,7 @@ import { appendWater, MINOR_RIVER_ZOOM, WORLD_DETAIL_ZOOM } from './water';
 import { createMapMotion } from './map-motion';
 import { createCountryHitIndex } from './country-hit-index';
 import { createWorldRaster } from './world-raster';
+import { createDeckMap } from './deck-world-map';
 
 export type MapInteraction = 'gesture' | 'wheel';
 
@@ -79,7 +80,9 @@ export function renderWorldMap(
 ) {
   const projected = projectWorldMap(topology, config, resources.water);
   const overviewUrl = resources.renderUrl?.('overview');
-  const raster = overviewUrl ? createWorldRaster(svg, toggleCanvas, drawOverlay) : undefined;
+  const experiment = new URLSearchParams(location.search).get('renderer') === 'deck';
+  const deckMap = experiment && overviewUrl ? createDeckMap(svg, toggleCanvas) : undefined;
+  const raster = deckMap ?? (overviewUrl ? createWorldRaster(svg, toggleCanvas, drawOverlay) : undefined);
   if (overviewUrl) raster?.load('overview', overviewUrl);
   const entityNames = new Map(entities.map(({ id, name }) => [id, name]));
   const layers = new Map<string, CountryLayer>();
@@ -142,7 +145,7 @@ export function renderWorldMap(
   for (const { overview } of copies) appendWater(overview, projected.water);
 
   const capital = resources.capital;
-  const capitals = renderAtlasCapitals(svg, capital ? entities.flatMap((entity) => {
+  const capitalData = capital ? entities.flatMap((entity) => {
     const name = entity[capital.key];
     const location = attributePoint(entity, capital);
     const bounds = layers.get(entity.id)?.geometry.bounds;
@@ -150,7 +153,9 @@ export function renderWorldMap(
     const point = projected.project(location);
     const [[left, top], [right, bottom]] = bounds;
     return point ? [{ id: entity.id, name, point, diagonal: Math.hypot(right - left, bottom - top) }] : [];
-  }) : []);
+  }) : [];
+  deckMap?.setCapitals(capitalData);
+  const capitals = renderAtlasCapitals(svg, deckMap ? [] : capitalData);
 
   // A narrow band between the panels can require more width than the interactive tiles cover.
   const tile = copies[1].tile;
@@ -694,6 +699,7 @@ export function renderWorldMap(
     setWaterVisible(show: boolean) { raster?.setWaterVisible(show); },
     setAtlas(active: boolean) {
       atlas = active;
+      deckMap?.setAtlas(active);
       if (!active) capitals.clear();
     },
     clear() {

@@ -12,7 +12,10 @@ const viewportSizes = {
 };
 
 await mkdir(folder, { recursive: true });
-const browser = await type.launch(process.env.GEOQUIZ_BROWSER_PATH ? { executablePath: process.env.GEOQUIZ_BROWSER_PATH } : {});
+const browser = await type.launch({
+  ...(process.env.GEOQUIZ_BROWSER_PATH && { executablePath: process.env.GEOQUIZ_BROWSER_PATH }),
+  ...(engine === 'chromium' && process.env.GEOQUIZ_WEBGL_SOFTWARE === '1' && { args: ['--enable-unsafe-swiftshader'] }),
+});
 const results = [];
 for (const [device, viewport] of Object.entries(viewportSizes)) {
   for (let run = 1; run <= rounds; run++) {
@@ -31,6 +34,9 @@ for (const [device, viewport] of Object.entries(viewportSizes)) {
       await page.locator('.world-map[data-map-detail="detail"]').waitFor({ timeout: 35000 });
       if (process.env.GEOQUIZ_EXPECT_CANVAS === '1') {
         await page.locator('.world-raster[data-raster-level="detail"] .world-raster-base').last().waitFor({ timeout: 35000 });
+      }
+      if (process.env.GEOQUIZ_EXPECT_RENDERER === 'deck') {
+        await page.locator('.world-raster[data-renderer="deck"][data-raster-frame]').waitFor({ timeout: 15000 });
       }
       await page.waitForTimeout(550);
       await context.tracing.start({ screenshots: false, snapshots: false, sources: false });

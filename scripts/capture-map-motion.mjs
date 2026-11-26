@@ -6,7 +6,10 @@ const { [engine]: type } = await import(process.env.PLAYWRIGHT_ENTRY ?? 'playwri
 const [url = 'http://127.0.0.1:4173/'] = process.argv.slice(2);
 const folder = process.env.GEOQUIZ_TRACES ?? 'map-performance-traces';
 await mkdir(folder, { recursive: true });
-const browser = await type.launch(process.env.GEOQUIZ_BROWSER_PATH ? { executablePath: process.env.GEOQUIZ_BROWSER_PATH } : {});
+const browser = await type.launch({
+  ...(process.env.GEOQUIZ_BROWSER_PATH && { executablePath: process.env.GEOQUIZ_BROWSER_PATH }),
+  ...(engine === 'chromium' && process.env.GEOQUIZ_WEBGL_SOFTWARE === '1' && { args: ['--enable-unsafe-swiftshader'] }),
+});
 const results = [];
 try {
   for (const [device, width, height, ratio] of [['mobile', 393, 852, 3], ['desktop', 1366, 900, 1]]) {
@@ -38,7 +41,9 @@ try {
       await surface.locator('.world-raster-base').last().waitFor();
       await page.locator('.world-raster[data-raster-level="detail"][data-raster-water]').waitFor();
       await page.locator('.world-map:not([data-map-moving])').waitFor();
-      const label = map.locator('.map-capital[data-capital-country="DEU"][data-visible] text[data-visible]').first();
+      const deck = await surface.getAttribute('data-renderer') === 'deck';
+      const label = deck ? page.locator('.world-raster[data-map-labels]:not([data-map-labels="0"])')
+        : map.locator('.map-capital[data-capital-country="DEU"][data-visible] text[data-visible]').first();
       await label.waitFor();
       const prefix = `${folder}/motion-${engine}-${device}`;
       await page.screenshot({ path: `${prefix}-still.png` });
@@ -76,14 +81,16 @@ try {
           requestAnimationFrame(move);
           while (performance.now() - start < 6500) {
             await new Promise(resolve => requestAnimationFrame(resolve));
-            const canvas = layer.querySelector('.world-raster-base:last-child');
-            const labels = document.querySelectorAll('.map-capital[data-visible] text[data-visible]');
+            const canvases = layer.querySelectorAll('canvas.world-raster-base');
+            const canvas = canvases.item(canvases.length - 1);
+            const labels = Number(layer.getAttribute('data-map-labels'))
+              || document.querySelectorAll('.map-capital[data-visible] text[data-visible]').length;
             if (!map.hasAttribute('data-map-moving') || (action === 'zoom' && layer.hasAttribute('data-raster-bridge'))
-              || !layer.hasAttribute('data-raster-water') || !labels.length
+              || !layer.hasAttribute('data-raster-water') || !labels
               || layer.getAttribute('data-raster-frame') === before || camera.getAttribute('transform') === previous
               || !canvas) continue;
-            const cssWidth = Number.parseFloat(canvas.style.width) || canvas.clientWidth;
-            return { frame: layer.getAttribute('data-raster-frame'), labels: labels.length, canvasDpr: canvas.width / cssWidth };
+            const cssWidth = canvas.style.width.endsWith('px') ? parseFloat(canvas.style.width) : canvas.clientWidth;
+            return { frame: layer.getAttribute('data-raster-frame'), labels, canvasDpr: canvas.width / cssWidth };
           }
           throw new Error('No sharp frame with labels was presented during map motion');
         }, { action, before, previous, position });
