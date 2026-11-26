@@ -27,6 +27,7 @@
 .country-map path { stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .local-outline { fill: var(--paper); stroke: var(--ink); stroke-width: 1px; }
 .local-neighbor { fill: var(--land-off); stroke: var(--ink); stroke-width: .8px; }
+.country-map .map-lake { stroke-width: 1px; }
 
 .country-map :is(line, circle) { display: none; vector-effect: non-scaling-stroke; pointer-events: none; }
 .country-silhouette[data-solution] .capital-answer,

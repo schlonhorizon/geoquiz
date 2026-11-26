@@ -1,4 +1,4 @@
-import { geoContains } from 'd3-geo';
+import { geoArea, geoContains } from 'd3-geo';
 import { feature, mergeArcs } from 'topojson-client';
 import type { GeometryObject, MultiPolygon, Polygon, Topology } from 'topojson-specification';
 import { z } from 'zod';
@@ -23,6 +23,38 @@ const ringSchema = z.array(z.number().int()).min(1);
 const polygonSchema = z.array(ringSchema).min(1);
 const multiPolygonSchema = z.array(polygonSchema).min(1);
 const collectionSchema = z.object({ type: z.literal('GeometryCollection'), geometries: z.array(z.unknown()) });
+
+function referencesValid(references: number[], arcs: unknown[]) {
+  return references.length > 0 && references.every((reference) => {
+    const arc = arcs[reference < 0 ? -reference - 1 : reference];
+    return Array.isArray(arc) && arc.length >= 2;
+  });
+}
+
+export function validateWater(content: string, filename: string, detailed: boolean, issues: DataIssues) {
+  const raw: Topology = JSON.parse(content);
+  const { objects, arcs } = topologySchema.parse(raw);
+  for (const key of detailed ? ['lakes', 'rivers', 'minorRivers'] : ['lakes', 'rivers']) {
+    const collection = collectionSchema.safeParse(objects[key]);
+    if (!collection.success || !collection.data.geometries.length) {
+      issues.errors.push(`${filename}: Gewässerobjekt "${key}" fehlt oder ist leer.`);
+      continue;
+    }
+    for (const entry of collection.data.geometries) {
+      const geometry = geometrySchema.parse(entry);
+      const rings = key === 'lakes'
+        ? geometry.type === 'Polygon' ? polygonSchema.safeParse(geometry.arcs)
+          : geometry.type === 'MultiPolygon' ? multiPolygonSchema.safeParse(geometry.arcs) : undefined
+        : geometry.type === 'LineString' ? ringSchema.safeParse(geometry.arcs)
+          : geometry.type === 'MultiLineString' ? polygonSchema.safeParse(geometry.arcs) : undefined;
+      if (!rings?.success || !referencesValid(rings.data.flat(2), arcs)
+        || (key === 'lakes' && geoArea(feature(raw, entry as Polygon | MultiPolygon)) > 2 * Math.PI)) {
+        issues.errors.push(`${filename}: Ungültige Gewässergeometrie in "${key}".`);
+        break;
+      }
+    }
+  }
+}
 
 export function mergeLandAreas(content: string, { object, idProperty, mergeLand }: SetDefinition['map']): string {
   if (!mergeLand) return content;
@@ -95,10 +127,7 @@ export function validateMap(content: string, definition: SetDefinition, entities
     const arcs = geometry.type === 'Polygon' && polygon.success ? polygon.data.flat()
       : geometry.type === 'MultiPolygon' && multiPolygon.success ? multiPolygon.data.flat(2)
         : [];
-    if (!arcs.length || arcs.some((arc) => {
-      const reference = arc < 0 ? -arc - 1 : arc;
-      return !Array.isArray(topology.arcs[reference]) || topology.arcs[reference].length < 2;
-    })) {
+    if (!referencesValid(arcs, topology.arcs)) {
       issues.errors.push(`${label}: Ungültige Polygongeometrie.`);
       continue;
     }

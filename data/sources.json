@@ -33,7 +33,7 @@
   },
   {
     "name": "Natural Earth",
-    "use": "Ländergrenzen und Hauptstadtpunkte (Admin 0 und Populated Places)",
+    "use": "Ländergrenzen, Hauptstadtpunkte, Seen und Flüsse (Admin 0, Populated Places, Lakes und Rivers + Lake Centerlines)",
     "date": "Version 5.1.2",
     "url": "https://www.naturalearthdata.com/downloads/",
     "license": "Gemeinfrei",

@@ -55,12 +55,17 @@ export const setDefinitionSchema = z.object({
   }).optional(),
   map: z.object({
     file: z.string().regex(/^[\w.-]+\.topojson$/),
+    waterFile: z.string().regex(/^[\w.-]+\.topojson$/).optional(),
+    detailFile: z.string().regex(/^[\w.-]+\.topojson$/).optional(),
     object: text,
     idProperty: text,
     projection: text,
     mergeLand: z.record(text, z.array(text).min(1)).optional(),
     prompts: z.object({ find: text, name: text }).optional(),
-  }),
+  }).refine(({ file, waterFile, detailFile }) => {
+    const files = [file, waterFile, detailFile].filter((name) => name !== undefined);
+    return new Set(files).size === files.length;
+  }, 'Kartendateien müssen unterschiedliche Namen haben.'),
   attributes: z.array(attributeSchema),
 });
 

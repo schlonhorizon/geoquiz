@@ -9,6 +9,22 @@ export interface SettingsStore {
 export class LocalSettingsStore implements SettingsStore {
   private readonly memory = new Map<string, RoundSettings>();
 
+  loadWaterVisibility(): boolean {
+    try {
+      return window.localStorage.getItem('geoquiz:map-water:v1') !== 'off';
+    } catch {
+      return true;
+    }
+  }
+
+  saveWaterVisibility(visible: boolean): void {
+    try {
+      window.localStorage.setItem('geoquiz:map-water:v1', visible ? 'on' : 'off');
+    } catch {
+      // The current view already has the new setting.
+    }
+  }
+
   load(setId: string, presetId: string): RoundSettings | undefined {
     const key = this.key(setId, presetId);
     const cached = this.memory.get(key);

@@ -4,6 +4,7 @@ import type { Topology } from 'topojson-specification';
 import { CORE_OUTLINE_OBJECT, getMapEntityId, polygonFeatures } from '../data/map';
 import type { Coordinate } from '../data/map';
 import type { SetDefinition } from '../data/schema';
+import { projectWater } from './water';
 
 export const CAPITAL_TOLERANCE_RATIO = .1;
 export const CAPITAL_TOLERANCE_MIN_KM = 25;
@@ -32,7 +33,7 @@ export function assessCapital(guess: Coordinate, answer: Coordinate, [[west, sou
   return { correct: distanceKm <= toleranceKm, distanceKm, toleranceKm };
 }
 
-export function createCountryMaps(topology: Topology, config: SetDefinition['map']) {
+export function createCountryMaps(topology: Topology, config: SetDefinition['map'], water?: Topology) {
   const index = (key: string) => new Map(polygonFeatures(topology, key)
     .map((item) => [getMapEntityId(item, config.idProperty), item]));
   const countries = index(config.object);
@@ -62,6 +63,9 @@ export function createCountryMaps(topology: Topology, config: SetDefinition['map
     const world: Bounds = [[x - halfWorld, Math.min(north, view[1])], [x + halfWorld, Math.max(south, view[1] + fitHeight)]];
     return {
       view, bounds, world, aspect: width / height, outline: path(mode === 'capital' ? country : footprint) ?? '',
+      projectionScale: projection.scale(),
+      water: mode === 'capital' ? projectWater(water, path) : [],
+      projectWater: (detail: Topology) => projectWater(detail, path),
       project: (point: Coordinate) => projection(point)!,
       invert: (point: Coordinate) => projection.invert!(point)!,
       context: mode === 'capital' ? [...land, ...countries.values()].flatMap((other) => other === country ? [] : path(other) ?? []) : [],

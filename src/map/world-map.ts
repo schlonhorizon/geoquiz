@@ -4,13 +4,17 @@ import 'd3-transition';
 import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
 import type { D3ZoomEvent, ZoomTransform } from 'd3-zoom';
 import type { Topology } from 'topojson-specification';
-import type { Entity, SetDefinition } from '../data/schema';
-import { countryCenter, projectWorldMap } from './geometry';
+import type { MapResources } from '../data/load';
+import { attributePoint } from '../data/map';
+import type { AttributeDefinition, Entity, SetDefinition } from '../data/schema';
+import { renderAtlasCapitals } from './atlas-capitals';
+import { countryCenter, projectMapDetails, projectWorldMap } from './geometry';
 import type { ProjectedCountry } from './geometry';
 import { boundaryTolerancePx, isNearMarker, markerDistance, markerHitRadiusPx, markerRadiusPx, resolveCountryClick } from './hit-test';
 import { createSolutionRadar } from './solution-radar';
 import { clampMapY, fitCountryBounds, flightDuration, insetCountryFrame, interpolateFlight, nearestWorldX, worldWidth, wrapWorldX } from './viewport';
 import type { Bounds, MapFrame } from './viewport';
+import { appendWater, MINOR_RIVER_ZOOM, WORLD_DETAIL_ZOOM } from './water';
 
 export type MapInteraction = 'gesture' | 'wheel';
 
@@ -28,15 +32,17 @@ interface CountryView {
   shape: SVGPathElement;
   marker: SVGCircleElement | null;
   hitArea: SVGElement;
+  detail?: SVGPathElement;
 }
 
 interface CountryLayer {
   geometry: ProjectedCountry;
   views: CountryView[];
   center: [number, number];
-  keyboardView?: CountryView;
+  keyboardTarget?: SVGElement;
   name: string;
   outline: Path2D;
+  detailOutline?: Path2D;
 }
 
 function appendPath(parent: SVGElement, outline: string, className: string) {
@@ -62,36 +68,43 @@ export function renderWorldMap(
   entities: readonly Entity[],
   onCountrySelected: (id: string) => void,
   onInteraction: (source: MapInteraction, active: boolean) => void,
+  resources: MapResources & { capital?: AttributeDefinition } = {},
 ) {
-  const projected = projectWorldMap(topology, config);
+  const projected = projectWorldMap(topology, config, resources.water);
   const entityNames = new Map(entities.map(({ id, name }) => [id, name]));
   const layers = new Map<string, CountryLayer>();
   const markerViews: { hitArea: SVGCircleElement; dot: SVGCircleElement; ring: SVGCircleElement }[] = [];
   const radar = createSolutionRadar(svg);
   const group = document.createElementNS(svgNamespace, 'g');
   svg.append(group);
+  svg.dataset.mapDetail = 'overview';
 
   const copies = copyOffsets.map((offset, index) => {
     const tile = document.createElementNS(svgNamespace, 'g');
+    const overview = document.createElementNS(svgNamespace, 'g');
+    const detail = document.createElementNS(svgNamespace, 'g');
     const markers = document.createElementNS(svgNamespace, 'g');
     tile.dataset.worldCopy = String(index - 1);
     tile.setAttribute('transform', `translate(${offset},0)`);
     group.append(tile);
     appendPath(tile, projected.grid, 'map-grid');
-    if (projected.land) appendPath(tile, projected.land, 'map-land');
-    return { tile, markers };
+    overview.setAttribute('class', 'map-overview');
+    detail.setAttribute('class', 'map-detail');
+    tile.append(overview, detail, markers);
+    if (projected.land) appendPath(overview, projected.land, 'map-land');
+    return { tile, overview, detail, markers };
   });
 
   for (const geometry of projected.countries) {
     const { id, path, marker: position } = geometry;
     const name = id === undefined ? undefined : entityNames.get(id);
     if (id === undefined || name === undefined) {
-      for (const { tile } of copies) appendPath(tile, path, 'map-land');
+      for (const { overview } of copies) appendPath(overview, path, 'map-land');
       continue;
     }
 
-    const views: CountryView[] = copies.map(({ tile, markers }) => {
-      const shape = appendPath(tile, path, 'map-country');
+    const views: CountryView[] = copies.map(({ overview, markers }) => {
+      const shape = appendPath(overview, path, 'map-country');
       shape.dataset.countryId = id;
       if (!position) return { shape, marker: null, hitArea: shape };
 
@@ -105,7 +118,18 @@ export function renderWorldMap(
     });
     layers.set(id, { geometry, views, center: position ?? countryCenter(geometry.bounds), name, outline: new Path2D(path) });
   }
-  for (const { tile, markers } of copies) tile.append(markers);
+  for (const { overview } of copies) appendWater(overview, projected.water);
+
+  const capital = resources.capital;
+  const capitals = renderAtlasCapitals(svg, capital ? entities.flatMap((entity) => {
+    const name = entity[capital.key];
+    const location = attributePoint(entity, capital);
+    const bounds = layers.get(entity.id)?.geometry.bounds;
+    if (typeof name !== 'string' || !name || !location || !bounds) return [];
+    const point = projected.project(location);
+    const [[left, top], [right, bottom]] = bounds;
+    return point ? [{ id: entity.id, name, point, diagonal: Math.hypot(right - left, bottom - top) }] : [];
+  }) : []);
 
   // A narrow band between the panels can require more width than the interactive tiles cover.
   const tile = copies[1].tile;
@@ -143,6 +167,9 @@ export function renderWorldMap(
   let flight = 0;
   let frame: MapFrame | undefined;
   let atlas = true;
+  let detailReady = false;
+  let detailRequested = false;
+  let detailed = false;
   const hitContext = document.createElement('canvas').getContext('2d');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const selection = select(svg);
@@ -151,21 +178,61 @@ export function renderWorldMap(
     for (const layer of layers.values()) {
       const [centerX] = layer.center;
       const copy = 1 + Math.round((displayCenterX - centerX) / worldWidth);
-      const current = picking ? layer.views[copy] : undefined;
-      if (current === layer.keyboardView) continue;
-      if (layer.keyboardView) {
-        const { hitArea } = layer.keyboardView;
-        hitArea.removeAttribute('tabindex');
-        hitArea.removeAttribute('role');
-        hitArea.removeAttribute('aria-label');
+      const view = picking ? layer.views[copy] : undefined;
+      const current = view && (detailed && !view.marker ? view.detail ?? view.hitArea : view.hitArea);
+      if (current === layer.keyboardTarget) continue;
+      const previous = layer.keyboardTarget;
+      if (previous) {
+        previous.removeAttribute('tabindex');
+        previous.removeAttribute('role');
+        previous.removeAttribute('aria-label');
       }
       if (current) {
-        current.hitArea.setAttribute('tabindex', '0');
-        current.hitArea.setAttribute('role', 'button');
-        current.hitArea.setAttribute('aria-label', layer.name);
+        current.setAttribute('tabindex', '0');
+        current.setAttribute('role', 'button');
+        current.setAttribute('aria-label', layer.name);
+        if (previous && document.activeElement === previous) current.focus({ preventScroll: true });
       }
-      layer.keyboardView = current;
+      layer.keyboardTarget = current;
     }
+  }
+
+  function installDetail(topology: Topology) {
+    const geometry = projectMapDetails(topology, config);
+    for (const { detail } of copies) {
+      if (geometry.land) appendPath(detail, geometry.land, 'map-land');
+    }
+    for (const [id, layer] of layers) {
+      const outline = geometry.countries.get(id) ?? layer.geometry.path;
+      layer.detailOutline = new Path2D(outline);
+      copies.forEach(({ detail }, index) => {
+        const view = layer.views[index];
+        const shape = appendPath(detail, outline, 'map-country');
+        shape.dataset.countryId = id;
+        shape.dataset.state = view.shape.dataset.state;
+        view.detail = shape;
+      });
+    }
+    for (const { detail } of copies) appendWater(detail, geometry.water);
+    detailReady = true;
+    // Give the transparent layer a computed style before starting the crossfade.
+    getComputedStyle(copies[1].detail).opacity;
+    draw(zoomTransform(svg));
+  }
+
+  function updateDetails(scale: number) {
+    const level = scale / Math.max(viewport.width / worldWidth, minAtlasScale());
+    const eligible = level >= WORLD_DETAIL_ZOOM;
+    if (!eligible) detailRequested = false;
+    else if (!detailRequested && !detailReady && resources.loadDetail) {
+      detailRequested = true;
+      void resources.loadDetail().then(installDetail).catch((error: unknown) => {
+        console.warn('Die detaillierte Karte konnte nicht geladen werden.', error);
+      });
+    }
+    detailed = eligible && detailReady;
+    svg.dataset.mapDetail = detailed ? 'detail' : 'overview';
+    svg.toggleAttribute('data-minor-rivers', level >= MINOR_RIVER_ZOOM);
   }
 
   function constrainY(y: number, scale: number) {
@@ -198,6 +265,7 @@ export function renderWorldMap(
     extraMap[0].setAttribute('width', String(-worldWidth - leftEdge));
     extraMap[1].setAttribute('x', String(2 * worldWidth));
     extraMap[1].setAttribute('width', String(rightEdge - 2 * worldWidth));
+    updateDetails(k);
 
     if (markerScale !== k) {
       for (const { hitArea, dot, ring } of markerViews) {
@@ -208,6 +276,7 @@ export function renderWorldMap(
       markerScale = k;
     }
     updateKeyboardTargets();
+    if (atlas) capitals.draw(transform, viewport);
     placeRadar(transform);
   }
 
@@ -348,9 +417,11 @@ export function renderWorldMap(
   fitViewport();
 
   function showCountryState(id: string, state: CountryState, pulse = false) {
-    for (const { shape, marker, hitArea } of layers.get(id)?.views ?? []) {
-      shape.dataset.state = state;
-      shape.classList.toggle('map-target-pulse', pulse);
+    for (const { shape, detail, marker, hitArea } of layers.get(id)?.views ?? []) {
+      for (const path of detail ? [shape, detail] : [shape]) {
+        path.dataset.state = state;
+        path.classList.toggle('map-target-pulse', pulse);
+      }
       if (marker) {
         marker.dataset.state = state;
         marker.classList.toggle('map-target-pulse', pulse);
@@ -374,7 +445,8 @@ export function renderWorldMap(
     hitContext.lineWidth = (boundaryTolerancePx * 2) / scale;
     hitContext.lineJoin = 'round';
     const wrapped = wrapWorldX(x);
-    return copyOffsets.some((offset) => hitContext.isPointInStroke(country.outline, wrapped + offset, y));
+    const outline = detailed ? country.detailOutline ?? country.outline : country.outline;
+    return copyOffsets.some((offset) => hitContext.isPointInStroke(outline, wrapped + offset, y));
   }
 
   svg.addEventListener('click', (event) => {
@@ -399,7 +471,8 @@ export function renderWorldMap(
       }
       if (!clickedMarker && onExtraMap && hitContext) {
         const x = wrapWorldX(point.x);
-        for (const [id, { outline }] of layers) {
+        for (const [id, layer] of layers) {
+          const outline = detailed ? layer.detailOutline ?? layer.outline : layer.outline;
           if (hitContext.isPointInPath(outline, x, point.y)) clickedId = id;
         }
       }
@@ -425,7 +498,10 @@ export function renderWorldMap(
 
   return {
     resetView,
-    setAtlas(active: boolean) { atlas = active; },
+    setAtlas(active: boolean) {
+      atlas = active;
+      if (!active) capitals.clear();
+    },
     clear() {
       flight++;
       radarCountry = undefined;

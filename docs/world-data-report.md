@@ -32,6 +32,12 @@
 
 Die aus `world-countries` abgeleiteten Länderdaten in `entities.csv` stehen unter ODbL 1.0. [Lizenz von world-countries](https://github.com/mledoze/countries/blob/master/LICENSE) · [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/)
 
+## Kartendetails
+
+Beide Auflösungen enthalten 197 Spielentitäten und verwenden dieselben Länder-IDs. Die 1:10-Mio.-Ebene übernimmt Finnland und Åland aus den Natural-Earth-Karteneinheiten, damit Åland als eigenständiges Hintergrundgebiet gezeichnet wird. Tuvalu behält seine Übersichtskontur, da der Hauptstadtpunkt in der originalen 1:10-Mio.-Geometrie im Wasser läge. Bei Gambia bleibt die Detailküste um Banjul vollständig erhalten. Der Build prüft in beiden Ebenen die Lage aller 194 Hauptstadtpunkte. [1:10-Mio.-Länder](https://github.com/nvkelso/natural-earth-vector/blob/v5.1.2/geojson/ne_10m_admin_0_countries.geojson) · [1:10-Mio.-Karteneinheiten](https://github.com/nvkelso/natural-earth-vector/blob/v5.1.2/geojson/ne_10m_admin_0_map_units.geojson)
+
+Die Gewässer kommen aus Natural Earth 5.1.2. Die Übersicht nutzt die Seen bis Natural-Earth-Zoomstufe 3 und die Flussränge bis 4. Die Detailstufe übernimmt Seen ab 0,01 km². Kleinere Flächen sind in der TopoJSON-Auflösung kaum darstellbar. Flüsse der Ränge über 6 stehen als eigene Ebene für höheren Zoom bereit. [Natural Earth 5.1.2](https://github.com/nvkelso/natural-earth-vector/tree/v5.1.2/geojson)
+
 ## Kerngebiete
 
 Der Build schließt **101 Teilflächen in 15 Ländern** aus dem Kerngebiet aus. Automatisch entfallen Teilflächen, deren kürzester geografischer Abstand zum äußeren Rand der größten Teilfläche über 1.500 km liegt und deren Fläche unter 20 % der größten Teilfläche beträgt. Die vollständigen Landesflächen bleiben auf der Karte sichtbar und anklickbar.

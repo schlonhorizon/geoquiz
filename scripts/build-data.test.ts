@@ -119,8 +119,15 @@ describe('buildData', () => {
     type WorldTopology = Topology<{ countries: GeometryCollection; land: GeometryCollection; core: GeometryCollection }>;
     const source: WorldTopology = JSON.parse(await readFile(join(sample, 'world/map.topojson'), 'utf8'));
     const topology: WorldTopology = await emitted('sets/world/map.topojson');
+    const details: WorldTopology = await emitted('sets/world/map-detail.topojson');
+    const water: Topology<{ lakes: GeometryCollection; rivers: GeometryCollection }> = await emitted('sets/world/water.topojson');
     expect(topology.objects.countries.geometries.map(({ id }) => id).sort())
       .toEqual(entities.map(({ id }) => id).sort());
+    expect(details.objects.countries.geometries.map(({ id }) => id).sort())
+      .toEqual(entities.map(({ id }) => id).sort());
+    expect(details.objects).toHaveProperty('minorRivers');
+    expect(water.objects.lakes.geometries.length).toBeGreaterThan(0);
+    expect(water.objects.rivers.geometries.length).toBeGreaterThan(0);
     const countryFeatures = new Map(feature(topology, topology.objects.countries).features.map((country) => [country.id, country]));
     const coreFeatures = new Map(feature(topology, topology.objects.core).features.map((country) => [country.id, country]));
     for (const [id, point] of [
@@ -150,15 +157,17 @@ describe('buildData', () => {
     expect(background).toEqual(expect.arrayContaining(['ESH', 'GRL']));
     const merges = [
       { target: 'SOM', area: 'SOL', point: [44.06, 9.56] as [number, number] },
-      { target: 'CYP', area: 'CYN', point: [33.32, 35.34] as [number, number] },
+      { target: 'CYP', area: 'CYN', point: [33.44, 35.28] as [number, number] },
     ];
     for (const { target, area, point } of merges) {
       const originalArea = source.objects.land.geometries.find(({ id }) => id === area)!;
       const originalCountry = source.objects.countries.geometries.find(({ id }) => id === target)!;
       const mergedCountry = topology.objects.countries.geometries.find(({ id }) => id === target)!;
+      const mergedDetail = details.objects.countries.geometries.find(({ id }) => id === target)!;
       expect(geoContains(feature(source, originalArea), point)).toBe(true);
       expect(geoContains(feature(source, originalCountry), point)).toBe(false);
       expect(geoContains(feature(topology, mergedCountry), point)).toBe(true);
+      expect(geoContains(feature(details, mergedDetail), point)).toBe(true);
       expect(mergedCountry).toMatchObject({ type: 'MultiPolygon', arcs: [expect.any(Array)] });
       expect(background).not.toContain(area);
     }

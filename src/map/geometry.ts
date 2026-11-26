@@ -6,6 +6,7 @@ import type { Topology } from 'topojson-specification';
 import { CORE_OUTLINE_OBJECT, getMapEntityId, polygonFeatures } from '../data/map';
 import type { SetDefinition } from '../data/schema';
 import { worldWidth, wrapWorldX } from './viewport';
+import { projectWater } from './water';
 
 const earthRadiusKm = 6371;
 const smallCountryAreaKm2 = 2_000;
@@ -36,19 +37,32 @@ function largestPolygon(geometry: Polygon | MultiPolygon): Polygon {
   return main;
 }
 
-export function projectWorldMap(topology: Topology, config: SetDefinition['map']) {
+function worldProjection(config: SetDefinition['map']) {
   if (config.projection !== 'miller') {
     throw new Error(`Unsupported map projection: ${config.projection}`);
   }
-  const source = topology.objects[config.object];
-  if (!source) throw new Error(`Missing map object: ${config.object}`);
-
   // Clip the background and all country paths at the same latitude south of Cape Horn.
   const projection = geoMiller().scale(worldWidth / (2 * Math.PI)).translate([worldWidth / 2, 0]);
   const [, north] = projection([0, 85])!;
   const [, south] = projection([0, -60])!;
   const height = south - north;
   projection.translate([worldWidth / 2, -north]).clipExtent([[0, 0], [worldWidth, height]]);
+  return { projection, north, height };
+}
+
+export function projectMapDetails(topology: Topology, config: SetDefinition['map']) {
+  const path = geoPath(worldProjection(config).projection);
+  return {
+    land: topology.objects.land ? path(feature(topology, topology.objects.land)) : null,
+    countries: new Map(polygonFeatures(topology, config.object)
+      .map((country) => [getMapEntityId(country, config.idProperty), path(country)])),
+    water: projectWater(topology, path),
+  };
+}
+
+export function projectWorldMap(topology: Topology, config: SetDefinition['map'], water?: Topology) {
+  if (!topology.objects[config.object]) throw new Error(`Missing map object: ${config.object}`);
+  const { projection, north, height } = worldProjection(config);
   const path = geoPath(projection);
   const core = new Map(polygonFeatures(topology, CORE_OUTLINE_OBJECT)
     .map((item) => [getMapEntityId(item, config.idProperty), item.geometry]));
@@ -89,7 +103,9 @@ export function projectWorldMap(topology: Topology, config: SetDefinition['map']
     height,
     grid: path(geoGraticule().step([30, 20])()) ?? '',
     land: topology.objects.land ? path(feature(topology, topology.objects.land)) : null,
+    water: projectWater(water, path),
     countries,
+    project: projection,
   };
 }
 
