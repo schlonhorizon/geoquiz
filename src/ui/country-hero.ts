@@ -9,8 +9,7 @@ const nameMaxSize = 60;
 const nameMinSize = 36;
 const nameSizeStep = 2;
 
-function fitCountryName(art: HTMLElement, title: HTMLElement, name: string, wide: boolean) {
-  const width = art.clientWidth - 32;
+function fitCountryName(art: HTMLElement, title: HTMLElement, name: string, wide: boolean, width: number) {
   if (width <= 0) return;
   const measurement = document.createElement('canvas').getContext('2d')!;
   const { fontFamily, fontWeight } = getComputedStyle(title);
@@ -123,15 +122,16 @@ export function renderCountryHero(options: {
 
   let measuredWidth = 0;
   let disposed = false;
-  const fit = (force = false) => {
+  const fit = (width: number, force = false) => {
     if (disposed || !header.isConnected) return;
-    const width = art.clientWidth;
-    if (force || measuredWidth !== width) fitCountryName(art, title, entity.name, wide || header.hasAttribute('data-point'));
+    if (force || measuredWidth !== width) fitCountryName(art, title, entity.name, wide || header.hasAttribute('data-point'), width);
     measuredWidth = width;
   };
-  const sizes = new ResizeObserver(() => fit());
+  const sizes = new ResizeObserver(([entry]) => fit(Math.floor(entry.contentRect.width)));
   sizes.observe(art);
-  void document.fonts?.ready.then(() => fit(true));
+  if (document.fonts?.status === 'loading') {
+    void document.fonts.ready.then(() => requestAnimationFrame(() => fit(measuredWidth, true)));
+  }
 
   function revealFlag(animate = true) {
     const flagKey = definition.attributes.find(({ type }) => type === 'flag')?.key;
@@ -146,7 +146,7 @@ export function renderCountryHero(options: {
     const changed = Boolean(map) !== header.hasAttribute('data-point');
     header.toggleAttribute('data-point', Boolean(map));
     mapSlot.replaceChildren(...(map ? [map] : []));
-    if (changed) fit(true);
+    if (changed) fit(measuredWidth, true);
   }
   function dispose() {
     disposed = true;

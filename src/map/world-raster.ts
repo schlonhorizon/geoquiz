@@ -82,6 +82,8 @@ export function createWorldRaster(svg: SVGSVGElement, worldHeight: number, onAct
   function draw(transform: ZoomTransform, viewport: Size) {
     camera = { transform, viewport };
     if (failed || !svg.hasAttribute('data-canvas-map')) return;
+    const option = globals.get(keyFor(current?.capture.level ?? level)) ?? globals.get(keyFor(level))
+      ?? globals.get(keyFor('overview')) ?? globals.values().next().value;
     let covered = false;
     for (const surface of [departing, current]) {
       if (!surface) continue;
@@ -92,14 +94,15 @@ export function createWorldRaster(svg: SVGSVGElement, worldHeight: number, onAct
       const right = left + view.width * scale;
       const bottom = top + view.height * scale;
       const intersects = right > 0 && left < viewport.width && bottom > 0 && top < viewport.height;
-      surface.layer.hidden = !intersects;
-      if (intersects) surface.layer.style.transform = `translate3d(${left}px,${top}px,0) scale(${scale})`;
-      covered ||= left <= 0 && top <= 0 && right >= viewport.width && bottom >= viewport.height;
+      const coversViewport = left <= 0 && top <= 0 && right >= viewport.width && bottom >= viewport.height;
+      // Use one terrain image during motion so the browser does not blend a partial second surface.
+      const visible = intersects && (!moving || coversViewport || !option || Boolean(departing));
+      surface.layer.hidden = !visible;
+      if (visible) surface.layer.style.transform = `translate3d(${left}px,${top}px,0) scale(${scale})`;
+      covered ||= coversViewport;
     }
     global.hidden = covered && !departing;
     if (global.hidden) return;
-    const option = globals.get(keyFor(current?.capture.level ?? level)) ?? globals.get(keyFor(level))
-      ?? globals.get(keyFor('overview')) ?? globals.values().next().value;
     if (!option) return;
     const tile = transform.k * worldWidth;
     const x = transform.x - Math.ceil(transform.x / tile) * tile;
