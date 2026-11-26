@@ -37,7 +37,6 @@ export function createWorldRaster(
   let camera: Camera | undefined;
   let water = true;
   let moving = false;
-  let zooming = false;
   let alive = true;
   let sequence = 0;
 
@@ -89,8 +88,8 @@ export function createWorldRaster(
     }
     const pixelRatio = devicePixelRatio || 1;
     const { k } = transform;
-    // Only an unscaled image can bridge. Zoom frames need no overscan until the camera rests.
-    const margin = zooming ? 0 : cacheMargin;
+    // Refresh the 1.5× bridge buffer at rest. Live frames paint the screen itself.
+    const margin = moving ? 0 : cacheMargin;
     const marginX = Math.round(viewport.width * margin * pixelRatio) / pixelRatio;
     const marginY = Math.round(viewport.height * margin * pixelRatio) / pixelRatio;
     const width = Math.round(viewport.width * pixelRatio) / pixelRatio + 2 * marginX;
@@ -184,7 +183,6 @@ export function createWorldRaster(
 
   return {
     draw(transform: ZoomTransform, viewport: Size, zoom: number, detail: boolean, minor: boolean) {
-      if (moving && camera && camera.transform.k !== transform.k) zooming = true;
       const changed = !camera || camera.zoom !== zoom || camera.detail !== detail || camera.minor !== minor
         || camera.transform.x !== transform.x || camera.transform.y !== transform.y
         || camera.viewport.width !== viewport.width || camera.viewport.height !== viewport.height;
@@ -192,10 +190,7 @@ export function createWorldRaster(
       request();
       return alive ? position() : transform;
     },
-    setMoving(active: boolean) {
-      moving = active;
-      if (!active) zooming = false;
-    },
+    setMoving(active: boolean) { moving = active; },
     load(level: TerrainLevel, url: string) {
       if (!alive) return;
       urls.set(level, url);
